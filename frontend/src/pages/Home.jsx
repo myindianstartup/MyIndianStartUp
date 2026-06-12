@@ -3,55 +3,85 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   BadgeCheck,
-  BarChart3,
-  Building2,
   Check,
   CheckCircle2,
   Circle,
   Clock3,
   Eye,
-  FileText,
   Globe2,
   Handshake,
   IndianRupee,
-  Landmark,
-  Layers,
   MapPin,
   MessageSquare,
   Search,
   ShieldCheck,
   Scale,
-  Sparkles,
-  Star,
   Target,
-  TrendingUp,
-  Users,
-  Wallet,
-  X
+  Users
 } from 'lucide-react';
+
+const sectionAccent = (accent = 'blue') => {
+  if (accent === 'orange') {
+    return { line: 'to-orange-500', text: 'text-orange-500' };
+  }
+  if (accent === 'muted') {
+    return { line: 'to-slate-400', text: 'text-slate-500' };
+  }
+  return { line: 'to-blue-600', text: 'text-blue-600' };
+};
+
+const SectionEyebrow = ({ children, accent = 'blue', className = '' }) => {
+  const { line, text } = sectionAccent(accent);
+
+  return (
+    <div className={`inline-flex items-center gap-3 ${className}`}>
+      <span className={`h-px w-10 bg-gradient-to-r from-transparent ${line}`} />
+      <span className={`text-[12px] font-bold uppercase tracking-[0.28em] ${text}`}>
+        {children}
+      </span>
+      <span className={`h-px w-10 bg-gradient-to-l from-transparent ${line}`} />
+    </div>
+  );
+};
+
+const SectionHeader = ({ eyebrow, title, description, accent = 'blue' }) => (
+  <div className="mx-auto max-w-4xl text-center">
+    <SectionEyebrow accent={accent} className="mx-auto">
+      {eyebrow}
+    </SectionEyebrow>
+    <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
+      {title}
+    </h2>
+    {description && (
+      <p className="mx-auto mt-4 max-w-2xl text-[15px] font-normal leading-7 text-slate-600 sm:text-base">
+        {description}
+      </p>
+    )}
+  </div>
+);
 
 const stepCards = [
   {
     number: '01',
     icon: <MessageSquare className="h-5 w-5 text-blue-600" />,
-    title: 'Create your profile',
-    description: 'Register as a BusinessVerse or CreatorVerse member and build your professional presence.',
+    title: 'Create Your Profile',
+    description: 'Register as a Business or Creator and build your professional presence.',
     action: 'Create profile',
     to: '/signup'
   },
   {
     number: '02',
     icon: <Search className="h-5 w-5 text-orange-500" />,
-    title: 'Publish daily updates',
-    description: 'Share one image or one video every 24 hours to showcase work, services, products, or achievements.',
+    title: 'Publish Daily Updates',
+    description: 'Share one image or one video every day to showcase your work, products, services, or achievements.',
     action: 'Start posting',
     to: '/post-verse'
   },
   {
     number: '03',
     icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />,
-    title: 'Connect directly',
-    description: 'Discover businesses and creators across India and collaborate without middlemen or platform commission.',
+    title: 'Connect & Collaborate',
+    description: 'Discover businesses and creators across India and connect directly without any platform commission.',
     action: 'Connect now',
     to: '/search-verse'
   }
@@ -61,32 +91,50 @@ const valueHighlights = [
   {
     icon: <IndianRupee className="h-5 w-5 text-blue-600" />,
     iconWrap: 'bg-blue-50',
-    title: 'Rs 999/Year',
-    description: 'Affordable pricing'
+    title: '₹999 Annual Membership',
+    description: 'Simple, transparent pricing'
   },
   {
-    icon: <ShieldCheck className="h-5 w-5 text-emerald-600" />,
+    icon: <BadgeCheck className="h-5 w-5 text-emerald-600" />,
     iconWrap: 'bg-emerald-50',
-    title: 'No Hidden Charges',
-    description: 'What you see is what you pay'
+    title: 'No Commission Charges',
+    description: 'Keep 100% of your deals'
   },
   {
-    icon: <BadgeCheck className="h-5 w-5 text-blue-600" />,
-    iconWrap: 'bg-blue-50',
-    title: 'No Commission',
-    description: 'Keep 100% of earnings'
+    icon: <Target className="h-5 w-5 text-orange-500" />,
+    iconWrap: 'bg-orange-50',
+    title: 'No Lead Purchase System',
+    description: 'Connect without buying leads'
   },
   {
-    icon: <Target className="h-5 w-5 text-blue-600" />,
+    icon: <ShieldCheck className="h-5 w-5 text-blue-600" />,
     iconWrap: 'bg-blue-50',
-    title: 'No Lead Charges',
-    description: 'Connect without extra cost'
+    title: 'No Success Fees',
+    description: 'No revenue sharing ever'
   },
   {
     icon: <Handshake className="h-5 w-5 text-blue-600" />,
     iconWrap: 'bg-blue-50',
-    title: 'Direct Deals',
-    description: 'Work & grow together'
+    title: 'Direct Connections',
+    description: 'Business-to-creator, no middlemen'
+  },
+  {
+    icon: <Globe2 className="h-5 w-5 text-orange-500" />,
+    iconWrap: 'bg-orange-50',
+    title: 'PAN India Network',
+    description: 'Opportunities across every state'
+  },
+  {
+    icon: <Eye className="h-5 w-5 text-blue-600" />,
+    iconWrap: 'bg-blue-50',
+    title: 'Daily Visibility',
+    description: 'Fair exposure for every member'
+  },
+  {
+    icon: <Scale className="h-5 w-5 text-emerald-600" />,
+    iconWrap: 'bg-emerald-50',
+    title: 'Equal Exposure',
+    description: 'No feed domination'
   }
 ];
 
@@ -116,41 +164,67 @@ const growthTrend = {
 const chartPath = (points) => points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ');
 
 const businessBullets = [
-  'Business listing',
-  '365 days marketing',
-  'Daily visibility posts',
-  'Creator discovery',
-  'PAN India reach'
+  'Business Listing',
+  'Daily Visibility',
+  'Creator Discovery',
+  'Industry Networking',
+  'Direct Collaboration'
 ];
 
 const creatorBullets = [
-  'Professional listing',
-  'Portfolio showcase',
-  'Business discovery',
-  'Daily exposure',
-  'Personal branding'
+  'Professional Profile',
+  'Portfolio Visibility',
+  'Daily Exposure',
+  'Collaboration Opportunities',
+  'Personal Branding'
 ];
 
-const comparisonRows = [
-  ['Rs 999 annual membership', true, false, false],
-  ['No commission charges', true, false, false],
-  ['No lead purchase system', true, false, false],
-  ['Direct business-to-creator connections', true, false, false],
-  ['Daily visibility for every member', true, false, false],
-  ['PAN India network', true, false, false]
+const membershipBusinessBenefits = [
+  'Business Listing',
+  'Search Creators',
+  'Daily Marketing',
+  'Direct Connections',
+  '365 Days Access'
 ];
 
-const industries = [
-  { title: 'Fintech', icon: <Landmark className="h-5 w-5 text-blue-600" /> },
-  { title: 'Edtech', icon: <Building2 className="h-5 w-5 text-emerald-600" /> },
-  { title: 'E-commerce', icon: <Wallet className="h-5 w-5 text-pink-600" /> },
-  { title: 'Web3', icon: <Layers className="h-5 w-5 text-orange-600" /> },
-  { title: 'D2C', icon: <Building2 className="h-5 w-5 text-indigo-600" /> },
-  { title: 'SaaS', icon: <Globe2 className="h-5 w-5 text-sky-600" /> },
-  { title: 'Healthcare', icon: <Sparkles className="h-5 w-5 text-red-600" /> },
-  { title: 'AI & DeepTech', icon: <BarChart3 className="h-5 w-5 text-slate-700" /> },
-  { title: 'Agritech', icon: <MapPin className="h-5 w-5 text-green-600" /> },
-  { title: 'CleanTech', icon: <TrendingUp className="h-5 w-5 text-yellow-600" /> }
+const membershipCreatorBenefits = [
+  'Professional Listing',
+  'Portfolio Showcase',
+  'Business Discovery',
+  'Daily Visibility',
+  '365 Days Access'
+];
+
+const noAdditionalCharges = [
+  'No Commission Charges',
+  'No Lead Purchase Fees',
+  'No Success Fees',
+  'No Hidden Charges',
+  'No Transaction Fees',
+  'No Revenue Sharing',
+  'No Project-Based Charges',
+  'No Monthly Charges'
+];
+
+const coverageCards = [
+  {
+    icon: Globe2,
+    tone: 'blue',
+    title: 'PAN India network',
+    copy: 'MyIndianStartup brings together businesses, creators, freelancers, and professionals from every corner of India.'
+  },
+  {
+    icon: Users,
+    tone: 'orange',
+    title: 'Opportunities everywhere',
+    copy: 'Promote your business, discover opportunities, hire skilled talent, and build valuable industry connections.'
+  },
+  {
+    icon: Handshake,
+    tone: 'blue',
+    title: 'Collaborate & grow',
+    copy: 'From startups and local businesses to creators and industry professionals — succeed together beyond boundaries.'
+  }
 ];
 
 const IndiaCoveragePins = [
@@ -337,6 +411,16 @@ const Home = () => {
           transition: transform 0.24s ease;
         }
 
+        .equal-card {
+          display: flex;
+          flex-direction: column;
+          min-height: 100%;
+        }
+
+        .equal-card-body {
+          flex: 1 1 auto;
+        }
+
         .verse-choice-card.business:hover {
           border-color: rgba(249, 115, 22, 0.32);
           box-shadow: 0 26px 70px rgba(249, 115, 22, 0.13);
@@ -424,28 +508,32 @@ const Home = () => {
               </div>
 
               <h1 className="mt-6 max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
-                India&apos;s biggest <span className="text-orange-500">Business</span> &amp; <span className="text-blue-600">Creator</span> collaboration platform.
+                India&apos;s Biggest <span className="text-orange-500">Business</span> &amp; <span className="text-blue-600">Creator</span> Collaboration Platform
               </h1>
 
               <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 md:text-lg">
-                Build your presence, showcase your work, publish daily updates, and connect with business or creator opportunities across India.
+                Build your presence, showcase your work, publish daily updates, and connect with opportunities across India.
+              </p>
+              <p className="mt-3 max-w-lg text-sm leading-7 text-slate-500 md:text-base">
+                Whether you&apos;re a business looking for creators or a creator looking for opportunities,
+                MyIndianStartup helps you connect, collaborate, and grow.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-4">
                 <button
-                  onClick={() => navigate('/business-verse')}
+                  onClick={() => navigate('/signup')}
                   className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
                   data-testid="hero-cta-business"
                 >
-                  <span>Join as Business</span>
+                  <span>Create BusinessVerse Profile</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => navigate('/creator-verse')}
+                  onClick={() => navigate('/signup')}
                   className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)] transition-transform hover:scale-[1.02] hover:bg-blue-700"
                   data-testid="hero-cta-creator"
                 >
-                  <span>Join as  Creator</span>
+                  <span>Create CreatorVerse Profile</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -486,6 +574,29 @@ const Home = () => {
             </div>
 
             <div className="lg:col-span-6 lg:pt-10">
+              <div className="relative mx-auto mb-6 max-w-[620px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,247,237,0.9))] shadow-[0_22px_70px_rgba(15,23,42,0.11)] lg:ml-auto">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.12),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(37,99,235,0.12),transparent_40%)]" />
+                <div className="relative flex min-h-[220px] items-end justify-center px-6 pb-0 pt-8 md:min-h-[260px]">
+                  <img
+                    src="/assets/auth-characters.png"
+                    alt="Business and creator collaboration across India"
+                    className="max-h-[220px] w-auto object-contain drop-shadow-[0_24px_38px_rgba(15,23,42,0.16)] md:max-h-[250px]"
+                  />
+                </div>
+                <div className="relative border-t border-white/70 bg-white/80 px-5 py-4 backdrop-blur">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">Platform preview</div>
+                      <div className="mt-1 text-sm font-bold text-slate-900">See how businesses &amp; creators connect daily</div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="mx-auto max-w-[620px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_22px_70px_rgba(15,23,42,0.11)] lg:ml-auto">
                 <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-2.5">
                   <div className="flex gap-2">
@@ -610,39 +721,30 @@ const Home = () => {
 
       <section className="bg-white pb-16 pt-8 md:pb-20 md:pt-10">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
-          <div className="mx-auto max-w-4xl text-center">
-            <div className="inline-flex items-center gap-3">
-              <span className="h-px w-10 bg-gradient-to-r from-transparent to-blue-600" />
-              <span className="text-[12px] font-bold uppercase tracking-[0.28em] text-blue-600">
-                How it works
-              </span>
-              <span className="h-px w-10 bg-gradient-to-l from-transparent to-blue-600" />
-            </div>
+          <SectionHeader
+            eyebrow="How it works"
+            title="How It Works"
+            description="Three simple steps to build visibility, publish daily, and connect directly across India."
+          />
 
-            <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
-              Create your profile. Post daily. Connect directly.
-            </h2>
-
-            <p className="mx-auto mt-4 max-w-2xl text-[15px] font-normal leading-7 text-slate-600 sm:text-base">
-              Move from account setup to daily visibility and real collaboration without hidden charges, lead fees, or middlemen.
-            </p>
-
-          </div>
-
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <div className="mt-10 grid gap-6 md:grid-cols-3 md:items-stretch">
             {stepCards.map((step) => (
               <div
                 key={step.number}
-                className="relative rounded-[1.75rem] border border-slate-200 bg-white p-7 shadow-[0_12px_40px_rgba(15,23,42,0.05)] transition-transform hover:-translate-y-1"
+                className="equal-card relative min-h-[320px] rounded-[1.75rem] border border-slate-200 bg-white p-7 shadow-[0_12px_40px_rgba(15,23,42,0.05)] transition-transform hover:-translate-y-1"
               >
                 <div className="absolute right-6 top-6 text-2xl font-bold text-slate-300/90">{step.number}</div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50">{step.icon}</div>
-                <h3 className="mt-6 text-lg font-bold leading-snug tracking-[-0.01em] text-slate-950">{step.title}</h3>
-                <p className="mt-3 text-[15px] leading-7 text-slate-600">{step.description}</p>
+                <div className="equal-card-body">
+                  <h3 className="mt-6 min-h-[3.25rem] text-lg font-bold leading-snug tracking-[-0.01em] text-slate-950">
+                    {step.title}
+                  </h3>
+                  <p className="mt-3 min-h-[6.5rem] text-[15px] leading-7 text-slate-600">{step.description}</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => navigate(step.to)}
-                  className="mt-6 inline-flex items-center gap-1 rounded-full px-0 text-sm font-semibold text-slate-900 transition-all hover:gap-2 hover:text-blue-600"
+                  className="mt-6 inline-flex items-center gap-1 self-start rounded-full px-0 text-sm font-semibold text-slate-900 transition-all hover:gap-2 hover:text-blue-600"
                 >
                   <span>{step.action}</span>
                   <ArrowRight className="h-4 w-4" />
@@ -656,10 +758,12 @@ const Home = () => {
       <section className="bg-[#f8fafc] py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-6 px-6 md:grid-cols-2 md:px-12">
           <div className="verse-choice-card business rounded-[2rem] border border-orange-100 bg-[linear-gradient(180deg,rgba(255,247,237,0.9),rgba(255,255,255,0.98))] p-8 text-slate-950 shadow-[0_20px_60px_rgba(249,115,22,0.07)] md:p-10">
-            <div className="text-[11px] font-black uppercase tracking-[0.32em] text-orange-500">BusinessVerse</div>
-            <h3 className="mt-3 text-3xl font-black tracking-[-0.04em]">Grow your business through visibility and collaboration.</h3>
+            <SectionEyebrow accent="orange">For BusinessVerse</SectionEyebrow>
+            <h3 className="mt-5 text-2xl font-semibold leading-[1.2] tracking-[-0.01em] sm:text-3xl">
+              Find The Right Talent For Your Business. Connect with them.
+            </h3>
             <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600">
-              Create a business profile, showcase products and services, publish daily updates, and connect with creators and professionals across India.
+              List your business, gain daily visibility, discover creators, and collaborate directly across India.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -681,10 +785,12 @@ const Home = () => {
           </div>
 
           <div className="verse-choice-card creator rounded-[2rem] border border-blue-100 bg-[linear-gradient(180deg,rgba(239,246,255,0.92),rgba(255,255,255,0.98))] p-8 shadow-[0_20px_60px_rgba(37,99,235,0.08)] md:p-10">
-            <div className="text-[11px] font-black uppercase tracking-[0.32em] text-blue-600">CreatorVerse</div>
-            <h3 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950">Get discovered by businesses across India.</h3>
+            <SectionEyebrow accent="blue">For CreatorVerse</SectionEyebrow>
+            <h3 className="mt-5 text-2xl font-semibold leading-[1.2] tracking-[-0.01em] text-slate-950 sm:text-3xl">
+              Get Discovered By Businesses Across India
+            </h3>
             <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600">
-              Build your creator profile, showcase your skills, publish daily updates, and connect directly with businesses looking for your expertise.
+              Build your professional profile, showcase your portfolio, and connect with businesses looking for your talent.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -783,21 +889,20 @@ const Home = () => {
           </div>
 
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Daily visibility system</div>
-            <h2 className="mt-3 text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 md:text-5xl">
-              Fair by design.
-              <span className="block text-slate-400">Loud by quality.</span>
+            <SectionEyebrow accent="orange">Daily Visibility System</SectionEyebrow>
+            <h2 className="mt-5 max-w-2xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
+              Fair Visibility For Every Member
             </h2>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600">
-              One post every 24 hours. That&apos;s it. We rotate visibility equally so small businesses, solo creators, and big agencies all stand on the same stage.
+            <p className="mt-4 max-w-2xl text-[15px] font-normal leading-7 text-slate-600 sm:text-base">
+              To ensure equal exposure, every business and creator gets a fair chance to be discovered — no paid boosts, no feed domination.
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {[
-                [Clock3, '1 post every 24 hours', 'One image OR one video. Quality over noise.'],
-                [Scale, 'Equal visibility', 'No paid boosts. Everyone gets a fair slot.'],
-                [Eye, 'No feed domination', 'Big budgets can not bury small voices.'],
-                [ShieldCheck, 'Fair exposure system', 'Algorithm rotates posts evenly across India.']
+                [Clock3, '1 post every 24 hours', 'Only 1 image OR 1 video can be posted every 24 hours.'],
+                [Scale, 'Equal visibility', 'Every business and creator gets a fair chance to be discovered.'],
+                [Eye, 'No feed domination', 'No member can dominate the feed.'],
+                [ShieldCheck, 'Fair exposure system', 'Visibility rotates evenly across India.']
               ].map(([Icon, title, text]) => (
                 <div key={title} className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
@@ -814,162 +919,199 @@ const Home = () => {
 
       <section className="border-y border-slate-100 bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
-          <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Comparison</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Built different. Priced honestly.</h2>
+          <SectionHeader
+            eyebrow="Why MyIndianStartup?"
+            title="Visibility, discovery, and collaboration — in one platform."
+            description="Most platforms focus on either networking, freelancing, or social media. MyIndianStartup combines all three in one place."
+          />
+
+          <div className="mx-auto mt-8 max-w-3xl rounded-[1.5rem] border border-orange-100 bg-gradient-to-r from-orange-50/80 via-white to-blue-50/80 px-6 py-5 text-center shadow-sm">
+            <p className="text-[15px] font-semibold leading-7 text-slate-800">
+              Direct Deals. No Middlemen. — Businesses and creators connect directly and keep 100% of their agreed project value.
+            </p>
           </div>
 
-          <div className="mt-12 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
-            <table className="w-full border-collapse text-left text-xs sm:text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80">
-                  <th className="w-1/2 p-5 font-black text-slate-900 md:p-6">Key features</th>
-                  <th className="w-1/6 border-x border-blue-100 bg-blue-50/70 p-5 text-center font-black text-blue-700 md:p-6">MyIndianStartup</th>
-                  <th className="w-1/6 p-5 text-center font-bold text-slate-400 md:p-6">Agencies</th>
-                  <th className="w-1/6 p-5 text-center font-bold text-slate-400 md:p-6">Freelance portals</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparisonRows.map(([feature, ours, agencies, portals]) => (
-                  <tr key={feature} className="border-b border-slate-100 last:border-b-0">
-                    <td className="p-5 font-semibold text-slate-800 md:p-6">{feature}</td>
-                    {[ours, agencies, portals].map((enabled, colIndex) => (
-                      <td key={colIndex} className={`p-5 text-center md:p-6 ${colIndex === 0 ? 'border-x border-blue-100 bg-blue-50/30' : ''}`}>
-                        <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${enabled ? 'bg-blue-100 text-blue-700' : 'bg-red-50 text-red-500'}`}>
-                          {enabled ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white py-16 md:py-20">
-        <div className="mx-auto max-w-7xl px-6 md:px-12">
-          <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Industries</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Verticals built for India&apos;s economy.</h2>
-          </div>
-
-          <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-            {industries.map((item) => (
-              <div key={item.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm transition-transform hover:-translate-y-1">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4 md:items-stretch">
+            {valueHighlights.map((item) => (
+              <div
+                key={item.title}
+                className="equal-card min-h-[148px] rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm transition-transform hover:-translate-y-1"
+              >
+                <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.iconWrap}`}>
                   {item.icon}
                 </div>
-                <div className="mt-4 text-sm font-black text-slate-800">{item.title}</div>
+                <h3 className="mt-4 text-[15px] font-bold leading-snug text-slate-950">{item.title}</h3>
+                <p className="mt-2 text-sm font-normal leading-6 text-slate-500">{item.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-[#fbfbfd] py-16 md:py-20">
-        <div className="mx-auto grid max-w-7xl gap-12 px-6 md:grid-cols-[0.9fr_1.1fr] md:px-12">
-          <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Coverage</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">One platform. Twenty-eight states.</h2>
+      <section className="bg-white py-16 md:py-20">
+        <div className="mx-auto max-w-7xl px-6 md:px-12">
+          <SectionHeader
+            eyebrow="Membership Benefits"
+            title="Built For Businesses & Creators Across India"
+            description="Choose BusinessVerse or CreatorVerse — both included in one annual membership."
+            accent="orange"
+          />
 
-            <div className="mt-8 grid grid-cols-3 gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
-              {coverageStats.map((stat, index) => (
-                <div key={stat.label} className={index === 1 ? 'border-x border-slate-100 px-4' : ''}>
-                  <div className="text-3xl font-black tracking-tight text-slate-950">
-                    <AnimatedStat value={stat.value} suffix={stat.suffix} compact={stat.compact} precision={stat.precision} />
+          <div className="mt-12 grid gap-6 lg:grid-cols-2 lg:items-stretch">
+            <div className="rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-50/80 to-white p-7 shadow-sm md:p-8">
+              <SectionEyebrow accent="orange">BusinessVerse</SectionEyebrow>
+              <div className="mt-5 grid gap-3">
+                {membershipBusinessBenefits.map((item) => (
+                  <div key={item} className="flex items-center gap-3 rounded-xl bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700">
+                    <Check className="h-4 w-4 text-orange-500" />
+                    <span>{item}</span>
                   </div>
-                  <div className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{stat.label}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <span>Coverage map</span>
-              </div>
-              <div className="relative mt-5 aspect-square overflow-hidden rounded-[1.6rem] border border-slate-100 bg-white">
-                <img
-                  src="/assets/india-coverage-map.png"
-                  alt="India coverage map"
-                  className="india-map-shape absolute inset-0 h-full w-full object-cover"
-                />
-                <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-                  <path
-                    className="coverage-route"
-                    d="M45 31 C36 39 28 46 25 51 C26 58 28 62 30 64 C35 74 38 80 40 83 C43 85 47 86 49 86 C55 76 64 64 72 55 C66 46 55 37 45 31 Z"
-                    stroke="rgba(37,99,235,0.14)"
-                    strokeWidth="0.8"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    className="coverage-route"
-                    d="M45 31 C52 38 62 47 72 55"
-                    stroke="rgba(249,115,22,0.16)"
-                    strokeWidth="0.8"
-                    strokeLinecap="round"
-                    style={{ animationDelay: '-4s' }}
-                  />
-                  <path
-                    className="coverage-route"
-                    d="M30 64 C36 66 42 68 48 69 C55 66 64 60 72 55"
-                    stroke="rgba(37,99,235,0.13)"
-                    strokeWidth="0.7"
-                    strokeLinecap="round"
-                    style={{ animationDelay: '-4s' }}
-                  />
-                </svg>
-
-                {IndiaCoveragePins.map((pin, index) => (
-                  <div
-                    key={pin.label}
-                    className="coverage-pin absolute flex items-center gap-2"
-                    style={{ top: pin.top, left: pin.left, animationDelay: `${index * 0.18}s` }}
-                  >
-                    <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-[0_8px_18px_rgba(15,23,42,0.12)]">
-                      <span
-                        className={`coverage-pin-dot h-3 w-3 rounded-full ${pin.tone === 'orange' ? 'bg-orange-500' : 'bg-blue-600'}`}
-                        style={{ animationDelay: `${index * 0.2}s` }}
-                      />
-                    </span>
-                    <span className="coverage-pin-label whitespace-nowrap rounded-lg border border-slate-100 bg-white/95 px-2.5 py-1 text-[10px] font-black leading-none text-slate-700">
-                      {pin.label}
-                    </span>
+            <div className="rounded-[2rem] border border-blue-100 bg-gradient-to-br from-blue-50/80 to-white p-7 shadow-sm md:p-8">
+              <SectionEyebrow accent="blue">CreatorVerse</SectionEyebrow>
+              <div className="mt-5 grid gap-3">
+                {membershipCreatorBenefits.map((item) => (
+                  <div key={item} className="flex items-center gap-3 rounded-xl bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700">
+                    <Check className="h-4 w-4 text-blue-600" />
+                    <span>{item}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="flex items-end">
-            <div className="w-full rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)] md:p-8">
-              <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Membership</div>
-              <div className="mt-3 flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-3xl font-black tracking-[-0.04em] text-slate-950">One flat fee. No surprises.</h3>
-                  <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600">One annual membership for visibility, discovery, direct collaboration, and 365 days of access.</p>
-                </div>
-                <div className="min-w-[136px] rounded-2xl bg-orange-50 px-5 py-3 text-right">
-                  <div className="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">Annual</div>
-                  <div className="mt-1 flex items-baseline justify-end gap-1 whitespace-nowrap text-slate-950">
-                    <span className="text-lg font-black tracking-tight">Rs</span>
-                    <span className="text-3xl font-black tracking-tight">999</span>
+      <section className="bg-[#fbfbfd] py-16 md:py-20">
+        <div className="mx-auto max-w-7xl px-6 md:px-12">
+          <SectionHeader
+            eyebrow="India Coverage"
+            title="Connect beyond geographical boundaries."
+            description="A nationwide platform for businesses, creators, freelancers, and professionals to collaborate, grow, and succeed together."
+          />
+
+          <div className="mt-10 grid gap-6 md:grid-cols-3 md:items-stretch">
+            {coverageCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.title}
+                  className="equal-card min-h-[220px] rounded-[1.75rem] border border-slate-200 bg-white p-7 shadow-[0_12px_40px_rgba(15,23,42,0.05)] transition-transform hover:-translate-y-1"
+                >
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                      card.tone === 'orange' ? 'bg-orange-50 text-orange-500' : 'bg-blue-50 text-blue-600'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
                   </div>
+                  <h3 className="mt-6 min-h-[3rem] text-lg font-bold leading-snug tracking-[-0.01em] text-slate-950">
+                    {card.title}
+                  </h3>
+                  <p className="mt-3 text-[15px] leading-7 text-slate-600">{card.copy}</p>
                 </div>
-              </div>
+              );
+            })}
+          </div>
 
-              <div className="mt-8 grid gap-3">
-                {[
-                  'BusinessVerse or CreatorVerse access',
-                  'Daily image or video posting',
-                  'Direct collaboration with no commission',
-                  'PAN India visibility and discovery',
-                  'No lead charges or hidden fees'
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-                    <Check className="h-4 w-4 text-blue-600" />
+          <div className="mt-8 grid grid-cols-3 gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
+            {coverageStats.map((stat, index) => (
+              <div key={stat.label} className={index === 1 ? 'border-x border-slate-100 px-4' : ''}>
+                <div className="text-3xl font-semibold tracking-tight text-slate-950">
+                  <AnimatedStat value={stat.value} suffix={stat.suffix} compact={stat.compact} precision={stat.precision} />
+                </div>
+                <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mx-auto mt-6 max-w-2xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <MapPin className="h-4 w-4 text-blue-600" />
+              <span>Coverage map — 28 states &amp; growing</span>
+            </div>
+            <div className="relative mt-5 aspect-square overflow-hidden rounded-[1.6rem] border border-slate-100 bg-white">
+              <img
+                src="/assets/india-coverage-map.png"
+                alt="India coverage map"
+                className="india-map-shape absolute inset-0 h-full w-full object-cover"
+              />
+              <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+                <path
+                  className="coverage-route"
+                  d="M45 31 C36 39 28 46 25 51 C26 58 28 62 30 64 C35 74 38 80 40 83 C43 85 47 86 49 86 C55 76 64 64 72 55 C66 46 55 37 45 31 Z"
+                  stroke="rgba(37,99,235,0.14)"
+                  strokeWidth="0.8"
+                  strokeLinecap="round"
+                />
+                <path
+                  className="coverage-route"
+                  d="M45 31 C52 38 62 47 72 55"
+                  stroke="rgba(249,115,22,0.16)"
+                  strokeWidth="0.8"
+                  strokeLinecap="round"
+                  style={{ animationDelay: '-4s' }}
+                />
+                <path
+                  className="coverage-route"
+                  d="M30 64 C36 66 42 68 48 69 C55 66 64 60 72 55"
+                  stroke="rgba(37,99,235,0.13)"
+                  strokeWidth="0.7"
+                  strokeLinecap="round"
+                  style={{ animationDelay: '-4s' }}
+                />
+              </svg>
+
+              {IndiaCoveragePins.map((pin, index) => (
+                <div
+                  key={pin.label}
+                  className="coverage-pin absolute flex items-center gap-2"
+                  style={{ top: pin.top, left: pin.left, animationDelay: `${index * 0.18}s` }}
+                >
+                  <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-[0_8px_18px_rgba(15,23,42,0.12)]">
+                    <span
+                      className={`coverage-pin-dot h-3 w-3 rounded-full ${pin.tone === 'orange' ? 'bg-orange-500' : 'bg-blue-600'}`}
+                      style={{ animationDelay: `${index * 0.2}s` }}
+                    />
+                  </span>
+                  <span className="coverage-pin-label whitespace-nowrap rounded-lg border border-slate-100 bg-white/95 px-2.5 py-1 text-[10px] font-bold leading-none text-slate-700">
+                    {pin.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-16 md:py-20">
+        <div className="mx-auto max-w-7xl px-6 md:px-12">
+          <SectionHeader
+            eyebrow="Annual Membership"
+            title="Simple. Transparent. Affordable."
+            description="At MyIndianStartup, we believe in direct and transparent connections. Your membership includes access to either BusinessVerse or CreatorVerse."
+            accent="orange"
+          />
+
+          <div className="mx-auto mt-10 max-w-4xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+            <div className="border-b border-slate-100 bg-gradient-to-r from-orange-50/70 via-white to-blue-50/70 px-6 py-8 text-center md:px-10">
+              <div className="text-[12px] font-bold uppercase tracking-[0.28em] text-slate-500">One annual membership</div>
+              <div className="mt-3 flex items-end justify-center gap-2">
+                <IndianRupee className="mb-2 h-7 w-7 text-slate-400" />
+                <span className="text-5xl font-semibold tracking-tight text-slate-950 md:text-6xl">999</span>
+                <span className="mb-2 text-base font-semibold text-slate-400">/ year</span>
+              </div>
+            </div>
+
+            <div className="p-6 md:p-8">
+              <div className="text-[12px] font-bold uppercase tracking-[0.22em] text-slate-400">No Additional Charges</div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {noAdditionalCharges.map((item) => (
+                  <div key={item} className="flex items-center gap-2 rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+                    <Check className="h-4 w-4 shrink-0 text-emerald-600" />
                     <span>{item}</span>
                   </div>
                 ))}
@@ -979,7 +1121,37 @@ const Home = () => {
                 onClick={() => navigate('/pricing')}
                 className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)] transition-transform hover:scale-[1.01] hover:bg-blue-700"
               >
-                <span>Buy annual membership</span>
+                <span>View full pricing</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-16 md:py-20">
+        <div className="mx-auto max-w-7xl px-6 md:px-12">
+          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.07),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.08),transparent_42%)] p-8 md:p-12">
+            <SectionHeader
+              eyebrow="Get started today"
+              title="Ready To Build Connections Across India?"
+              description="Join thousands of businesses and creators building visibility and opportunities."
+              accent="muted"
+            />
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <button
+                onClick={() => navigate('/signup')}
+                className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
+              >
+                <span>Create BusinessVerse Profile</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => navigate('/signup')}
+                className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)] transition-transform hover:scale-[1.02] hover:bg-blue-700"
+              >
+                <span>Create CreatorVerse Profile</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>

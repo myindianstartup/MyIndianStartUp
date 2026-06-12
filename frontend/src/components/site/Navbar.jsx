@@ -1,11 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, Search, Sparkles, X } from 'lucide-react';
+import LoginPromptModal from '@/components/site/LoginPromptModal';
+
+const isAuthenticated = () => {
+  if (typeof window === 'undefined') return false;
+  return Boolean(window.localStorage.getItem('myindianstartup_auth_mode'));
+};
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchPromptOpen, setSearchPromptOpen] = useState(false);
   const location = useLocation();
+
+  const handleSearchClick = (event) => {
+    event.preventDefault();
+    setMobileMenuOpen(false);
+    if (isAuthenticated()) {
+      navigate('/search-verse');
+      return;
+    }
+    setSearchPromptOpen(true);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,14 +66,15 @@ const Navbar = () => {
             </span>
           </Link>
 
-          <Link
-            to="/search-verse"
+          <button
+            type="button"
+            onClick={handleSearchClick}
             className="hidden min-w-[300px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-slate-200 bg-slate-50/70 px-5 py-3 text-base text-slate-500 shadow-[0_3px_10px_rgba(15,23,42,0.06)] transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-slate-700 lg:flex"
             data-testid="nav-search"
           >
             <Search className="h-5 w-5 shrink-0 text-slate-400" />
             <span className="truncate">Search creators, businesses, industries...</span>
-          </Link>
+          </button>
 
           {/* Desktop Nav Items */}
           <div className="hidden items-center gap-1 xl:flex">
@@ -144,14 +163,14 @@ const Navbar = () => {
           </button>
         </div>
 
-        <Link
-          to="/search-verse"
-          onClick={() => setMobileMenuOpen(false)}
-          className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
+        <button
+          type="button"
+          onClick={handleSearchClick}
+          className="flex w-full items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
         >
           <Search className="h-5 w-5 text-slate-400" />
           <span>Search creators, businesses...</span>
-        </Link>
+        </button>
 
         <div className="flex flex-col gap-6 mt-8">
           {navItems.map((item) => (
@@ -186,6 +205,8 @@ const Navbar = () => {
           </Link>
         </div>
       </div>
+
+      <LoginPromptModal open={searchPromptOpen} onClose={() => setSearchPromptOpen(false)} />
     </>
   );
 };
