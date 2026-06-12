@@ -36,21 +36,24 @@ const stepCards = [
     icon: <MessageSquare className="h-5 w-5 text-blue-600" />,
     title: 'Create your profile',
     description: 'Register as a BusinessVerse or CreatorVerse member and build your professional presence.',
-    action: 'Create profile'
+    action: 'Create profile',
+    to: '/signup'
   },
   {
     number: '02',
     icon: <Search className="h-5 w-5 text-orange-500" />,
     title: 'Publish daily updates',
     description: 'Share one image or one video every 24 hours to showcase work, services, products, or achievements.',
-    action: 'Start posting'
+    action: 'Start posting',
+    to: '/post-verse'
   },
   {
     number: '03',
     icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />,
     title: 'Connect directly',
     description: 'Discover businesses and creators across India and collaborate without middlemen or platform commission.',
-    action: 'Connect now'
+    action: 'Connect now',
+    to: '/search-verse'
   }
 ];
 
@@ -86,6 +89,31 @@ const valueHighlights = [
     description: 'Work & grow together'
   }
 ];
+
+const growthTrend = {
+  business: [
+    [18, 84],
+    [60, 68],
+    [102, 74],
+    [144, 54],
+    [186, 61],
+    [228, 38],
+    [270, 45],
+    [312, 26]
+  ],
+  creator: [
+    [18, 96],
+    [60, 88],
+    [102, 64],
+    [144, 72],
+    [186, 48],
+    [228, 55],
+    [270, 32],
+    [312, 18]
+  ]
+};
+
+const chartPath = (points) => points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ');
 
 const businessBullets = [
   'Business listing',
@@ -207,6 +235,16 @@ const Home = () => {
           animation: perksOrbit 22s linear infinite;
         }
 
+        .visibility-orbit-runner {
+          transform-origin: center;
+          animation: visibilityOrbit 9s linear infinite;
+        }
+
+        .visibility-orbit-dot {
+          filter: drop-shadow(0 8px 14px rgba(37,99,235,0.28));
+          animation: visibilityDotPulse 1.8s ease-in-out infinite;
+        }
+
         @keyframes perksCenterPulse {
           0%, 100% { box-shadow: 0 14px 40px rgba(15,23,42,0.12), 0 0 0 0 rgba(37,99,235,0.14); }
           50% { box-shadow: 0 18px 48px rgba(15,23,42,0.14), 0 0 0 16px rgba(37,99,235,0); }
@@ -221,6 +259,16 @@ const Home = () => {
           }
         }
 
+        @keyframes visibilityOrbit {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        @keyframes visibilityDotPulse {
+          0%, 100% { opacity: 0.78; transform: scale(0.9); }
+          50% { opacity: 1; transform: scale(1.08); }
+        }
+
         @media (max-width: 640px) {
           .perks-node {
             --orbit-radius: 140px;
@@ -230,7 +278,9 @@ const Home = () => {
         @media (prefers-reduced-motion: reduce) {
           .perks-orbit-lines,
           .perks-center,
-          .perks-node {
+          .perks-node,
+          .visibility-orbit-runner,
+          .visibility-orbit-dot {
             animation: none;
           }
         }
@@ -239,8 +289,31 @@ const Home = () => {
           transition: transform 0.28s ease, background-color 0.28s ease;
         }
 
+        .value-highlight-icon svg {
+          width: 1.55rem;
+          height: 1.55rem;
+        }
+
+        .value-highlight-marquee {
+          mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+        }
+
+        .value-highlight-track {
+          width: max-content;
+          animation: valueHighlightMarquee 32s linear infinite;
+        }
+
+        .value-highlight-marquee:hover .value-highlight-track {
+          animation-play-state: paused;
+        }
+
         .value-highlight-item:hover .value-highlight-icon {
           transform: translateY(-3px) scale(1.05);
+        }
+
+        @keyframes valueHighlightMarquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
         }
 
         .verse-choice-card {
@@ -330,8 +403,10 @@ const Home = () => {
 
           .verse-choice-card:hover,
           .verse-choice-card:hover .verse-pill,
-          .verse-choice-card:hover .verse-card-cta svg {
+          .verse-choice-card:hover .verse-card-cta svg,
+          .value-highlight-track {
             transform: none;
+            animation: none;
           }
         }
       `}</style>
@@ -341,7 +416,7 @@ const Home = () => {
         <div className="absolute top-48 left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-orange-500/5 blur-[110px] pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
-          <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
+          <div className="grid gap-12 lg:grid-cols-12 lg:items-start lg:gap-16">
             <div className="lg:col-span-6">
               <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-blue-700">
                 <span className="h-2 w-2 rounded-full bg-blue-500" />
@@ -349,7 +424,7 @@ const Home = () => {
               </div>
 
               <h1 className="mt-6 max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
-                India&apos;s biggest Business &amp; <span className="text-orange-500">Creator</span> collaboration platform.
+                India&apos;s biggest <span className="text-orange-500">Business</span> &amp; <span className="text-blue-600">Creator</span> collaboration platform.
               </h1>
 
               <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 md:text-lg">
@@ -410,20 +485,20 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="lg:col-span-6">
-              <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.12)]">
-                <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
+            <div className="lg:col-span-6 lg:pt-10">
+              <div className="mx-auto max-w-[620px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_22px_70px_rgba(15,23,42,0.11)] lg:ml-auto">
+                <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-2.5">
                   <div className="flex gap-2">
                     <span className="h-3 w-3 rounded-full bg-[#ff5f56]" />
                     <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
                     <span className="h-3 w-3 rounded-full bg-[#27c93f]" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">dashboard.myindianstartup.com</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.28em] text-slate-400">dashboard snapshot</span>
                   <span className="w-10" />
                 </div>
 
                 <div className="grid gap-0 lg:grid-cols-12">
-                  <div className="border-b border-slate-100 bg-slate-50/70 p-4 lg:col-span-4 lg:border-b-0 lg:border-r lg:border-slate-100">
+                  <div className="border-b border-slate-100 bg-slate-50/70 p-3 lg:col-span-4 lg:border-b-0 lg:border-r lg:border-slate-100">
                     <div className="flex gap-1.5 lg:flex-col">
                       {[
                         ['Overview', true],
@@ -433,7 +508,7 @@ const Home = () => {
                       ].map(([label, active]) => (
                         <div
                           key={label}
-                          className={`flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-semibold ${active ? 'bg-blue-50 text-blue-700' : 'text-slate-500'}`}
+                          className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold ${active ? 'bg-blue-50 text-blue-700' : 'text-slate-500'}`}
                         >
                           <Circle className={`h-3 w-3 ${active ? 'fill-blue-600 text-blue-600' : 'text-slate-300'}`} />
                           <span>{label}</span>
@@ -442,39 +517,64 @@ const Home = () => {
                     </div>
                   </div>
 
-                  <div className="p-5 lg:col-span-8 lg:p-6">
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                      <div className="rounded-[1.5rem] bg-blue-600 p-4 text-white shadow-lg md:col-span-2">
-                        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.24em] text-blue-100">
+                  <div className="p-4 lg:col-span-8">
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                      <div className="rounded-[1.25rem] bg-blue-600 p-4 text-white shadow-lg md:col-span-2">
+                        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-[0.2em] text-blue-100">
                           <span>Active profile</span>
-                          <BadgeCheck className="h-4 w-4" />
+                          <BadgeCheck className="h-3.5 w-3.5" />
                         </div>
-                        <div className="mt-6 text-3xl font-black tracking-tight">24</div>
-                        <div className="mt-1 text-xs font-semibold text-blue-100">projects in progress</div>
+                        <div className="mt-4 text-2xl font-black tracking-tight">24</div>
+                        <div className="mt-1 text-[11px] font-semibold text-blue-100">projects live</div>
                       </div>
 
-                      <div className="rounded-[1.5rem] bg-gradient-to-br from-orange-100 to-orange-50 p-4 shadow-sm md:col-span-2">
-                        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-orange-600">Team match</div>
-                        <div className="mt-7 text-3xl font-black tracking-tight text-slate-950">+48%</div>
-                        <div className="mt-1 text-xs font-semibold text-slate-500">creator reach this month</div>
+                      <div className="rounded-[1.25rem] bg-gradient-to-br from-orange-100 to-orange-50 p-4 shadow-sm md:col-span-2">
+                        <div className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Team match</div>
+                        <div className="mt-4 text-2xl font-black tracking-tight text-slate-950">+48%</div>
+                        <div className="mt-1 text-[11px] font-semibold text-slate-500">reach this month</div>
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded-[1.5rem] border border-slate-200 p-4">
-                      <div className="flex items-center justify-between text-sm font-bold text-slate-800">
+                    <div className="mt-3 rounded-[1.25rem] border border-slate-200 p-4">
+                      <div className="flex items-center justify-between gap-3 text-sm font-bold text-slate-800">
                         <span>Growth overview</span>
-                        <span className="flex items-center gap-1 text-xs text-slate-400">
+                        <span className="flex items-center gap-1 text-[11px] text-slate-400">
                           <span className="h-2 w-2 rounded-full bg-orange-500" /> Business
                           <span className="ml-2 h-2 w-2 rounded-full bg-blue-600" /> Creator
                         </span>
                       </div>
-                      <div className="mt-5 flex h-36 items-end gap-2">
-                        {[34, 54, 42, 68, 58, 84, 77, 94].map((height, index) => (
-                          <div key={index} className="flex flex-1 flex-col items-center gap-2">
-                            <div className="w-full rounded-t-2xl bg-gradient-to-t from-blue-600 to-blue-400" style={{ height: `${height}%` }} />
-                            <div className="h-2 w-2 rounded-full bg-orange-400" />
-                          </div>
-                        ))}
+                      <div className="mt-4 h-28 overflow-hidden rounded-2xl bg-gradient-to-b from-slate-50 to-white px-2 py-3">
+                        <svg viewBox="0 0 330 120" className="h-full w-full" role="img" aria-label="Fake trending chart for Business and Creator growth">
+                          <defs>
+                            <linearGradient id="businessTrendFill" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#f97316" stopOpacity="0.18" />
+                              <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
+                            </linearGradient>
+                            <linearGradient id="creatorTrendFill" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#2563eb" stopOpacity="0.16" />
+                              <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          {[28, 56, 84].map((y) => (
+                            <line key={y} x1="12" y1={y} x2="318" y2={y} stroke="#e2e8f0" strokeDasharray="4 7" strokeWidth="1" />
+                          ))}
+                          <path d={`${chartPath(growthTrend.creator)} L 312 112 L 18 112 Z`} fill="url(#creatorTrendFill)" />
+                          <path d={`${chartPath(growthTrend.business)} L 312 112 L 18 112 Z`} fill="url(#businessTrendFill)" />
+                          <path d={chartPath(growthTrend.business)} fill="none" stroke="#f97316" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+                          <path d={chartPath(growthTrend.creator)} fill="none" stroke="#2563eb" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+                          {growthTrend.business.map(([x, y], index) => (
+                            <g key={`business-${index}`} className="transition-transform duration-300 hover:-translate-y-1">
+                              <circle cx={x} cy={y} r="5" fill="#f97316" />
+                              <circle cx={x} cy={y} r="9" fill="#f97316" opacity="0.12" />
+                            </g>
+                          ))}
+                          {growthTrend.creator.map(([x, y], index) => (
+                            <g key={`creator-${index}`} className="transition-transform duration-300 hover:-translate-y-1">
+                              <circle cx={x} cy={y} r="5" fill="#2563eb" />
+                              <circle cx={x} cy={y} r="9" fill="#2563eb" opacity="0.12" />
+                            </g>
+                          ))}
+                        </svg>
                       </div>
                     </div>
                   </div>
@@ -485,18 +585,21 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="border-t border-slate-100 bg-white py-8 md:py-10">
+      <section className="border-t border-slate-100 bg-white py-10 md:py-14">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
-          <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-[0_14px_45px_rgba(37,99,235,0.08)]">
-            <div className="grid divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-5">
-              {valueHighlights.map((item) => (
-                <div key={item.title} className="value-highlight-item flex items-center gap-4 px-6 py-5">
-                  <div className={`value-highlight-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${item.iconWrap}`}>
+          <div className="value-highlight-marquee overflow-hidden rounded-[1.75rem] border border-blue-100 bg-white shadow-[0_18px_55px_rgba(37,99,235,0.09)]">
+            <div className="value-highlight-track flex">
+              {[...valueHighlights, ...valueHighlights].map((item, index) => (
+                <div
+                  key={`${item.title}-${index}`}
+                  className="value-highlight-item flex min-w-[340px] items-center gap-5 border-r border-slate-100 px-8 py-7 md:min-w-[380px]"
+                >
+                  <div className={`value-highlight-icon flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.35rem] ${item.iconWrap}`}>
                     {item.icon}
                   </div>
                   <div>
-                    <div className="text-sm font-black tracking-[-0.02em] text-slate-950">{item.title}</div>
-                    <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">{item.description}</div>
+                    <div className="text-base font-black tracking-[-0.02em] text-slate-950">{item.title}</div>
+                    <div className="mt-1.5 text-sm font-semibold leading-6 text-slate-500">{item.description}</div>
                   </div>
                 </div>
               ))}
@@ -507,30 +610,43 @@ const Home = () => {
 
       <section className="bg-white pb-16 pt-8 md:pb-20 md:pt-10">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
-          <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">How it works</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">
-              From profile to collaboration - in three honest steps.
+          <div className="mx-auto max-w-4xl text-center">
+            <div className="inline-flex items-center gap-3">
+              <span className="h-px w-10 bg-gradient-to-r from-transparent to-blue-600" />
+              <span className="text-[12px] font-bold uppercase tracking-[0.28em] text-blue-600">
+                How it works
+              </span>
+              <span className="h-px w-10 bg-gradient-to-l from-transparent to-blue-600" />
+            </div>
+
+            <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
+              Create your profile. Post daily. Connect directly.
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-              The platform is set up to move you from profile creation to daily visibility and direct collaboration without extra layers or hidden fees.
+
+            <p className="mx-auto mt-4 max-w-2xl text-[15px] font-normal leading-7 text-slate-600 sm:text-base">
+              Move from account setup to daily visibility and real collaboration without hidden charges, lead fees, or middlemen.
             </p>
+
           </div>
 
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
             {stepCards.map((step) => (
               <div
                 key={step.number}
                 className="relative rounded-[1.75rem] border border-slate-200 bg-white p-7 shadow-[0_12px_40px_rgba(15,23,42,0.05)] transition-transform hover:-translate-y-1"
               >
-                <div className="absolute right-6 top-6 text-3xl font-black text-slate-300/80">{step.number}</div>
+                <div className="absolute right-6 top-6 text-2xl font-bold text-slate-300/90">{step.number}</div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50">{step.icon}</div>
-                <h3 className="mt-6 text-xl font-black tracking-[-0.03em] text-slate-950">{step.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-500">{step.description}</p>
-                <div className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-slate-900">
+                <h3 className="mt-6 text-lg font-bold leading-snug tracking-[-0.01em] text-slate-950">{step.title}</h3>
+                <p className="mt-3 text-[15px] leading-7 text-slate-600">{step.description}</p>
+                <button
+                  type="button"
+                  onClick={() => navigate(step.to)}
+                  className="mt-6 inline-flex items-center gap-1 rounded-full px-0 text-sm font-semibold text-slate-900 transition-all hover:gap-2 hover:text-blue-600"
+                >
                   <span>{step.action}</span>
                   <ArrowRight className="h-4 w-4" />
-                </div>
+                </button>
               </div>
             ))}
           </div>
@@ -593,46 +709,77 @@ const Home = () => {
 
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 md:px-12 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="relative mx-auto flex aspect-square w-full max-w-[430px] items-center justify-center">
-            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.08),transparent_62%)]" />
-            <svg className="absolute inset-0 h-full w-full text-blue-200/80" viewBox="0 0 400 400" fill="none">
-              <circle cx="200" cy="200" r="150" stroke="currentColor" strokeDasharray="4 6" strokeWidth="1.5" />
-              <circle cx="200" cy="200" r="118" stroke="rgba(249,115,22,0.35)" strokeDasharray="3 5" strokeWidth="1.2" />
-            </svg>
+          <div className="mx-auto w-full max-w-[460px]">
+            <div className="relative mx-auto flex aspect-square w-full max-w-[430px] items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.08),transparent_62%)]" />
+              <svg className="absolute inset-0 h-full w-full text-blue-200/80" viewBox="0 0 400 400" fill="none">
+                <circle cx="200" cy="200" r="150" stroke="currentColor" strokeDasharray="4 6" strokeWidth="1.5" />
+                <circle cx="200" cy="200" r="118" stroke="rgba(249,115,22,0.35)" strokeDasharray="3 5" strokeWidth="1.2" />
+                <g className="visibility-orbit-runner">
+                  <circle className="visibility-orbit-dot" cx="200" cy="50" r="7" fill="#2563eb" />
+                  <circle cx="200" cy="50" r="15" fill="#2563eb" opacity="0.1" />
+                </g>
+              </svg>
 
-            <div className="perks-center relative z-10 flex h-32 w-32 flex-col items-center justify-center rounded-full border-4 border-blue-100 bg-white">
-              <div className="text-4xl font-black tracking-tight text-slate-950">24</div>
-              <div className="mt-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Hours</div>
-              <div className="mt-1 text-[10px] font-semibold text-slate-400">per slot</div>
+              <div className="perks-center relative z-10 flex h-32 w-32 flex-col items-center justify-center rounded-full border-4 border-blue-100 bg-white">
+                <div className="text-4xl font-black tracking-tight text-slate-950">24</div>
+                <div className="mt-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Hours</div>
+                <div className="mt-1 text-[10px] font-semibold text-slate-400">per slot</div>
+              </div>
+
+              {[
+                [270, '12:00', 'blue'],
+                [0, '18:00', 'pink'],
+                [90, '00:00', 'teal'],
+                [180, '06:00', 'orange']
+              ].map(([angle, label, tone]) => (
+                <div
+                  key={label}
+                  className="perks-node absolute z-20 flex flex-col items-center gap-1.5"
+                  style={{ '--orbit-angle': `${angle}deg`, '--orbit-radius': '158px' }}
+                >
+                  <div
+                    className={`h-4 w-4 rounded-full border-4 shadow-md ${
+                      tone === 'orange'
+                        ? 'border-orange-100 bg-orange-500'
+                        : tone === 'pink'
+                          ? 'border-rose-100 bg-rose-500'
+                          : tone === 'teal'
+                            ? 'border-teal-100 bg-teal-500'
+                            : 'border-blue-100 bg-blue-600'
+                    }`}
+                  />
+                  <div className="rounded-md border border-slate-100 bg-white/95 px-2 py-0.5 text-[9px] font-black tracking-[0.18em] text-slate-500 shadow-sm">
+                    {label}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {[
-              [270, '12:00', 'blue'],
-              [0, '18:00', 'pink'],
-              [90, '00:00', 'teal'],
-              [180, '06:00', 'orange']
-            ].map(([angle, label, tone]) => (
-              <div
-                key={label}
-                className="perks-node absolute z-20 flex flex-col items-center gap-1.5"
-                style={{ '--orbit-angle': `${angle}deg`, '--orbit-radius': '158px' }}
-              >
-                <div
-                  className={`h-4 w-4 rounded-full border-4 shadow-md ${
-                    tone === 'orange'
-                      ? 'border-orange-100 bg-orange-500'
-                      : tone === 'pink'
-                        ? 'border-rose-100 bg-rose-500'
-                        : tone === 'teal'
-                          ? 'border-teal-100 bg-teal-500'
-                          : 'border-blue-100 bg-blue-600'
-                  }`}
-                />
-                <div className="rounded-md border border-slate-100 bg-white/95 px-2 py-0.5 text-[9px] font-black tracking-[0.18em] text-slate-500 shadow-sm">
-                  {label}
+            <div className="mx-auto -mt-5 max-w-sm rounded-[1.5rem] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-blue-600">Daily queue</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-950">Today&apos;s visibility slots</div>
                 </div>
+                <div className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-orange-600">Live</div>
               </div>
-            ))}
+              <div className="mt-4 grid gap-2">
+                {[
+                  ['Business post queued', '06:00', 'bg-orange-500'],
+                  ['Creator slot active', '12:00', 'bg-blue-600'],
+                  ['Next reset in 18h', '24h cycle', 'bg-emerald-500']
+                ].map(([label, time, tone]) => (
+                  <div key={label} className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${tone}`} />
+                      <span className="text-xs font-semibold text-slate-700">{label}</span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div>
