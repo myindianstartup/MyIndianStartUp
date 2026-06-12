@@ -11,6 +11,23 @@ const SignUp = () => {
   const inputTone = accountType === 'business'
     ? 'focus:border-orange-500 focus:ring-orange-100'
     : 'focus:border-blue-600 focus:ring-blue-100';
+  const leftPanelTheme = accountType === 'business'
+    ? {
+        label: 'text-orange-600',
+        icon: 'bg-orange-500 shadow-[0_12px_26px_rgba(249,115,22,0.24)]',
+        stepNumber: 'text-orange-600',
+        glowPrimary: 'bg-orange-500/10',
+        glowSecondary: 'bg-blue-500/5',
+        stat: 'text-orange-600'
+      }
+    : {
+        label: 'text-blue-600',
+        icon: 'bg-blue-600 shadow-[0_12px_26px_rgba(37,99,235,0.22)]',
+        stepNumber: 'text-blue-600',
+        glowPrimary: 'bg-blue-500/10',
+        glowSecondary: 'bg-orange-500/5',
+        stat: 'text-blue-600'
+      };
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -53,8 +70,8 @@ const SignUp = () => {
 
       <div className="mx-auto grid min-h-screen max-w-7xl gap-6 px-5 py-4 md:grid-cols-[0.95fr_1.05fr] md:items-center md:px-8 lg:gap-10 lg:px-12">
         <section className="relative flex min-h-[calc(100vh-2rem)] flex-col justify-center overflow-hidden p-2 md:min-h-0 md:p-3">
-          <div className="absolute -left-24 top-24 h-80 w-80 rounded-full bg-orange-500/10 blur-[120px]" />
-          <div className="absolute right-0 bottom-16 h-80 w-80 rounded-full bg-blue-500/10 blur-[120px]" />
+          <div className={`absolute -left-24 top-24 h-80 w-80 rounded-full blur-[120px] transition-colors duration-300 ${leftPanelTheme.glowPrimary}`} />
+          <div className={`absolute right-0 bottom-16 h-80 w-80 rounded-full blur-[120px] transition-colors duration-300 ${leftPanelTheme.glowSecondary}`} />
 
           <Link to="/" className="relative z-10 flex w-fit items-center gap-2.5">
             <span className="relative flex h-11 w-11 items-center justify-center rounded-[14px] bg-blue-600 text-white shadow-[0_10px_22px_rgba(37,99,235,0.35)]">
@@ -70,10 +87,10 @@ const SignUp = () => {
             <div className="signup-fade-in rounded-[1.5rem] border border-slate-200 bg-white/80 p-4 shadow-[0_18px_55px_rgba(15,23,42,0.07)] backdrop-blur">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.26em] text-blue-600">Ready to get started?</div>
+                  <div className={`text-[10px] font-black uppercase tracking-[0.26em] transition-colors duration-300 ${leftPanelTheme.label}`}>Ready to get started?</div>
                   <div className="mt-1 text-lg font-black tracking-[-0.03em] text-slate-950">Choose BusinessVerse or CreatorVerse.</div>
                 </div>
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_12px_26px_rgba(37,99,235,0.22)]">
+                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white transition-colors duration-300 ${leftPanelTheme.icon}`}>
                   <ShieldCheck className="h-6 w-6" />
                 </div>
               </div>
@@ -86,7 +103,7 @@ const SignUp = () => {
                   ['04', 'Dashboard access', 'After activation, PostVerse opens as your main feed.']
                 ].map(([number, title, copy]) => (
                   <div key={number} className="flex items-start gap-3 rounded-[1.15rem] border border-slate-100 bg-[#f8fafc] px-4 py-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-xs font-black text-blue-600 shadow-sm">
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-xs font-black shadow-sm transition-colors duration-300 ${leftPanelTheme.stepNumber}`}>
                       {number}
                     </div>
                     <div>
@@ -98,26 +115,16 @@ const SignUp = () => {
               </div>
             </div>
 
-            <div className="mt-5">
-              <div className="text-[11px] font-black uppercase tracking-[0.32em] text-blue-600">Create account</div>
-              <h1 className="mt-2 max-w-2xl text-3xl font-black leading-[1.03] tracking-[-0.05em] text-slate-950 lg:text-[2.35rem]">
-                Join thousands of businesses and creators building meaningful connections across India.
-              </h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 lg:text-base">
-                Post once, get discovered daily, and open direct opportunities through MyIndianStartup.
-              </p>
-            </div>
-
-            <div className="mt-5 border-t border-slate-200 pt-4">
-              <div className="grid gap-4 sm:grid-cols-3">
+            <div className="mt-5 rounded-[1.35rem] border border-slate-200 bg-white/75 p-4 shadow-[0_14px_45px_rgba(15,23,42,0.06)] backdrop-blur">
+              <div className="grid gap-3 sm:grid-cols-3">
                 {[
                   ['2 paths', 'Business + creator'],
-                  ['Rs 999', 'Annual access'],
+                  ['₹999', 'Annual access'],
                   ['365 days', 'Visibility']
                 ].map(([value, label]) => (
-                  <div key={label}>
-                    <div className="text-xl font-black tracking-tight text-slate-700 lg:text-2xl">{value}</div>
-                    <div className="mt-0.5 text-xs font-semibold text-slate-600 lg:text-sm">{label}</div>
+                  <div key={label} className="rounded-2xl border border-slate-100 bg-[#f8fafc] px-4 py-3 text-center">
+                    <div className={`text-xl font-black tracking-tight lg:text-2xl ${label === 'Annual access' ? leftPanelTheme.stat : 'text-slate-800'}`}>{value}</div>
+                    <div className="mt-1 text-xs font-semibold text-slate-600 lg:text-sm">{label}</div>
                   </div>
                 ))}
               </div>

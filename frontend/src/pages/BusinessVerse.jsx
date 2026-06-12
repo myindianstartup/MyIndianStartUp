@@ -13,11 +13,8 @@ import {
   Landmark,
   Layers,
   Link as LinkIcon,
-  Mail,
-  MapPin,
   Megaphone,
   Phone,
-  Search,
   Sparkles,
   Star,
   Target,
@@ -79,7 +76,7 @@ const comparisonRows = [
   ['Commission', 'High', false],
   ['Lead Charges', 'Yes', false],
   ['Direct Contact', 'Limited', true],
-  ['Annual Membership', 'Expensive', 'Rs 999']
+  ['Annual Membership', 'Expensive', '₹999']
 ];
 
 const opportunities = [
@@ -103,11 +100,11 @@ const pricingIncludes = [
 
 function HeroProfileCard() {
   return (
-    <div className="business-float relative overflow-hidden rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.12)]">
-      <div className="rounded-[26px] bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,247,237,0.82))] p-5">
+    <div className="business-float relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.12)]">
+      <div className="rounded-xl bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,247,237,0.82))] p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-[0_12px_26px_rgba(249,115,22,0.25)]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-orange-500 text-white shadow-[0_12px_26px_rgba(249,115,22,0.25)]">
               <Building2 className="h-7 w-7" />
             </div>
             <div>
@@ -120,23 +117,23 @@ function HeroProfileCard() {
 
         <div className="mt-7 grid gap-3 sm:grid-cols-2">
           {['Products', 'Services', 'Website', 'Social Links'].map((item) => (
-            <div key={item} className="rounded-2xl border border-white bg-white/85 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">
+            <div key={item} className="rounded-lg border border-white bg-white/85 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">
               {item}
             </div>
           ))}
         </div>
 
-        <div className="mt-7 rounded-[24px] border border-slate-200 bg-white p-4">
+        <div className="mt-7 rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Daily update</div>
               <div className="mt-1 text-lg font-black text-slate-950">1 post every 24 hours</div>
             </div>
             <div className="flex gap-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-50 text-slate-600">
                 <Image className="h-5 w-5" />
               </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
                 <Video className="h-5 w-5" />
               </div>
             </div>
@@ -193,9 +190,8 @@ const BusinessVerse = () => {
       `}</style>
 
       <section className="relative overflow-hidden pt-28 pb-16 md:pt-32 md:pb-24">
-        <div className="absolute inset-x-0 top-0 h-[680px] bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.09),transparent_34%),radial-gradient(circle_at_top_right,rgba(15,23,42,0.045),transparent_30%)] pointer-events-none" />
-        <div className="absolute left-[-7rem] top-24 h-72 w-72 rounded-full bg-orange-500/5 blur-[100px] pointer-events-none" />
-        <div className="absolute right-[-6rem] top-28 h-72 w-72 rounded-full bg-slate-500/5 blur-[100px] pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-[680px] bg-[linear-gradient(135deg,rgba(37,99,235,0.08),rgba(249,115,22,0.08)_48%,rgba(248,250,252,0)_82%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.045)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_72%)] pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
           <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
@@ -206,7 +202,7 @@ const BusinessVerse = () => {
               </div>
 
               <h1 className="mt-6 max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
-                Grow your business through <span className="text-orange-500">visibility</span> &amp; collaboration.
+                Grow Your Business Through <span className="text-orange-500">Visibility</span> &amp; Collaboration
               </h1>
 
               <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 md:text-lg">
@@ -215,7 +211,7 @@ const BusinessVerse = () => {
 
               <div className="mt-8 flex flex-wrap gap-4">
                 <button
-                  onClick={() => navigate('/signup')}
+                  onClick={() => navigate('/join')}
                   className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(249,115,22,0.26)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
                 >
                   <span>Create BusinessVerse Profile</span>
@@ -249,9 +245,9 @@ const BusinessVerse = () => {
 
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {joinFeatures.map((item, index) => (
-              <div key={item} className="business-card-hover rounded-[22px] border border-slate-200 bg-[#f8fafc] p-5 shadow-sm">
+              <div key={item} className="business-card-hover rounded-xl border border-slate-200 bg-[#f8fafc] p-5 shadow-sm">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
                     <Check className="h-5 w-5" />
                   </div>
                   <h3 className="text-base font-black tracking-[-0.02em] text-slate-900">{item}</h3>
@@ -271,13 +267,13 @@ const BusinessVerse = () => {
 
           <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {industries.map((item) => (
-              <div key={item.title} className="business-card-hover rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50">{item.icon}</div>
+              <div key={item.title} className="business-card-hover rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-50">{item.icon}</div>
                 <div className="mt-4 text-sm font-black text-slate-800">{item.title}</div>
               </div>
             ))}
-            <div className="business-card-hover rounded-[22px] border border-orange-100 bg-orange-50/70 p-5 shadow-sm sm:col-span-2 lg:col-span-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-orange-500">
+            <div className="business-card-hover rounded-xl border border-orange-100 bg-orange-50/70 p-5 shadow-sm sm:col-span-2 lg:col-span-2">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white text-orange-500">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div className="mt-4 text-sm font-black text-slate-900">Many more industries across India</div>
@@ -297,10 +293,10 @@ const BusinessVerse = () => {
             </p>
           </div>
 
-          <div className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-orange-500 text-white shadow-[0_14px_28px_rgba(249,115,22,0.25)]">
+                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-orange-500 text-white shadow-[0_14px_28px_rgba(249,115,22,0.25)]">
                   <Building2 className="h-8 w-8" />
                 </div>
                 <div>
@@ -313,7 +309,7 @@ const BusinessVerse = () => {
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {profileFields.map(([label, value]) => (
-                <div key={label} className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div key={label} className="rounded-lg bg-slate-50 px-4 py-3">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{label}</div>
                   <div className="mt-1 text-sm font-bold text-slate-800">{value}</div>
                 </div>
@@ -340,27 +336,27 @@ const BusinessVerse = () => {
 
       <section className="bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-2 lg:items-center">
-          <div className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-[0_24px_70px_rgba(15,23,42,0.07)]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_24px_70px_rgba(15,23,42,0.07)]">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="business-card-hover rounded-[26px] border border-slate-200 bg-slate-50 p-5">
+              <div className="business-card-hover rounded-xl border border-slate-200 bg-slate-50 p-5">
                 <Image className="h-7 w-7 text-slate-600" />
                 <div className="mt-8 text-4xl font-black text-slate-950">1</div>
                 <div className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-slate-600">Image</div>
               </div>
-              <div className="business-card-hover rounded-[26px] border border-orange-100 bg-orange-50 p-5">
+              <div className="business-card-hover rounded-xl border border-orange-100 bg-orange-50 p-5">
                 <Video className="h-7 w-7 text-orange-500" />
                 <div className="mt-8 text-4xl font-black text-slate-950">1</div>
                 <div className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-orange-500">Video</div>
               </div>
             </div>
 
-            <div className="mt-5 rounded-[26px] border border-slate-200 bg-slate-50 p-5">
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Every 24 hours</div>
                   <div className="mt-2 text-2xl font-black text-slate-950">Equal visibility for every member.</div>
                 </div>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-orange-500 shadow-sm">
+                <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-white text-orange-500 shadow-sm">
                   <Target className="h-6 w-6" />
                 </div>
               </div>
@@ -375,7 +371,7 @@ const BusinessVerse = () => {
             </p>
             <div className="mt-7 grid gap-3">
               {['One post every 24 hours', 'Equal visibility', 'No spam', 'No feed domination'].map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                <div key={item} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
                   <Check className="h-4 w-4 text-orange-500" />
                   <span>{item}</span>
                 </div>
@@ -397,8 +393,8 @@ const BusinessVerse = () => {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {connectionTypes.map((item, index) => (
-              <div key={item} className="business-card-hover rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+              <div key={item} className="business-card-hover rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
                   {index % 2 === 0 ? <Users className="h-5 w-5" /> : <HeartHandshake className="h-5 w-5" />}
                 </div>
                 <div className="mt-4 text-lg font-black text-slate-950">{item}</div>
@@ -416,7 +412,7 @@ const BusinessVerse = () => {
             <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">A cleaner way to grow.</h2>
           </div>
 
-          <div className="mt-10 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+          <div className="mt-10 overflow-x-auto overflow-y-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="bg-slate-50 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
@@ -452,7 +448,7 @@ const BusinessVerse = () => {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {opportunities.map((item) => (
-              <div key={item} className="business-card-hover rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div key={item} className="business-card-hover rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <BriefcaseBusiness className="h-5 w-5 text-orange-500" />
                 <div className="mt-4 text-sm font-black text-slate-900">{item}</div>
               </div>
@@ -470,7 +466,7 @@ const BusinessVerse = () => {
               One annual membership for profile visibility, daily marketing, discovery, and direct collaboration.
             </p>
 
-            <div className="mt-8 grid gap-4 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-5">
                 <div>
                   <div className="inline-flex rounded-full bg-orange-500 px-3 py-1 text-[9px] font-black uppercase tracking-[0.24em] text-white">Annual membership</div>
@@ -480,7 +476,7 @@ const BusinessVerse = () => {
                     <span className="pb-2 text-sm font-bold text-slate-400">/ Year</span>
                   </div>
                 </div>
-                <div className="rounded-2xl bg-orange-50 px-5 py-4 text-right">
+                <div className="rounded-xl bg-orange-50 px-5 py-4 text-right">
                   <div className="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">Included</div>
                   <div className="mt-1 text-sm font-bold text-slate-700">visibility + direct deals</div>
                 </div>
@@ -488,7 +484,7 @@ const BusinessVerse = () => {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {pricingIncludes.map((item) => (
-                  <div key={item} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                  <div key={item} className="flex items-center gap-3 rounded-lg bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
                     <Check className="h-4 w-4 text-orange-500" />
                     <span>{item}</span>
                   </div>
@@ -497,14 +493,14 @@ const BusinessVerse = () => {
             </div>
           </div>
 
-          <div className="rounded-[30px] bg-[linear-gradient(135deg,#0f172a,#11264f)] p-7 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)] md:p-9">
+          <div className="rounded-2xl bg-[linear-gradient(135deg,#0f172a,#11264f)] p-7 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)] md:p-9">
             <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-100">Ready to grow your business?</div>
             <h3 className="mt-3 text-3xl font-black tracking-[-0.04em]">Join businesses across India building visibility.</h3>
             <p className="mt-4 text-sm leading-7 text-blue-50/85">
               Create new opportunities, build partnerships, and make your business easier to discover.
             </p>
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/join')}
               className="mt-8 inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-4 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-orange-600"
             >
               <span>Create BusinessVerse Profile</span>
