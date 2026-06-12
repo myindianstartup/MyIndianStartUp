@@ -4,7 +4,7 @@ import { ArrowRight, LayoutGrid } from 'lucide-react';
 
 const modules = [
   ['Homepage', '/', 'Start here with the core collaboration pitch.'],
-  ['Join Us', '/contact', 'Login and registration entry point.'],
+  ['Contact Us', '/contact', 'Support, partnerships, and platform inquiries.'],
   ['Payment', '/pricing', 'Annual Rs 999 membership and billing info.'],
   ['PostVerse', '/post-verse', 'Daily visibility feed and default dashboard.'],
   ['SearchVerse', '/search-verse', 'Discovery engine for businesses and creators.'],

@@ -20,7 +20,7 @@ const Navbar = () => {
     { path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' },
     { path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' },
     { path: '/pricing', label: 'Pricing', testid: 'nav-link-pricing' },
-    { path: '/contact', label: 'Contact', testid: 'nav-link-contact' }
+    { path: '/contact', label: 'Contact Us', testid: 'nav-link-contact' }
   ];
 
   return (

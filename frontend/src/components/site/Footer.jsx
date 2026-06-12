@@ -15,7 +15,7 @@ const legalLinks = [
   { label: 'Privacy Policy', to: '/' },
   { label: 'Terms of Service', to: '/' },
   { label: 'Cookie Policy', to: '/' },
-  { label: 'Help Center', to: '/contact' }
+  { label: 'Contact Us', to: '/contact' }
 ];
 
 const socialLinks = [
