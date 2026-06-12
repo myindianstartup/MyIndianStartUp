@@ -1,0 +1,272 @@
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, BadgeCheck, Mail, Phone, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+
+const SignUp = () => {
+  const navigate = useNavigate();
+  const [accountType, setAccountType] = useState('business');
+  const focusTone = accountType === 'business'
+    ? 'focus-within:border-orange-500 focus-within:ring-orange-100'
+    : 'focus-within:border-blue-600 focus-within:ring-blue-100';
+  const inputTone = accountType === 'business'
+    ? 'focus:border-orange-500 focus:ring-orange-100'
+    : 'focus:border-blue-600 focus:ring-blue-100';
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('myindianstartup_auth_mode', 'signup');
+      window.localStorage.setItem('myindianstartup_auth_provider', 'gmail');
+      window.localStorage.setItem('myindianstartup_account_type', accountType);
+    }
+    navigate('/pricing');
+  };
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#fbfcff] text-slate-950">
+      <style>{`
+        .signup-fade-in {
+          opacity: 0;
+          transform: translateY(18px);
+          animation: signupFadeIn 0.75s ease-out forwards;
+        }
+
+        .signup-panel {
+          opacity: 0;
+          transform: translateY(22px);
+          animation: signupFadeIn 0.75s ease-out 0.12s forwards;
+        }
+
+        @keyframes signupFadeIn {
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @media (max-height: 760px) and (min-width: 768px) {
+          .signup-short-hide {
+            display: none;
+          }
+        }
+      `}</style>
+
+      <div className="mx-auto grid min-h-screen max-w-7xl gap-6 px-5 py-4 md:grid-cols-[0.95fr_1.05fr] md:items-center md:px-8 lg:gap-10 lg:px-12">
+        <section className="relative flex min-h-[calc(100vh-2rem)] flex-col justify-center overflow-hidden p-2 md:min-h-0 md:p-3">
+          <div className="absolute -left-24 top-24 h-80 w-80 rounded-full bg-orange-500/10 blur-[120px]" />
+          <div className="absolute right-0 bottom-16 h-80 w-80 rounded-full bg-blue-500/10 blur-[120px]" />
+
+          <Link to="/" className="relative z-10 flex w-fit items-center gap-2.5">
+            <span className="relative flex h-11 w-11 items-center justify-center rounded-[14px] bg-blue-600 text-white shadow-[0_10px_22px_rgba(37,99,235,0.35)]">
+              <Sparkles className="h-6 w-6" strokeWidth={2.6} />
+              <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-white bg-orange-500" />
+            </span>
+            <span className="text-xl font-black tracking-[-0.045em] text-slate-950">
+              MyIndian<span className="text-blue-600">Startup</span>
+            </span>
+          </Link>
+
+          <div className="relative z-10 mx-auto mt-5 flex w-full max-w-xl flex-col justify-center">
+            <div className="signup-fade-in rounded-[1.5rem] border border-slate-200 bg-white/80 p-4 shadow-[0_18px_55px_rgba(15,23,42,0.07)] backdrop-blur">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.26em] text-blue-600">Ready to get started?</div>
+                  <div className="mt-1 text-lg font-black tracking-[-0.03em] text-slate-950">Choose BusinessVerse or CreatorVerse.</div>
+                </div>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_12px_26px_rgba(37,99,235,0.22)]">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                {[
+                  ['01', 'Fill registration form', 'Add your details and select your account type.'],
+                  ['02', 'Review details', 'Confirm your BusinessVerse or CreatorVerse setup.'],
+                  ['03', 'Membership payment', 'Complete Rs 999 yearly membership securely.'],
+                  ['04', 'Dashboard access', 'After activation, PostVerse opens as your main feed.']
+                ].map(([number, title, copy]) => (
+                  <div key={number} className="flex items-start gap-3 rounded-[1.15rem] border border-slate-100 bg-[#f8fafc] px-4 py-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-xs font-black text-blue-600 shadow-sm">
+                      {number}
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-slate-950">{title}</div>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">{copy}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <div className="text-[11px] font-black uppercase tracking-[0.32em] text-blue-600">Create account</div>
+              <h1 className="mt-2 max-w-2xl text-3xl font-black leading-[1.03] tracking-[-0.05em] text-slate-950 lg:text-[2.35rem]">
+                Join thousands of businesses and creators building meaningful connections across India.
+              </h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 lg:text-base">
+                Post once, get discovered daily, and open direct opportunities through MyIndianStartup.
+              </p>
+            </div>
+
+            <div className="mt-5 border-t border-slate-200 pt-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                {[
+                  ['2 paths', 'Business + creator'],
+                  ['Rs 999', 'Annual access'],
+                  ['365 days', 'Visibility']
+                ].map(([value, label]) => (
+                  <div key={label}>
+                    <div className="text-xl font-black tracking-tight text-slate-700 lg:text-2xl">{value}</div>
+                    <div className="mt-0.5 text-xs font-semibold text-slate-600 lg:text-sm">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="signup-panel rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_90px_rgba(15,23,42,0.12)] md:p-6">
+          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] ${accountType === 'business' ? 'border-orange-100 bg-orange-50 text-orange-600' : 'border-blue-100 bg-blue-50 text-blue-700'}`}>
+            <BadgeCheck className="h-3.5 w-3.5" />
+            New member
+          </div>
+
+          <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-slate-950">Create your account</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Join MyIndianStartup and start building valuable connections across India.
+          </p>
+
+          <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-slate-800">Full Name</span>
+              <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
+                <UserRound className="h-5 w-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-slate-800">Email Address</span>
+              <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
+                <Mail className="h-5 w-5 text-slate-400" />
+                <input
+                  type="email"
+                  placeholder="you@gmail.com"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-slate-800">Mobile Number</span>
+              <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
+                <Phone className="h-5 w-5 text-slate-400" />
+                <input
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </label>
+
+            <div className="grid gap-2">
+              <span className="text-sm font-bold text-slate-800">Account Type</span>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-[#f8fafc] p-1.5">
+                {[
+                  { key: 'business', label: 'BusinessVerse' },
+                  { key: 'creator', label: 'CreatorVerse' }
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setAccountType(item.key)}
+                    className={`rounded-lg px-3 py-2 text-sm font-black transition-all ${
+                      accountType === item.key
+                        ? item.key === 'business'
+                          ? 'bg-white text-orange-600 shadow-sm ring-1 ring-orange-100'
+                          : 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100'
+                        : 'text-slate-500 hover:bg-white/70 hover:text-slate-900'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-slate-800">Password</span>
+              <input
+                type="password"
+                placeholder="Create a password"
+                className={`rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 ${inputTone}`}
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-slate-800">Confirm Password</span>
+              <input
+                type="password"
+                placeholder="Confirm your password"
+                className={`rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 ${inputTone}`}
+              />
+            </label>
+
+            <label className="flex items-start gap-2 text-sm font-semibold text-slate-600">
+              <input type="checkbox" className={`mt-0.5 h-4 w-4 rounded border-slate-300 ${accountType === 'business' ? 'text-orange-500 focus:ring-orange-500' : 'text-blue-600 focus:ring-blue-600'}`} />
+              <span>
+                I agree to the Terms &amp; Conditions and Privacy Policy.
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold text-white transition-all hover:-translate-y-0.5 ${
+                accountType === 'business'
+                  ? 'bg-orange-500 shadow-[0_14px_32px_rgba(249,115,22,0.28)] hover:bg-orange-600'
+                  : 'bg-blue-600 shadow-[0_14px_32px_rgba(37,99,235,0.28)] hover:bg-blue-700'
+              }`}
+            >
+              <span>Create account</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </form>
+
+          <div className="my-5 flex items-center gap-4">
+            <span className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">or</span>
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <Link
+            to="/login"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-900 transition-all hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+          >
+            <span>Already have an account? Login</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+
+          <div className="signup-short-hide mt-5 rounded-[1.35rem] border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-sm font-black text-slate-950">Next step after signup</div>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Your account is created first. Then login to complete your profile, review details, and activate membership.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+};
+
+export default SignUp;
