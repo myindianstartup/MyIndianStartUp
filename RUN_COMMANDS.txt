@@ -1,0 +1,18 @@
+MyIndianStartup local run commands
+
+Backend:
+cd D:\MyIndianStartup\backend
+npm run dev
+
+Frontend:
+cd D:\MyIndianStartup\frontend
+npm start
+
+Local URLs:
+Backend health: http://localhost:5000/health
+Frontend: http://localhost:3000
+
+Notes:
+- Backend secrets are stored in backend\.env and are ignored by Git.
+- Run Supabase schema.sql before using database-backed APIs.
+- Cloudflare R2 upload APIs need final R2 keys and public URL before production media upload.

@@ -40,3 +40,8 @@ desktop.ini
 
 # Local tooling
 .codex/
+
+# Private setup notes
+backend-setup-private.txt
+dummy-accounts.txt
+dummy-roles-guide.txt

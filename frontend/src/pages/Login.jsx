@@ -7,10 +7,25 @@ const Login = () => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get('email') || '').trim().toLowerCase();
+
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('myindianstartup_auth_mode', 'login');
       window.localStorage.setItem('myindianstartup_auth_provider', 'gmail');
+      window.localStorage.setItem('myindianstartup_login_email', email);
     }
+
+    if (email === 'superadmin@myindianstartup.test') {
+      navigate('/superadmin');
+      return;
+    }
+
+    if (email === 'admin@myindianstartup.test') {
+      navigate('/admin');
+      return;
+    }
+
     navigate('/post-verse');
   };
 
@@ -110,6 +125,7 @@ const Login = () => {
               <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100">
                 <Mail className="h-5 w-5 text-slate-400" />
                 <input
+                  name="email"
                   type="email"
                   placeholder="you@gmail.com"
                   className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
