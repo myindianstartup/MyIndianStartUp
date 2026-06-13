@@ -22,7 +22,35 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const data = await apiRequest('/api/members/me', { token: activeSession.access_token });
-      setMember(data.member || null);
+      let currentMember = data.member || null;
+
+      const pendingAccountType = window.localStorage.getItem('myindianstartup_pending_account_type');
+      if (!currentMember && ['business', 'creator'].includes(pendingAccountType)) {
+        const authUser = activeSession.user;
+        const metadata = authUser?.user_metadata || {};
+        const fallbackName = authUser?.email ? authUser.email.split('@')[0] : 'MyIndianStartup Member';
+        const fullName = metadata.full_name || metadata.name || fallbackName;
+
+        const created = await apiRequest('/api/members/me', {
+          method: 'PUT',
+          token: activeSession.access_token,
+          body: {
+            fullName,
+            accountType: pendingAccountType
+          }
+        });
+
+        currentMember = created.member || null;
+        window.localStorage.setItem('myindianstartup_account_type', pendingAccountType);
+        window.localStorage.removeItem('myindianstartup_pending_account_type');
+      }
+
+      if (currentMember?.account_type) {
+        window.localStorage.setItem('myindianstartup_account_type', currentMember.account_type);
+        window.localStorage.removeItem('myindianstartup_pending_account_type');
+      }
+
+      setMember(currentMember);
 
       try {
         const roleData = await apiRequest('/api/admin/me', { token: activeSession.access_token });
@@ -31,7 +59,7 @@ export const AuthProvider = ({ children }) => {
         setAdminRole(null);
       }
 
-      return data.member || null;
+      return currentMember;
     } catch {
       setMember(null);
       setAdminRole(null);
@@ -76,6 +104,7 @@ export const AuthProvider = ({ children }) => {
     window.localStorage.removeItem('myindianstartup_auth_mode');
     window.localStorage.removeItem('myindianstartup_auth_provider');
     window.localStorage.removeItem('myindianstartup_account_type');
+    window.localStorage.removeItem('myindianstartup_pending_account_type');
     window.localStorage.removeItem('myindianstartup_login_email');
   }, []);
 

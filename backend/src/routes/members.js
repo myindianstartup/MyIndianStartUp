@@ -11,6 +11,58 @@ const memberSchema = z.object({
 
 export const membersRouter = Router();
 
+const getMediaPublicUrl = async (assetId) => {
+  if (!assetId) return '';
+
+  const { data, error } = await supabaseAdmin
+    .schema('core')
+    .from('media_assets')
+    .select('public_url')
+    .eq('id', assetId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.public_url || '';
+};
+
+const attachProfileImage = async (member) => {
+  if (!member) return null;
+
+  if (member.account_type === 'business') {
+    const { data, error } = await supabaseAdmin
+      .schema('businessverse')
+      .from('profiles')
+      .select('logo_asset_id')
+      .eq('owner_id', member.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return {
+      ...member,
+      profile_image_url: await getMediaPublicUrl(data?.logo_asset_id)
+    };
+  }
+
+  if (member.account_type === 'creator') {
+    const { data, error } = await supabaseAdmin
+      .schema('creatorverse')
+      .from('profiles')
+      .select('profile_asset_id')
+      .eq('owner_id', member.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return {
+      ...member,
+      profile_image_url: await getMediaPublicUrl(data?.profile_asset_id)
+    };
+  }
+
+  return { ...member, profile_image_url: '' };
+};
+
 membersRouter.get('/me', requireAuth, async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
@@ -22,7 +74,7 @@ membersRouter.get('/me', requireAuth, async (req, res, next) => {
 
     if (error) throw error;
 
-    res.json({ member: data });
+    res.json({ member: await attachProfileImage(data) });
   } catch (error) {
     next(error);
   }
@@ -87,7 +139,7 @@ membersRouter.put('/me', requireAuth, async (req, res, next) => {
       if (profileError) throw profileError;
     }
 
-    res.json({ member: data });
+    res.json({ member: await attachProfileImage(data) });
   } catch (error) {
     next(error);
   }

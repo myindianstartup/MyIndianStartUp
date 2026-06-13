@@ -20,16 +20,10 @@ const Navbar = () => {
       : '/post-verse';
 
   const initials = useMemo(() => {
-    const source = member?.full_name || user?.user_metadata?.full_name || user?.email || 'MI';
-    return source
-      .split(/[.\s@_-]+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('') || 'MI';
-  }, [member?.full_name, user?.email, user?.user_metadata?.full_name]);
+    return user?.email?.trim()?.[0]?.toUpperCase() || 'M';
+  }, [user?.email]);
 
-  const avatarUrl = user?.user_metadata?.avatar_url || member?.profile_image_url || '';
+  const avatarUrl = member?.profile_image_url || '';
 
   const handleSearchClick = (event) => {
     event.preventDefault();

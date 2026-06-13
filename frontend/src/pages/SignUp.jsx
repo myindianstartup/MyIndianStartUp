@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, BadgeCheck, Mail, Phone, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import GoogleLogo from '@/components/auth/GoogleLogo';
 import { supabase } from '@/lib/supabaseClient';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +16,7 @@ const SignUp = () => {
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const focusTone = accountType === 'business'
     ? 'focus-within:border-orange-500 focus-within:ring-orange-100'
@@ -137,6 +139,31 @@ const SignUp = () => {
     } catch (requestError) {
       setFormError(requestError.message || 'Account was created, but profile setup failed. Please login and try again.');
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    setFormError('');
+    setSuccessMessage('');
+    setGoogleLoading(true);
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('myindianstartup_auth_mode', 'signup');
+      window.localStorage.setItem('myindianstartup_auth_provider', 'google');
+      window.localStorage.setItem('myindianstartup_pending_account_type', accountType);
+      window.localStorage.setItem('myindianstartup_account_type', accountType);
+    }
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/post-verse`
+      }
+    });
+
+    if (error) {
+      setGoogleLoading(false);
+      setFormError(error.message || 'Google signup could not start. Please try again.');
     }
   };
 
@@ -373,9 +400,24 @@ const SignUp = () => {
             <span className="h-px flex-1 bg-slate-200" />
           </div>
 
+          <button
+            type="button"
+            onClick={handleGoogleSignUp}
+            disabled={googleLoading}
+            aria-label={`Continue with Google as ${accountType === 'business' ? 'BusinessVerse' : 'CreatorVerse'}`}
+            className={`inline-flex w-full items-center justify-center gap-3 rounded-full border bg-white px-6 py-3.5 text-sm font-bold text-slate-900 transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 ${
+              accountType === 'business'
+                ? 'border-orange-100 hover:bg-orange-50 hover:text-orange-600'
+                : 'border-blue-100 hover:bg-blue-50 hover:text-blue-600'
+            }`}
+          >
+            <GoogleLogo className="h-5 w-5" />
+            <span>{googleLoading ? 'Opening Google...' : `Continue with Google as ${accountType === 'business' ? 'BusinessVerse' : 'CreatorVerse'}`}</span>
+          </button>
+
           <Link
             to="/login"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-900 transition-all hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-900 transition-all hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
           >
             <span>Already have an account? Login Here</span>
             <ArrowRight className="h-4 w-4" />

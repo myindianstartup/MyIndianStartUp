@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, BadgeCheck, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import GoogleLogo from '@/components/auth/GoogleLogo';
 import { supabase } from '@/lib/supabaseClient';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,8 +10,52 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { refreshMember } = useAuth();
+  const [googleAccountType, setGoogleAccountType] = useState('business');
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleTheme = googleAccountType === 'business'
+    ? {
+        label: 'BusinessVerse',
+        text: 'text-orange-600',
+        border: 'border-orange-100',
+        soft: 'bg-orange-50',
+        hover: 'hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600',
+        ring: 'ring-orange-100',
+        button: 'bg-orange-500 hover:bg-orange-600 shadow-[0_14px_32px_rgba(249,115,22,0.22)]'
+      }
+    : {
+        label: 'CreatorVerse',
+        text: 'text-blue-600',
+        border: 'border-blue-100',
+        soft: 'bg-blue-50',
+        hover: 'hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600',
+        ring: 'ring-blue-100',
+        button: 'bg-blue-600 hover:bg-blue-700 shadow-[0_14px_32px_rgba(37,99,235,0.22)]'
+      };
+
+  const handleGoogleLogin = async () => {
+    setFormError('');
+    setGoogleLoading(true);
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('myindianstartup_auth_mode', 'login');
+      window.localStorage.setItem('myindianstartup_auth_provider', 'google');
+      window.localStorage.setItem('myindianstartup_pending_account_type', googleAccountType);
+    }
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/post-verse`
+      }
+    });
+
+    if (error) {
+      setGoogleLoading(false);
+      setFormError(error.message || 'Google sign in could not start. Please try again.');
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -44,23 +89,6 @@ const Login = () => {
       window.localStorage.setItem('myindianstartup_auth_mode', 'login');
       window.localStorage.setItem('myindianstartup_auth_provider', 'gmail');
       window.localStorage.setItem('myindianstartup_login_email', email);
-    }
-
-    const metadata = data.user?.user_metadata || {};
-    if (metadata.full_name && ['business', 'creator'].includes(metadata.account_type)) {
-      try {
-        await apiRequest('/api/members/me', {
-          method: 'PUT',
-          token: data.session.access_token,
-          body: {
-            fullName: metadata.full_name,
-            mobileNumber: metadata.mobile_number || undefined,
-            accountType: metadata.account_type
-          }
-        });
-      } catch {
-        // Existing members or admin users can continue; refresh below will pick up saved records.
-      }
     }
 
     await refreshMember(data.session);
@@ -136,7 +164,7 @@ const Login = () => {
             </div>
 
             <div className="mt-4 md:mt-5">
-              <div className="text-[11px] font-black uppercase tracking-[0.32em] text-blue-600">Business + Creator Access</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.32em] text-slate-500">Member workspace access</div>
               <h1 className="mt-2 max-w-2xl text-3xl font-black leading-[1.03] tracking-[-0.05em] text-slate-950 lg:text-[2.35rem]">
                 Sign in to build trusted partnerships faster.
               </h1>
@@ -153,7 +181,7 @@ const Login = () => {
                   ['Direct', 'Business deals']
                 ].map(([value, label]) => (
                   <div key={label}>
-                    <div className="text-xl font-black tracking-tight text-blue-600 lg:text-2xl">{value}</div>
+                    <div className="text-xl font-black tracking-tight text-slate-800 lg:text-2xl">{value}</div>
                     <div className="mt-0.5 text-xs font-semibold text-slate-600 lg:text-sm">{label}</div>
                   </div>
                 ))}
@@ -163,7 +191,7 @@ const Login = () => {
         </section>
 
         <section className="auth-login-panel rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_90px_rgba(15,23,42,0.12)] md:p-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-blue-700">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-700">
             <BadgeCheck className="h-3.5 w-3.5" />
             Member login
           </div>
@@ -176,7 +204,7 @@ const Login = () => {
           <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
             <label className="grid gap-2">
               <span className="text-sm font-bold text-slate-800">Email Address</span>
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:border-slate-500 focus-within:ring-2 focus-within:ring-slate-100">
                 <Mail className="h-5 w-5 text-slate-400" />
                 <input
                   name="email"
@@ -195,7 +223,7 @@ const Login = () => {
                 type="password"
                 placeholder="Enter your password"
                 required
-                className="rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                className="rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-100"
               />
             </label>
 
@@ -207,10 +235,10 @@ const Login = () => {
 
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold">
               <label className="inline-flex items-center gap-2 text-slate-600">
-                <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-500" />
                 <span>Remember Me</span>
               </label>
-              <Link to="/contact" className="text-blue-600 transition-colors hover:text-blue-700">
+              <Link to="/contact" className="text-slate-700 transition-colors hover:text-slate-950">
                 Forgot Password?
               </Link>
             </div>
@@ -218,7 +246,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3.5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(37,99,235,0.28)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3.5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(15,23,42,0.22)] transition-all hover:-translate-y-0.5 hover:bg-slate-800"
             >
               <span>{loading ? 'Logging in...' : 'Login'}</span>
               <ArrowRight className="h-4 w-4" />
@@ -231,9 +259,47 @@ const Login = () => {
             <span className="h-px flex-1 bg-slate-200" />
           </div>
 
+          <div className="mb-3 rounded-[1.35rem] border border-slate-200 bg-[#f8fafc] p-2">
+            <div className="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+              Continue with Google as
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { key: 'business', label: 'BusinessVerse' },
+                { key: 'creator', label: 'CreatorVerse' }
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setGoogleAccountType(item.key)}
+                  className={`rounded-full px-3 py-2.5 text-sm font-black transition-all ${
+                    googleAccountType === item.key
+                      ? item.key === 'business'
+                        ? 'bg-white text-orange-600 shadow-sm ring-1 ring-orange-100'
+                        : 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100'
+                      : 'text-slate-500 hover:bg-white/70 hover:text-slate-900'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            aria-label={`Sign in with Google as ${googleTheme.label}`}
+            className={`inline-flex w-full items-center justify-center gap-3 rounded-full border bg-white px-6 py-3.5 text-sm font-bold text-slate-900 transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 ${googleTheme.border} ${googleTheme.hover}`}
+          >
+            <GoogleLogo className="h-5 w-5" />
+            <span>{googleLoading ? 'Opening Google...' : `Sign in with Google as ${googleTheme.label}`}</span>
+          </button>
+
           <Link
             to="/signup"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-900 transition-all hover:-translate-y-0.5 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-900 transition-all hover:-translate-y-0.5 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
           >
             <span>Create account first</span>
             <ArrowRight className="h-4 w-4" />

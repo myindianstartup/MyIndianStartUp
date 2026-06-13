@@ -15,8 +15,21 @@ const countRows = async (schema, table, filters = []) => {
   return count || 0;
 };
 
-adminRouter.get('/me', requireAuth, requireAdminRole('admin'), async (req, res) => {
-  res.json({ role: req.adminRole });
+adminRouter.get('/me', requireAuth, async (req, res, next) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .schema('admin')
+      .from('users')
+      .select('role')
+      .eq('user_id', req.user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    res.json({ role: data?.role || null });
+  } catch (error) {
+    next(error);
+  }
 });
 
 adminRouter.get('/overview', requireAuth, requireAdminRole('admin'), async (req, res, next) => {

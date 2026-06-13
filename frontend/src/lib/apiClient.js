@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export const apiRequest = async (path, { token, method = 'GET', body, headers = {} } = {}) => {
   const response = await fetch(`${API_URL}${path}`, {
