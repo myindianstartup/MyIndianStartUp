@@ -56,10 +56,25 @@ const Navbar = () => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
+  const accountType = member?.account_type?.toLowerCase();
+
   const navItems = [
     { path: '/', label: 'Home', testid: 'nav-link-home' },
-    { path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' },
-    { path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' },
+    // Not logged in → show both. Business user → only BusinessVerse. Creator user → only CreatorVerse.
+    ...(!isAuthenticated
+      ? [
+          { path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' },
+          { path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' },
+        ]
+      : accountType === 'business'
+        ? [{ path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' }]
+        : accountType === 'creator'
+          ? [{ path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' }]
+          : [
+              { path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' },
+              { path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' },
+            ]),
+    ...(isAuthenticated ? [{ path: '/verse-feed', label: 'VerseFeed', testid: 'nav-link-verse-feed' }] : []),
     { path: '/pricing', label: 'Pricing', testid: 'nav-link-pricing' },
     { path: '/contact', label: 'Contact Us', testid: 'nav-link-contact' }
   ];

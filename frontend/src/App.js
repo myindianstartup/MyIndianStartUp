@@ -13,6 +13,7 @@ import JoinUs from "@/pages/JoinUs";
 import Platform from "@/pages/Platform";
 import PostVerse from "@/pages/PostVerse";
 import SearchVerse from "@/pages/SearchVerse";
+import VerseFeed from "@/pages/VerseFeed";
 import ProfileVerse from "@/pages/ProfileVerse";
 import Messages from "@/pages/Messages";
 import Settings from "@/pages/Settings";
@@ -68,6 +69,7 @@ function App() {
           <Route path="/post-verse" element={<ProtectedRoute><Layout><PostVerse /></Layout></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Layout><PostVerse /></Layout></ProtectedRoute>} />
           <Route path="/search-verse" element={<ProtectedRoute><Layout><SearchVerse /></Layout></ProtectedRoute>} />
+          <Route path="/verse-feed" element={<ProtectedRoute><Layout><VerseFeed /></Layout></ProtectedRoute>} />
           <Route path="/profile-verse" element={<ProtectedRoute><Layout><ProfileVerse /></Layout></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
