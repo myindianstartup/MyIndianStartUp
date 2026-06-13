@@ -1,0 +1,174 @@
+MyIndianStartup Dummy Accounts and Role Guide
+
+This file documents local/demo credentials only. Do not use these passwords for production users.
+
+1. Superadmin Account
+
+Email:
+superadmin@myindianstartup.test
+
+Password:
+SuperAdmin@123
+
+Frontend dashboard:
+http://localhost:3000/superadmin
+
+Role:
+Project owner / business owner level access.
+
+What superadmin can do:
+- View full platform overview.
+- View total members, business profiles, creator profiles, posts, and storage indicators.
+- View revenue-style subscription analytics.
+- Manage or review admin-level access.
+- See owner-level system status such as Supabase, R2, PostVerse rules, and admin layer.
+- In production, this role should control sensitive settings and high-level business data.
+
+How it works right now:
+- The account exists in Supabase Auth.
+- A matching member row exists in core.members.
+- A matching role row exists in admin.users with role = superadmin.
+- Frontend login validates this email and password through Supabase Auth.
+- The frontend checks /api/admin/me and routes this role to /superadmin.
+- Backend permission enforcement uses requireAdminRole('superadmin').
+
+
+2. Admin Account
+
+Email:
+admin@myindianstartup.test
+
+Password:
+Admin@123
+
+Frontend dashboard:
+http://localhost:3000/admin
+
+Role:
+Platform manager / operations admin.
+
+What admin can do:
+- View operational dashboard.
+- Review members and account activity.
+- Monitor BusinessVerse and CreatorVerse profiles.
+- Monitor PostVerse activity.
+- Help manage support and moderation.
+
+What admin should not do:
+- Admin should not have owner-level control.
+- Admin should not manage superadmin ownership settings.
+- Admin should not access full business-owner revenue controls unless approved.
+
+How it works right now:
+- The account exists in Supabase Auth.
+- A matching member row exists in core.members.
+- A matching role row exists in admin.users with role = admin.
+- Frontend login validates this email and password through Supabase Auth.
+- The frontend checks /api/admin/me and routes this role to /admin.
+- Backend allows this role to access /api/admin/overview and /api/admin/members.
+- Backend blocks this role from /api/admin/superadmin.
+
+
+3. BusinessVerse Dummy Member
+
+Email:
+business@myindianstartup.test
+
+Password:
+Business@123
+
+Frontend dashboard:
+http://localhost:3000/post-verse
+
+Role:
+BusinessVerse member.
+
+What BusinessVerse member can do:
+- Create and manage a business profile.
+- Store business details such as business name, industry, city, state, website, about company, and contact details.
+- Publish one image or one video every 24 hours in PostVerse after active subscription.
+- Search and discover creators and professionals.
+- Connect directly without commission or lead charges.
+
+How it works right now:
+- The account exists in Supabase Auth.
+- A matching row exists in core.members with account_type = business.
+- A sample profile exists in businessverse.profiles.
+- Subscription status is active for testing.
+- Frontend login validates this email and password through Supabase Auth.
+- Normal member accounts open /post-verse after login.
+- Backend post API checks active subscription before publishing.
+- Backend post API enforces one post every 24 hours.
+
+
+4. CreatorVerse Dummy Member
+
+Email:
+creator@myindianstartup.test
+
+Password:
+Creator@123
+
+Frontend dashboard:
+http://localhost:3000/post-verse
+
+Role:
+CreatorVerse member.
+
+What CreatorVerse member can do:
+- Create and manage a creator profile.
+- Store full name, skills, city, state, portfolio link, about me, social links, and contact details.
+- Publish one image or one video every 24 hours in PostVerse after active subscription.
+- Search and discover businesses.
+- Connect directly with businesses without commission.
+
+How it works right now:
+- The account exists in Supabase Auth.
+- A matching row exists in core.members with account_type = creator.
+- A sample profile exists in creatorverse.profiles.
+- Subscription status is active for testing.
+- Frontend login validates this email and password through Supabase Auth.
+- Normal member accounts open /post-verse after login.
+- Backend post API checks active subscription before publishing.
+- Backend post API enforces one post every 24 hours.
+
+
+5. Current Technical Status
+
+Already done:
+- Supabase Auth accounts seeded.
+- core.members rows seeded.
+- businessverse.profiles sample row seeded.
+- creatorverse.profiles sample row seeded.
+- admin.users rows seeded for admin and superadmin.
+- Backend APIs scaffolded.
+- Admin and superadmin dashboard pages created.
+- Custom Supabase schemas exposed through Data API.
+- Frontend Supabase Auth login and signup connected.
+- Protected frontend routes added.
+- Navbar switches Login / Join buttons to a profile avatar after login.
+
+Still pending:
+- Cloudflare R2 final keys and public URL.
+- Real media upload flow from frontend.
+- Payment gateway integration for real subscription activation.
+
+
+6. Testing Flow Right Now
+
+Frontend:
+http://localhost:3000
+
+Backend:
+http://localhost:5000/health
+
+Test login:
+- Go to http://localhost:3000/login
+- Enter one of the dummy emails.
+- Enter the matching password from this guide.
+- Superadmin email opens /superadmin.
+- Admin email opens /admin.
+- Business and creator emails open /post-verse.
+
+Important:
+The accounts are real in Supabase Auth. If they are moved to a client Supabase project, reseed the accounts and roles there before testing.

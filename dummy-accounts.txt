@@ -1,0 +1,27 @@
+MyIndianStartup Dummy Accounts
+
+Superadmin
+Email: superadmin@myindianstartup.test
+Password: SuperAdmin@123
+Dashboard: http://localhost:3000/superadmin
+
+Admin
+Email: admin@myindianstartup.test
+Password: Admin@123
+Dashboard: http://localhost:3000/admin
+
+BusinessVerse Member
+Email: business@myindianstartup.test
+Password: Business@123
+Dashboard: http://localhost:3000/post-verse
+
+CreatorVerse Member
+Email: creator@myindianstartup.test
+Password: Creator@123
+Dashboard: http://localhost:3000/post-verse
+
+Notes:
+- These accounts are seeded in Supabase Auth and related schemas.
+- The frontend login uses real Supabase email/password authentication.
+- Admin and superadmin route by the role stored in admin.users.
+- BusinessVerse and CreatorVerse members open PostVerse after login.
