@@ -181,6 +181,45 @@ as $$
   select role from admin.users where user_id = auth.uid() limit 1;
 $$;
 
+create or replace function core.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = core, public
+as $$
+begin
+  insert into core.members (
+    id,
+    email,
+    full_name,
+    mobile_number,
+    account_type,
+    subscription_status
+  )
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', ''),
+    nullif(new.raw_user_meta_data->>'mobile_number', ''),
+    coalesce(nullif(new.raw_user_meta_data->>'account_type', '')::core.account_type, 'business'::core.account_type),
+    'inactive'::core.subscription_status
+  )
+  on conflict (id) do update
+    set email = excluded.email,
+        full_name = excluded.full_name,
+        mobile_number = excluded.mobile_number,
+        account_type = excluded.account_type,
+        updated_at = now();
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function core.handle_new_auth_user();
+
 alter table core.members enable row level security;
 alter table core.media_assets enable row level security;
 alter table businessverse.profiles enable row level security;

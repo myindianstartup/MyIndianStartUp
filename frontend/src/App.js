@@ -21,6 +21,8 @@ import SignIn from "@/pages/SignIn";
 import SignUp from "@/pages/SignUp";
 import AdminDashboard from "@/pages/AdminDashboard";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 import "@/App.css";
 
@@ -38,18 +40,19 @@ function App() {
   return (
     <div className="App">
       <BrowserRouter>
-        <ScrollToTop />
-        {/* Verification Link for Emergent Test Suits */}
-        <div className="sr-only opacity-0 pointer-events-none absolute">
-          <a
-            data-testid={HOME.emergentLink}
-            href="https://emergent.sh"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" alt="emergent" />
-          </a>
-        </div>
+        <AuthProvider>
+          <ScrollToTop />
+          {/* Verification Link for Emergent Test Suits */}
+          <div className="sr-only opacity-0 pointer-events-none absolute">
+            <a
+              data-testid={HOME.emergentLink}
+              href="https://emergent.sh"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" alt="emergent" />
+            </a>
+          </div>
 
         <Routes>
           <Route path="/" element={<Layout><Home /></Layout>} />
@@ -60,18 +63,19 @@ function App() {
           <Route path="/contact" element={<Layout><JoinUs /></Layout>} />
           <Route path="/join" element={<Layout><JoinUs /></Layout>} />
           <Route path="/platform" element={<Layout><Platform /></Layout>} />
-          <Route path="/post-verse" element={<Layout><PostVerse /></Layout>} />
-          <Route path="/dashboard" element={<Layout><PostVerse /></Layout>} />
-          <Route path="/search-verse" element={<Layout><SearchVerse /></Layout>} />
-          <Route path="/profile-verse" element={<Layout><ProfileVerse /></Layout>} />
-          <Route path="/messages" element={<Layout><Messages /></Layout>} />
-          <Route path="/settings" element={<Layout><Settings /></Layout>} />
+          <Route path="/post-verse" element={<ProtectedRoute><Layout><PostVerse /></Layout></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Layout><PostVerse /></Layout></ProtectedRoute>} />
+          <Route path="/search-verse" element={<ProtectedRoute><Layout><SearchVerse /></Layout></ProtectedRoute>} />
+          <Route path="/profile-verse" element={<ProtectedRoute><Layout><ProfileVerse /></Layout></ProtectedRoute>} />
+          <Route path="/messages" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/superadmin" element={<SuperAdminDashboard />} />
+          <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/superadmin" element={<ProtectedRoute superAdminOnly><SuperAdminDashboard /></ProtectedRoute>} />
         </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </div>
   );

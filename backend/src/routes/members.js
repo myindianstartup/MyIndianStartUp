@@ -48,6 +48,45 @@ membersRouter.put('/me', requireAuth, async (req, res, next) => {
 
     if (error) throw error;
 
+    if (payload.accountType === 'business') {
+      const { error: profileError } = await supabaseAdmin
+        .schema('businessverse')
+        .from('profiles')
+        .upsert({
+          owner_id: req.user.id,
+          business_name: payload.fullName,
+          industry: 'To be updated',
+          city: 'To be updated',
+          state: 'To be updated',
+          contact_details: {
+            email: req.user.email,
+            mobile: payload.mobileNumber || null
+          },
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'owner_id' });
+
+      if (profileError) throw profileError;
+    }
+
+    if (payload.accountType === 'creator') {
+      const { error: profileError } = await supabaseAdmin
+        .schema('creatorverse')
+        .from('profiles')
+        .upsert({
+          owner_id: req.user.id,
+          full_name: payload.fullName,
+          city: 'To be updated',
+          state: 'To be updated',
+          contact_details: {
+            email: req.user.email,
+            mobile: payload.mobileNumber || null
+          },
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'owner_id' });
+
+      if (profileError) throw profileError;
+    }
+
     res.json({ member: data });
   } catch (error) {
     next(error);

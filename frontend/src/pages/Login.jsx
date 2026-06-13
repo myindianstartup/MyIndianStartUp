@@ -1,14 +1,44 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, BadgeCheck, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { apiRequest } from '@/lib/apiClient';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { refreshMember } = useAuth();
+  const [formError, setFormError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setFormError('');
+
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get('email') || '').trim().toLowerCase();
+    const password = String(formData.get('password') || '');
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setFormError('Please enter a valid email address.');
+      return;
+    }
+
+    if (!password) {
+      setFormError('Please enter your password.');
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error || !data.session) {
+      setLoading(false);
+      setFormError(error?.message || 'Login failed. Please check your details.');
+      return;
+    }
 
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('myindianstartup_auth_mode', 'login');
@@ -16,17 +46,41 @@ const Login = () => {
       window.localStorage.setItem('myindianstartup_login_email', email);
     }
 
-    if (email === 'superadmin@myindianstartup.test') {
-      navigate('/superadmin');
-      return;
+    const metadata = data.user?.user_metadata || {};
+    if (metadata.full_name && ['business', 'creator'].includes(metadata.account_type)) {
+      try {
+        await apiRequest('/api/members/me', {
+          method: 'PUT',
+          token: data.session.access_token,
+          body: {
+            fullName: metadata.full_name,
+            mobileNumber: metadata.mobile_number || undefined,
+            accountType: metadata.account_type
+          }
+        });
+      } catch {
+        // Existing members or admin users can continue; refresh below will pick up saved records.
+      }
     }
 
-    if (email === 'admin@myindianstartup.test') {
-      navigate('/admin');
-      return;
+    await refreshMember(data.session);
+
+    try {
+      const roleData = await apiRequest('/api/admin/me', { token: data.session.access_token });
+      if (roleData.role === 'superadmin') {
+        navigate('/superadmin', { replace: true });
+        return;
+      }
+      if (roleData.role === 'admin') {
+        navigate('/admin', { replace: true });
+        return;
+      }
+    } catch {
+      // Non-admin users continue to their dashboard.
     }
 
-    navigate('/post-verse');
+    navigate(location.state?.from || '/post-verse', { replace: true });
+    setLoading(false);
   };
 
   return (
@@ -128,6 +182,7 @@ const Login = () => {
                   name="email"
                   type="email"
                   placeholder="you@gmail.com"
+                  required
                   className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
                 />
               </div>
@@ -136,11 +191,19 @@ const Login = () => {
             <label className="grid gap-2">
               <span className="text-sm font-bold text-slate-800">Password</span>
               <input
+                name="password"
                 type="password"
                 placeholder="Enter your password"
+                required
                 className="rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               />
             </label>
+
+            {formError && (
+              <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
+                {formError}
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold">
               <label className="inline-flex items-center gap-2 text-slate-600">
@@ -154,9 +217,10 @@ const Login = () => {
 
             <button
               type="submit"
+              disabled={loading}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3.5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(37,99,235,0.28)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
             >
-              <span>Login</span>
+              <span>{loading ? 'Logging in...' : 'Login'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>
