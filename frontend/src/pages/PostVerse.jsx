@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -144,15 +144,7 @@ const PostVerse = () => {
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
           <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
             <div>
-              <WorkspaceSidebar title={theme.title} subtitle={`${theme.verse} activated`} />
-              <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Next reset</div>
-                <div className="mt-2 flex items-center gap-2 text-sm font-black text-slate-800">
-                  <Clock3 className="h-4 w-4 text-slate-500" />
-                  <span>18h 42m</span>
-                </div>
-                <p className="mt-2 text-xs leading-5 text-slate-500">Your next daily post slot opens after the 24-hour cycle.</p>
-              </div>
+              <WorkspaceSidebar />
             </div>
 
             <div className="grid gap-8">

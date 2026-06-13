@@ -111,9 +111,9 @@ const Settings = () => {
   return (
     <main className="min-h-screen bg-[#f8fbff] pt-28 text-slate-950">
       <section className="mx-auto max-w-7xl px-5 pb-12 md:px-10">
-        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+        <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:items-start">
           <div>
-            <WorkspaceSidebar title="Settings" subtitle="Account controls" />
+            <WorkspaceSidebar />
             <div className={`mt-5 rounded-[1.5rem] px-4 py-3 ring-1 ${accountBadge.className}`}>
               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]">
                 <span className={`h-2 w-2 rounded-full ${accountBadge.dot}`} />

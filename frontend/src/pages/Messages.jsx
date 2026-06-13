@@ -102,9 +102,9 @@ const Messages = () => {
   return (
     <main className="min-h-screen bg-[#f8fbff] pt-28 text-slate-950">
       <section className="mx-auto max-w-7xl px-5 pb-12 md:px-10">
-        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+        <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:items-start">
           <div>
-            <WorkspaceSidebar title="Messages" subtitle="Direct collaboration" />
+            <WorkspaceSidebar />
             <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
                 <ShieldCheck className="h-4 w-4" />

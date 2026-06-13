@@ -328,8 +328,8 @@ const ProfileVerse = () => {
       <section className="relative overflow-hidden pb-16">
         <div className="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.10),transparent_32%),radial-gradient(circle_at_top_right,rgba(37,99,235,0.10),transparent_34%)]" />
         <div className="relative mx-auto max-w-[1500px] px-6 md:px-12">
-          <div className="grid gap-8 lg:grid-cols-[260px_1fr] lg:items-start">
-            <WorkspaceSidebar title="Profile" subtitle={`${theme.label} details`} />
+          <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:items-start">
+            <WorkspaceSidebar />
 
             <div className="grid gap-8 xl:grid-cols-[0.82fr_1.18fr] xl:items-start">
             <aside className="xl:sticky xl:top-28">

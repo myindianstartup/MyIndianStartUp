@@ -45,7 +45,22 @@ export const AuthProvider = ({ children }) => {
         window.localStorage.removeItem('myindianstartup_pending_account_type');
       }
 
-      if (currentMember?.account_type) {
+      if (currentMember && ['business', 'creator'].includes(pendingAccountType) && currentMember.account_type !== pendingAccountType) {
+        const fallbackName = activeSession.user?.email ? activeSession.user.email.split('@')[0] : 'MyIndianStartup Member';
+        const fullName = currentMember.full_name || fallbackName;
+        const updated = await apiRequest('/api/members/me', {
+          method: 'PUT',
+          token: activeSession.access_token,
+          body: {
+            fullName,
+            mobileNumber: currentMember.mobile_number || undefined,
+            accountType: pendingAccountType
+          }
+        });
+        currentMember = updated.member || currentMember;
+        window.localStorage.setItem('myindianstartup_account_type', pendingAccountType);
+        window.localStorage.removeItem('myindianstartup_pending_account_type');
+      } else if (currentMember?.account_type) {
         window.localStorage.setItem('myindianstartup_account_type', currentMember.account_type);
         window.localStorage.removeItem('myindianstartup_pending_account_type');
       }
@@ -60,7 +75,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       return currentMember;
-    } catch {
+    } catch (error) {
+      console.error('Error in refreshMember:', error);
       setMember(null);
       setAdminRole(null);
       return null;
