@@ -4,6 +4,7 @@ import { HOME } from "@/constants/testIds";
 
 import Navbar from "@/components/site/Navbar";
 import Footer from "@/components/site/Footer";
+import ScrollToTop from "@/components/site/ScrollToTop";
 import Home from "@/pages/Home";
 import BusinessVerse from "@/pages/BusinessVerse";
 import CreatorVerse from "@/pages/CreatorVerse";
@@ -35,6 +36,7 @@ function App() {
   return (
     <div className="App">
       <BrowserRouter>
+        <ScrollToTop />
         {/* Verification Link for Emergent Test Suits */}
         <div className="sr-only opacity-0 pointer-events-none absolute">
           <a
