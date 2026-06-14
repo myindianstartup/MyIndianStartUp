@@ -22,6 +22,11 @@ const commentSchema = z.object({
   body: z.string().trim().min(1).max(500)
 });
 
+const storySchema = z.object({
+  caption: z.string().trim().max(250).optional().nullable(),
+  accountType: z.enum(['business', 'creator'])
+});
+
 export const postsRouter = Router();
 
 const isMissingDatabaseFeature = (error) => {
@@ -39,6 +44,8 @@ const isMissingDatabaseFeature = (error) => {
 
 const postSelectWithFullMetrics = 'id, author_id, account_type, caption, media_url, media_type, created_at, published_at, post_metrics(views, likes, comments, shares, saves, inquiries, reach, impressions)';
 const postSelectWithBasicMetrics = 'id, author_id, account_type, caption, media_url, media_type, created_at, published_at, post_metrics(views, saves, inquiries)';
+
+const publicMemberSelect = 'id, email, full_name, account_type';
 
 const ensurePostMetricRow = async (postId) => {
   const { error } = await supabaseAdmin
@@ -150,7 +157,7 @@ const getAuthorProfiles = async (authorIds = []) => {
     { data: businessProfiles },
     { data: creatorProfiles }
   ] = await Promise.all([
-    safeProfileQuery(supabaseAdmin.schema('core').from('members').select('id, email, full_name, account_type').in('id', uniqueAuthorIds), { data: [] }),
+    safeProfileQuery(supabaseAdmin.schema('core').from('members').select(publicMemberSelect).in('id', uniqueAuthorIds), { data: [] }),
     safeProfileQuery(supabaseAdmin.schema('businessverse').from('profiles').select('owner_id, business_name, industry, city, state, logo_asset_id').in('owner_id', uniqueAuthorIds), { data: [] }),
     safeProfileQuery(supabaseAdmin.schema('creatorverse').from('profiles').select('owner_id, full_name, skills, city, state, profile_asset_id').in('owner_id', uniqueAuthorIds), { data: [] })
   ]);
@@ -205,7 +212,82 @@ const getAuthorProfiles = async (authorIds = []) => {
   }));
 };
 
-const shapePost = (post, author) => ({
+const getFollowingSet = async (viewerId, userIds = []) => {
+  const targets = [...new Set(userIds)].filter((id) => id && id !== viewerId);
+  if (!viewerId || !targets.length) return new Set();
+
+  const { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('user_follows')
+    .select('following_id')
+    .eq('follower_id', viewerId)
+    .in('following_id', targets);
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return new Set();
+    throw error;
+  }
+
+  return new Set((data || []).map((row) => row.following_id));
+};
+
+const getLikedPostSet = async (viewerId, postIds = []) => {
+  const ids = [...new Set(postIds)].filter(Boolean);
+  if (!viewerId || !ids.length) return new Set();
+
+  const { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('post_reactions')
+    .select('post_id')
+    .eq('user_id', viewerId)
+    .eq('reaction_type', 'like')
+    .in('post_id', ids);
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return new Set();
+    throw error;
+  }
+
+  return new Set((data || []).map((row) => row.post_id));
+};
+
+const fetchCommentPreview = async (postIds = []) => {
+  const ids = [...new Set(postIds)].filter(Boolean);
+  if (!ids.length) return {};
+
+  const { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('post_comments')
+    .select('id, post_id, author_id, body, created_at')
+    .in('post_id', ids)
+    .eq('status', 'visible')
+    .order('created_at', { ascending: true })
+    .limit(200);
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return {};
+    throw error;
+  }
+
+  const authorsById = await getAuthorProfiles((data || []).map((comment) => comment.author_id));
+  return (data || []).reduce((grouped, comment) => {
+    const author = authorsById[comment.author_id] || {};
+    const shaped = {
+      id: comment.id,
+      postId: comment.post_id,
+      authorId: comment.author_id,
+      authorName: author.name || 'Member',
+      authorAvatarUrl: author.avatarUrl || null,
+      accountType: author.accountType || 'business',
+      body: comment.body,
+      createdAt: comment.created_at
+    };
+    grouped[comment.post_id] = [...(grouped[comment.post_id] || []), shaped].slice(-3);
+    return grouped;
+  }, {});
+};
+
+const shapePost = (post, author, extras = {}) => ({
   id: post.id,
   authorId: post.author_id,
   authorName: author?.name || 'MyIndianStartup Member',
@@ -229,10 +311,16 @@ const shapePost = (post, author) => ({
     inquiries: (Array.isArray(post.post_metrics) ? post.post_metrics[0]?.inquiries : post.post_metrics?.inquiries) || 0,
     reach: (Array.isArray(post.post_metrics) ? post.post_metrics[0]?.reach : post.post_metrics?.reach) || 0,
     impressions: (Array.isArray(post.post_metrics) ? post.post_metrics[0]?.impressions : post.post_metrics?.impressions) || 0
-  }
+  },
+  viewer: {
+    liked: Boolean(extras.liked),
+    followingAuthor: Boolean(extras.followingAuthor),
+    ownPost: Boolean(extras.ownPost)
+  },
+  commentsPreview: extras.commentsPreview || []
 });
 
-const fetchPublishedPosts = async ({ limit = 50, excludeAuthorId = null } = {}) => {
+const fetchPublishedPosts = async ({ limit = 50, excludeAuthorId = null, viewerId = null, withComments = false } = {}) => {
   const buildQuery = (selectColumns) => {
     let query = supabaseAdmin
       .schema('postverse')
@@ -265,7 +353,18 @@ const fetchPublishedPosts = async ({ limit = 50, excludeAuthorId = null } = {}) 
   }
 
   const authorsById = await getAuthorProfiles(posts.map((post) => post.author_id));
-  return posts.map((post) => shapePost(post, authorsById[post.author_id]));
+  const [followingSet, likedSet, commentsByPost] = await Promise.all([
+    getFollowingSet(viewerId, posts.map((post) => post.author_id)),
+    getLikedPostSet(viewerId, posts.map((post) => post.id)),
+    withComments ? fetchCommentPreview(posts.map((post) => post.id)) : {}
+  ]);
+
+  return posts.map((post) => shapePost(post, authorsById[post.author_id], {
+    liked: likedSet.has(post.id),
+    followingAuthor: followingSet.has(post.author_id),
+    ownPost: viewerId === post.author_id,
+    commentsPreview: commentsByPost[post.id] || []
+  }));
 };
 
 const fetchUserPostsForOverview = async (userId) => {
@@ -344,7 +443,7 @@ postsRouter.get('/overview', requireAuth, async (req, res, next) => {
 postsRouter.get('/feed', requireAuth, async (req, res, next) => {
   try {
     await fetchMemberOrBlockFeed(req.user.id);
-    const posts = await fetchPublishedPosts({ limit: 50 });
+    const posts = await fetchPublishedPosts({ limit: 50, viewerId: req.user.id, withComments: true });
     res.json({ posts });
   } catch (error) {
     next(error);
@@ -354,11 +453,12 @@ postsRouter.get('/feed', requireAuth, async (req, res, next) => {
 postsRouter.get('/recommendations', requireAuth, async (req, res, next) => {
   try {
     const member = await fetchMemberOrBlockFeed(req.user.id);
-    const recommendedPosts = await fetchPublishedPosts({ limit: 8, excludeAuthorId: req.user.id });
+    const recommendedPosts = await fetchPublishedPosts({ limit: 20, excludeAuthorId: req.user.id, viewerId: req.user.id });
     const oppositeType = member.account_type === 'business' ? 'creator' : 'business';
 
     res.json({
       recommendations: recommendedPosts
+        .filter((post) => !post.viewer.followingAuthor)
         .sort((a, b) => {
           const aBoost = a.accountType === oppositeType ? 1 : 0;
           const bBoost = b.accountType === oppositeType ? 1 : 0;
@@ -367,6 +467,7 @@ postsRouter.get('/recommendations', requireAuth, async (req, res, next) => {
         .slice(0, 6)
         .map((post) => ({
           ...post,
+          isFollowing: post.viewer.followingAuthor,
           reason: post.accountType === oppositeType
             ? member.account_type === 'business'
               ? 'Recommended creator for business collaboration'
@@ -374,6 +475,192 @@ postsRouter.get('/recommendations', requireAuth, async (req, res, next) => {
             : 'Active member in your network'
         }))
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+postsRouter.get('/connections', requireAuth, async (req, res, next) => {
+  try {
+    await fetchMemberOrBlockFeed(req.user.id);
+
+    const [{ data: following, error: followingError }, { data: followers, error: followersError }] = await Promise.all([
+      supabaseAdmin.schema('postverse').from('user_follows').select('following_id, created_at').eq('follower_id', req.user.id).order('created_at', { ascending: false }),
+      supabaseAdmin.schema('postverse').from('user_follows').select('follower_id, created_at').eq('following_id', req.user.id).order('created_at', { ascending: false })
+    ]);
+
+    if (followingError) throw followingError;
+    if (followersError) throw followersError;
+
+    const followingProfiles = await getAuthorProfiles((following || []).map((row) => row.following_id));
+    const followerProfiles = await getAuthorProfiles((followers || []).map((row) => row.follower_id));
+
+    res.json({
+      following: (following || []).map((row) => ({ ...followingProfiles[row.following_id], followedAt: row.created_at })),
+      followers: (followers || []).map((row) => ({ ...followerProfiles[row.follower_id], followedAt: row.created_at }))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+postsRouter.post('/users/:userId/follow', requireAuth, async (req, res, next) => {
+  try {
+    await fetchMemberOrBlockFeed(req.user.id);
+    const targetUserId = req.params.userId;
+    if (targetUserId === req.user.id) {
+      const error = new Error('You cannot follow your own account.');
+      error.status = 400;
+      throw error;
+    }
+
+    const { data: target, error: targetError } = await supabaseAdmin
+      .schema('core')
+      .from('members')
+      .select('id')
+      .eq('id', targetUserId)
+      .maybeSingle();
+
+    if (targetError) throw targetError;
+    if (!target) {
+      const error = new Error('Member not found.');
+      error.status = 404;
+      throw error;
+    }
+
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .schema('postverse')
+      .from('user_follows')
+      .select('id')
+      .eq('follower_id', req.user.id)
+      .eq('following_id', targetUserId)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+
+    if (existing) {
+      const { error } = await supabaseAdmin.schema('postverse').from('user_follows').delete().eq('id', existing.id);
+      if (error) throw error;
+      res.json({ following: false });
+      return;
+    }
+
+    const { error } = await supabaseAdmin
+      .schema('postverse')
+      .from('user_follows')
+      .insert({ follower_id: req.user.id, following_id: targetUserId });
+
+    if (error) throw error;
+    res.status(201).json({ following: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+postsRouter.get('/stories', requireAuth, async (req, res, next) => {
+  try {
+    await fetchMemberOrBlockFeed(req.user.id);
+
+    const { data, error } = await supabaseAdmin
+      .schema('postverse')
+      .from('stories')
+      .select('id, author_id, account_type, caption, media_url, media_type, created_at, expires_at')
+      .eq('status', 'active')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(40);
+
+    if (error) throw error;
+
+    const [authorsById, viewedSet] = await Promise.all([
+      getAuthorProfiles((data || []).map((story) => story.author_id)),
+      (async () => {
+        const ids = (data || []).map((story) => story.id);
+        if (!ids.length) return new Set();
+        const { data: views, error: viewsError } = await supabaseAdmin
+          .schema('postverse')
+          .from('story_views')
+          .select('story_id')
+          .eq('viewer_id', req.user.id)
+          .in('story_id', ids);
+        if (viewsError) {
+          if (isMissingDatabaseFeature(viewsError)) return new Set();
+          throw viewsError;
+        }
+        return new Set((views || []).map((view) => view.story_id));
+      })()
+    ]);
+
+    res.json({
+      stories: (data || []).map((story) => {
+        const author = authorsById[story.author_id] || {};
+        return {
+          id: story.id,
+          authorId: story.author_id,
+          name: author.name || 'Member',
+          type: story.account_type,
+          image: story.media_url,
+          mediaUrl: story.media_url,
+          mediaType: story.media_type,
+          caption: story.caption || '',
+          viewed: viewedSet.has(story.id),
+          createdAt: story.created_at,
+          expiresAt: story.expires_at
+        };
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+postsRouter.post('/stories', requireAuth, upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Story image or video file is required', code: 'MEDIA_REQUIRED' });
+    }
+
+    const payload = storySchema.parse(req.body);
+    await fetchMemberOrBlockFeed(req.user.id);
+
+    const asset = await uploadMediaAsset({
+      file: req.file,
+      userId: req.user.id,
+      purpose: 'story'
+    });
+
+    const { data, error } = await supabaseAdmin
+      .schema('postverse')
+      .from('stories')
+      .insert({
+        author_id: req.user.id,
+        account_type: payload.accountType,
+        caption: payload.caption || '',
+        media_asset_id: asset.id,
+        media_url: asset.public_url,
+        media_type: asset.media_type
+      })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    res.status(201).json({ story: data, asset });
+  } catch (error) {
+    next(error);
+  }
+});
+
+postsRouter.post('/stories/:id/view', requireAuth, async (req, res, next) => {
+  try {
+    await fetchMemberOrBlockFeed(req.user.id);
+
+    const { error } = await supabaseAdmin
+      .schema('postverse')
+      .from('story_views')
+      .upsert({ story_id: req.params.id, viewer_id: req.user.id }, { onConflict: 'story_id,viewer_id' });
+
+    if (error) throw error;
+    res.status(201).json({ viewed: true });
   } catch (error) {
     next(error);
   }
@@ -394,7 +681,22 @@ postsRouter.get('/:id/comments', requireAuth, async (req, res, next) => {
       .limit(100);
 
     if (error) throw error;
-    res.json({ comments: data || [] });
+    const authorsById = await getAuthorProfiles((data || []).map((comment) => comment.author_id));
+    res.json({
+      comments: (data || []).map((comment) => {
+        const author = authorsById[comment.author_id] || {};
+        return {
+          id: comment.id,
+          postId: comment.post_id,
+          authorId: comment.author_id,
+          authorName: author.name || 'Member',
+          authorAvatarUrl: author.avatarUrl || null,
+          accountType: author.accountType || 'business',
+          body: comment.body,
+          createdAt: comment.created_at
+        };
+      })
+    });
   } catch (error) {
     next(error);
   }
@@ -420,7 +722,21 @@ postsRouter.post('/:id/comments', requireAuth, async (req, res, next) => {
     if (error) throw error;
 
     const metrics = await recalculatePostMetrics(req.params.id);
-    res.status(201).json({ comment: data, metrics });
+    const authorsById = await getAuthorProfiles([req.user.id]);
+    const author = authorsById[req.user.id] || {};
+    res.status(201).json({
+      comment: {
+        id: data.id,
+        postId: data.post_id,
+        authorId: data.author_id,
+        authorName: author.name || 'Member',
+        authorAvatarUrl: author.avatarUrl || null,
+        accountType: author.accountType || 'business',
+        body: data.body,
+        createdAt: data.created_at
+      },
+      metrics
+    });
   } catch (error) {
     next(error);
   }

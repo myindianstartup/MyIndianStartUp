@@ -30,6 +30,12 @@ end $$;
 
 do $$
 begin
+  alter type core.media_purpose add value if not exists 'story';
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
   create type core.media_type as enum ('image', 'video');
 exception when duplicate_object then null;
 end $$;
@@ -196,6 +202,39 @@ create table if not exists postverse.post_shares (
   user_id uuid references auth.users(id) on delete set null,
   channel text not null default 'internal',
   created_at timestamptz not null default now()
+);
+
+create table if not exists postverse.user_follows (
+  id uuid primary key default gen_random_uuid(),
+  follower_id uuid not null references auth.users(id) on delete cascade,
+  following_id uuid not null references auth.users(id) on delete cascade,
+  status text not null default 'connected',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(follower_id, following_id),
+  check (follower_id <> following_id)
+);
+
+create table if not exists postverse.stories (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid not null references auth.users(id) on delete cascade,
+  account_type core.account_type not null,
+  caption text,
+  media_asset_id uuid references core.media_assets(id) on delete set null,
+  media_url text not null,
+  media_type core.media_type not null,
+  status text not null default 'active',
+  expires_at timestamptz not null default (now() + interval '24 hours'),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists postverse.story_views (
+  id uuid primary key default gen_random_uuid(),
+  story_id uuid not null references postverse.stories(id) on delete cascade,
+  viewer_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique(story_id, viewer_id)
 );
 
 create table if not exists admin.traffic_events (
@@ -406,6 +445,11 @@ create index if not exists posts_author_status_published_idx on postverse.posts(
 create index if not exists post_comments_post_created_idx on postverse.post_comments(post_id, created_at desc);
 create index if not exists post_reactions_post_created_idx on postverse.post_reactions(post_id, created_at desc);
 create index if not exists post_shares_post_created_idx on postverse.post_shares(post_id, created_at desc);
+create index if not exists user_follows_follower_idx on postverse.user_follows(follower_id, created_at desc);
+create index if not exists user_follows_following_idx on postverse.user_follows(following_id, created_at desc);
+create index if not exists stories_active_created_idx on postverse.stories(status, expires_at, created_at desc);
+create index if not exists stories_author_created_idx on postverse.stories(author_id, created_at desc);
+create index if not exists story_views_story_idx on postverse.story_views(story_id, created_at desc);
 create index if not exists traffic_events_created_idx on admin.traffic_events(created_at desc);
 create index if not exists traffic_events_route_created_idx on admin.traffic_events(route, created_at desc);
 create index if not exists traffic_events_user_created_idx on admin.traffic_events(user_id, created_at desc);
@@ -499,6 +543,9 @@ alter table postverse.post_metrics enable row level security;
 alter table postverse.post_comments enable row level security;
 alter table postverse.post_reactions enable row level security;
 alter table postverse.post_shares enable row level security;
+alter table postverse.user_follows enable row level security;
+alter table postverse.stories enable row level security;
+alter table postverse.story_views enable row level security;
 alter table admin.users enable row level security;
 alter table admin.traffic_events enable row level security;
 alter table admin.api_request_logs enable row level security;
@@ -528,6 +575,11 @@ drop policy if exists "post comments owner write" on postverse.post_comments;
 drop policy if exists "post reactions public read" on postverse.post_reactions;
 drop policy if exists "post reactions owner write" on postverse.post_reactions;
 drop policy if exists "post shares owner write" on postverse.post_shares;
+drop policy if exists "user follows public read" on postverse.user_follows;
+drop policy if exists "user follows owner write" on postverse.user_follows;
+drop policy if exists "stories public read active" on postverse.stories;
+drop policy if exists "stories owner write" on postverse.stories;
+drop policy if exists "story views owner write" on postverse.story_views;
 drop policy if exists "notifications owner read" on admin.notifications;
 drop policy if exists "billing plans public read active" on billing.plans;
 drop policy if exists "billing subscriptions owner read" on billing.subscriptions;
@@ -576,6 +628,21 @@ create policy "post reactions owner write" on postverse.post_reactions
 
 create policy "post shares owner write" on postverse.post_shares
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "user follows public read" on postverse.user_follows
+  for select using (true);
+
+create policy "user follows owner write" on postverse.user_follows
+  for all using (auth.uid() = follower_id) with check (auth.uid() = follower_id);
+
+create policy "stories public read active" on postverse.stories
+  for select using (status = 'active' and expires_at > now());
+
+create policy "stories owner write" on postverse.stories
+  for all using (auth.uid() = author_id) with check (auth.uid() = author_id);
+
+create policy "story views owner write" on postverse.story_views
+  for all using (auth.uid() = viewer_id) with check (auth.uid() = viewer_id);
 
 create policy "admin users superadmin read" on admin.users
   for select using (admin.current_user_role() = 'superadmin');

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Bookmark,
@@ -16,7 +16,7 @@ import {
   Users,
   Zap
 } from 'lucide-react';
-import { apiRequest } from '@/lib/apiClient';
+import { API_URL, apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 const GateModal = ({ onClose }) => (
@@ -162,11 +162,13 @@ const mediaGradient = (post) => {
 };
 
 const PostCard = ({ post, token, onMetrics }) => {
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(Boolean(post.viewer?.liked));
   const [saved, setSaved] = useState(false);
   const [commentOpen, setCommentOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [comment, setComment] = useState('');
+  const [comments, setComments] = useState(post.commentsPreview || []);
+  const [commentsLoading, setCommentsLoading] = useState(false);
   const [metrics, setMetrics] = useState(post.metrics || {});
   const isCreator = post.accountType === 'creator';
   const isShowcase = Boolean(post.showcase);
@@ -177,6 +179,12 @@ const PostCard = ({ post, token, onMetrics }) => {
   const visibleCaption = shouldCollapseCaption && !expanded ? `${caption.slice(0, 150).trim()}...` : caption;
   const visibleTags = expanded ? tags : tags.slice(0, 3);
   const hasMoreContent = shouldCollapseCaption || tags.length > visibleTags.length;
+
+  useEffect(() => {
+    setLiked(Boolean(post.viewer?.liked));
+    setMetrics(post.metrics || {});
+    setComments(post.commentsPreview || []);
+  }, [post.id, post.metrics, post.commentsPreview, post.viewer?.liked]);
 
   useEffect(() => {
     if (!token || !post.id || isShowcase) return;
@@ -209,9 +217,19 @@ const PostCard = ({ post, token, onMetrics }) => {
 
   const handleComment = async () => {
     if (isShowcase) {
+      if (comment.trim()) {
+        setComments((current) => [
+          ...current,
+          {
+            id: `showcase-comment-${Date.now()}`,
+            authorName: 'You',
+            body: comment.trim(),
+            createdAt: new Date().toISOString()
+          }
+        ]);
+      }
       setMetrics((current) => ({ ...current, comments: (current.comments || 0) + 1 }));
       setComment('');
-      setCommentOpen(false);
       return;
     }
 
@@ -228,10 +246,28 @@ const PostCard = ({ post, token, onMetrics }) => {
         setMetrics(payload.metrics);
         onMetrics?.(post.id, payload.metrics);
       }
+      if (payload.comment) {
+        setComments((current) => [...current, payload.comment]);
+      }
       setComment('');
-      setCommentOpen(false);
     } catch (error) {
       window.alert(error.message || 'Could not publish comment.');
+    }
+  };
+
+  const toggleComments = async () => {
+    const nextOpen = !commentOpen;
+    setCommentOpen(nextOpen);
+    if (!nextOpen || isShowcase) return;
+
+    setCommentsLoading(true);
+    try {
+      const payload = await apiRequest(`/api/posts/${post.id}/comments`, { token });
+      setComments(payload.comments || []);
+    } catch (error) {
+      window.alert(error.message || 'Could not load comments.');
+    } finally {
+      setCommentsLoading(false);
     }
   };
 
@@ -303,7 +339,7 @@ const PostCard = ({ post, token, onMetrics }) => {
 
       <div className={`relative mx-4 mt-3 flex h-[240px] items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-br sm:h-[280px] xl:h-[315px] ${mediaGradient(post)}`}>
         {post.mediaUrl && post.mediaType !== 'video' ? (
-          <img src={post.mediaUrl} alt="VerseFeed post" className="h-full w-full object-cover" />
+          <img src={post.mediaUrl} alt="VerseFeed post" className="h-full w-full object-contain" />
         ) : post.mediaType === 'video' ? (
           <div className="relative h-full w-full">
             {post.mediaUrl ? (
@@ -339,7 +375,7 @@ const PostCard = ({ post, token, onMetrics }) => {
             <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
             <span>{metrics.likes || 0}</span>
           </button>
-          <button type="button" onClick={() => setCommentOpen((current) => !current)} className="flex items-center gap-1.5 text-sm font-bold text-slate-400 transition hover:text-blue-600">
+          <button type="button" onClick={toggleComments} className="flex items-center gap-1.5 text-sm font-bold text-slate-400 transition hover:text-blue-600">
             <MessageCircle size={18} />
             <span>{metrics.comments || 0}</span>
           </button>
@@ -358,17 +394,43 @@ const PostCard = ({ post, token, onMetrics }) => {
       </div>
 
       {commentOpen && (
-        <div className="flex items-center gap-3 border-t border-slate-100 px-4 py-3">
-          <input
-            type="text"
-            value={comment}
-            onChange={(event) => setComment(event.target.value)}
-            placeholder="Write a comment..."
-            className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white placeholder:text-slate-400"
-          />
-          <button type="button" onClick={handleComment} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow transition hover:bg-blue-700" aria-label="Send comment">
-            <Send size={14} />
-          </button>
+        <div className="border-t border-slate-100 px-4 py-3">
+          <div className="space-y-3">
+            {commentsLoading ? (
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Loading comments...
+              </div>
+            ) : comments.length ? comments.map((item) => (
+              <div key={item.id} className="flex gap-2">
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl text-[10px] font-black text-white ${item.accountType === 'creator' ? 'bg-blue-600' : 'bg-orange-500'}`}>
+                  {item.authorAvatarUrl ? <img src={item.authorAvatarUrl} alt={item.authorName} className="h-full w-full object-cover" /> : initialsFrom(item.authorName)}
+                </div>
+                <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2">
+                  <div className="truncate text-xs font-black text-slate-900">{item.authorName}</div>
+                  <div className="mt-0.5 text-xs leading-5 text-slate-600">{item.body}</div>
+                </div>
+              </div>
+            )) : (
+              <div className="text-xs font-bold text-slate-400">No comments yet. Start the conversation.</div>
+            )}
+          </div>
+
+          <div className="mt-3 flex items-center gap-3">
+            <input
+              type="text"
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') handleComment();
+              }}
+              placeholder="Write a comment..."
+              className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white placeholder:text-slate-400"
+            />
+            <button type="button" onClick={handleComment} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow transition hover:bg-blue-700" aria-label="Send comment">
+              <Send size={14} />
+            </button>
+          </div>
         </div>
       )}
     </article>
@@ -378,11 +440,14 @@ const PostCard = ({ post, token, onMetrics }) => {
 const VerseFeed = () => {
   const { member, token } = useAuth();
   const navigate = useNavigate();
+  const storyInputRef = useRef(null);
   const [posts, setPosts] = useState([]);
+  const [stories, setStories] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [storyUploading, setStoryUploading] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const [error, setError] = useState('');
 
@@ -392,6 +457,7 @@ const VerseFeed = () => {
     { key: 'creator', label: 'CreatorVerse' }
   ];
   const hasLivePosts = posts.length > 0;
+  const visibleStories = stories.length ? stories : showcaseStories;
   const visibleRecommendations = recommendations.length ? recommendations : showcaseRecommendations;
 
   useEffect(() => {
@@ -407,6 +473,9 @@ const VerseFeed = () => {
         ]);
         setPosts(feedData.posts || []);
         setRecommendations(recommendationData.recommendations || []);
+        apiRequest('/api/posts/stories', { token })
+          .then((storyData) => setStories(storyData.stories || []))
+          .catch(() => setStories([]));
       } catch (requestError) {
         if (requestError.message === 'Please purchase a plan to access this feature.') {
           setGateOpen(true);
@@ -448,6 +517,56 @@ const VerseFeed = () => {
     navigate('/pricing');
   };
 
+  const handleFollow = async (userId) => {
+    if (!userId) return;
+
+    try {
+      const payload = await apiRequest(`/api/posts/users/${userId}/follow`, { method: 'POST', token });
+      setRecommendations((current) => current.map((item) => (
+        item.authorId === userId ? { ...item, isFollowing: payload.following, viewer: { ...(item.viewer || {}), followingAuthor: payload.following } } : item
+      )));
+      setPosts((current) => current.map((post) => (
+        post.authorId === userId ? { ...post, viewer: { ...(post.viewer || {}), followingAuthor: payload.following } } : post
+      )));
+    } catch (error) {
+      window.alert(error.message || 'Could not update follow status.');
+    }
+  };
+
+  const handleStoryUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !token) return;
+
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      window.alert('Please choose an image or video story.');
+      return;
+    }
+
+    setStoryUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('accountType', member?.account_type === 'creator' ? 'creator' : 'business');
+      formData.append('caption', '');
+      formData.append('file', file);
+
+      const response = await fetch(`${API_URL}/api/posts/stories`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Story upload failed.');
+
+      const storyData = await apiRequest('/api/posts/stories', { token });
+      setStories(storyData.stories || []);
+    } catch (uploadError) {
+      window.alert(uploadError.message || 'Story upload failed.');
+    } finally {
+      setStoryUploading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f4f6fb] pt-24 pb-16">
       {gateOpen && <GateModal onClose={closeGate} />}
@@ -480,7 +599,7 @@ const VerseFeed = () => {
                   </Link>
                 )}
 
-                {showcaseStories.map((story) => (
+                {visibleStories.map((story) => (
                   <div key={story.id} className="flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3">
                     <div className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-full text-sm font-black text-white transition-transform hover:scale-105 ${
                       story.viewed ? 'ring-2 ring-slate-200 ring-offset-2' : story.type === 'creator' ? 'ring-2 ring-blue-500 ring-offset-2' : 'ring-2 ring-orange-500 ring-offset-2'
@@ -574,8 +693,17 @@ const VerseFeed = () => {
                         <div className="mt-1"><VerseBadge type={item.accountType} /></div>
                       </div>
                     </div>
-                    <button type="button" className="shrink-0 rounded-full border border-blue-200 px-3 py-1.5 text-[11px] font-bold text-blue-600 transition hover:bg-blue-50">
-                      Follow
+                    <button
+                      type="button"
+                      onClick={() => handleFollow(item.authorId)}
+                      disabled={!item.authorId || item.viewer?.ownPost}
+                      className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold transition ${
+                        item.isFollowing || item.viewer?.followingAuthor
+                          ? 'border-slate-200 bg-slate-100 text-slate-500'
+                          : 'border-blue-200 text-blue-600 hover:bg-blue-50'
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      {item.isFollowing || item.viewer?.followingAuthor ? 'Following' : 'Follow'}
                     </button>
                   </div>
                 ))}

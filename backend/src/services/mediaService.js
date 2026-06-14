@@ -37,13 +37,14 @@ const assertFileSize = (file, type) => {
 export const prepareImage = async (file, purpose) => {
   assertFileSize(file, 'image');
 
-  const maxWidth = purpose === 'profile' ? 640 : 1280;
-  const maxHeight = purpose === 'profile' ? 640 : 1280;
+  const maxWidth = purpose === 'profile' ? 640 : purpose === 'story' ? 720 : 1280;
+  const maxHeight = purpose === 'profile' ? 640 : purpose === 'story' ? 1280 : 1280;
+  const quality = purpose === 'profile' ? 78 : purpose === 'story' ? 64 : 72;
 
   const buffer = await sharp(file.buffer)
     .rotate()
     .resize({ width: maxWidth, height: maxHeight, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: purpose === 'profile' ? 78 : 72 })
+    .webp({ quality })
     .toBuffer();
 
   return {
@@ -54,13 +55,16 @@ export const prepareImage = async (file, purpose) => {
   };
 };
 
-export const prepareVideo = async (file) => {
+export const prepareVideo = async (file, purpose = 'post') => {
   assertFileSize(file, 'video');
 
   const ffmpegPath = env.FFMPEG_PATH || 'ffmpeg';
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mis-video-'));
   const inputPath = path.join(tempDir, `input${extensionFromMime(file.mimetype) || path.extname(file.originalname) || '.mp4'}`);
   const outputPath = path.join(tempDir, 'optimized.mp4');
+
+  const maxWidth = purpose === 'story' ? 720 : 1280;
+  const crf = purpose === 'story' ? '31' : '28';
 
   try {
     await fs.writeFile(inputPath, file.buffer);
@@ -69,13 +73,13 @@ export const prepareVideo = async (file) => {
       '-i',
       inputPath,
       '-vf',
-      "scale='min(1280,iw)':-2",
+      `scale='min(${maxWidth},iw)':-2`,
       '-c:v',
       'libx264',
       '-preset',
       'veryfast',
       '-crf',
-      '28',
+      crf,
       '-c:a',
       'aac',
       '-b:a',
@@ -121,8 +125,12 @@ export const uploadMediaAsset = async ({ file, userId, purpose, postId = null })
   }
 
   const mediaType = isImage ? 'image' : 'video';
-  const prepared = isImage ? await prepareImage(file, purpose) : await prepareVideo(file);
-  const folder = purpose === 'profile' ? 'profiles' : `posts/${new Date().getFullYear()}`;
+  const prepared = isImage ? await prepareImage(file, purpose) : await prepareVideo(file, purpose);
+  const folder = purpose === 'profile'
+    ? 'profiles'
+    : purpose === 'story'
+      ? `stories/${new Date().getFullYear()}`
+      : `posts/${new Date().getFullYear()}`;
   const key = `${folder}/${userId}/${crypto.randomUUID()}${prepared.extension || path.extname(file.originalname)}`;
   const publicUrl = await uploadToR2({ key, body: prepared.buffer, contentType: prepared.contentType });
 
