@@ -480,7 +480,7 @@ begin
   returning * into v_order;
 
   insert into billing.invoices (invoice_number, order_id, user_id, subtotal_inr, discount_inr, total_inr, status)
-  values (p_invoice_number, v_order.id, p_user_id, p_base_amount, p_discount_amount, p_final_amount, v_status::text);
+  values (p_invoice_number, v_order.id, p_user_id, p_base_amount, p_discount_amount, p_final_amount, v_status);
 
   return row_to_json(v_order);
 end;

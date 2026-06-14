@@ -7,6 +7,11 @@ import { writeAuditLog } from '../services/auditService.js';
 
 export const subscriptionsRouter = Router();
 
+const isHiddenSchemaError = (error) => (
+  error?.code === 'PGRST106'
+  || `${error?.message || ''}`.toLowerCase().includes('invalid schema')
+);
+
 const couponValidationSchema = z.object({
   planId: z.string().uuid(),
   couponCode: z.string().trim().optional().nullable()
@@ -34,16 +39,24 @@ subscriptionsRouter.get('/plans', async (req, res, next) => {
 subscriptionsRouter.get('/me', requireAuth, async (req, res, next) => {
   try {
     const [
-      { data: member, error: memberError },
-      { data: subscription, error: subscriptionError },
-      { data: orders, error: ordersError },
-      { data: invoices, error: invoicesError }
+      memberResult,
+      subscriptionResult,
+      ordersResult,
+      invoicesResult
     ] = await Promise.all([
       supabaseAdmin.schema('core').from('members').select('subscription_status, subscription_started_at, subscription_expires_at').eq('id', req.user.id).maybeSingle(),
       supabaseAdmin.schema('billing').from('subscriptions').select('*, plans(name, code, amount_inr, duration_days)').eq('user_id', req.user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabaseAdmin.schema('billing').from('orders').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false }).limit(10),
       supabaseAdmin.schema('billing').from('invoices').select('*').eq('user_id', req.user.id).order('issued_at', { ascending: false }).limit(10)
     ]);
+
+    const { data: member, error: memberError } = memberResult;
+    const subscription = isHiddenSchemaError(subscriptionResult.error) ? null : subscriptionResult.data;
+    const orders = isHiddenSchemaError(ordersResult.error) ? [] : ordersResult.data;
+    const invoices = isHiddenSchemaError(invoicesResult.error) ? [] : invoicesResult.data;
+    const subscriptionError = isHiddenSchemaError(subscriptionResult.error) ? null : subscriptionResult.error;
+    const ordersError = isHiddenSchemaError(ordersResult.error) ? null : ordersResult.error;
+    const invoicesError = isHiddenSchemaError(invoicesResult.error) ? null : invoicesResult.error;
 
     if (memberError) throw memberError;
     if (subscriptionError) throw subscriptionError;
@@ -80,20 +93,39 @@ subscriptionsRouter.post('/checkout', requireAuth, async (req, res, next) => {
       couponCode: payload.couponCode
     });
 
-    await supabaseAdmin
-      .schema('billing')
-      .from('orders')
-      .update({ metadata: { billingInfo: payload.billingInfo, architectureReady: true } })
-      .eq('id', checkout.order.id);
+    if (!checkout.freeCheckout) {
+      const { error: metadataError } = await supabaseAdmin
+        .schema('billing')
+        .from('orders')
+        .update({
+          metadata: {
+            ...(checkout.order.metadata || {}),
+            billingInfo: payload.billingInfo,
+            architectureReady: true
+          }
+        })
+        .eq('id', checkout.order.id);
+
+      if (metadataError && !isHiddenSchemaError(metadataError)) {
+        throw metadataError;
+      }
+    }
 
     res.status(201).json({
       ...checkout,
-      razorpay: {
-        ready: true,
-        providerOrderId: checkout.order.provider_order_id,
-        amountInPaise: checkout.order.final_amount_inr * 100,
-        currency: 'INR'
-      }
+      razorpay: checkout.freeCheckout
+        ? {
+            ready: false,
+            skipped: true,
+            reason: 'FULL_DISCOUNT_COUPON'
+          }
+        : {
+            ready: true,
+            skipped: false,
+            providerOrderId: checkout.order.provider_order_id,
+            amountInPaise: checkout.order.final_amount_inr * 100,
+            currency: 'INR'
+          }
     });
   } catch (error) {
     next(error);

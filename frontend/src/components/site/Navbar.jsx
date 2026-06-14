@@ -18,6 +18,7 @@ const Navbar = () => {
     : adminRole === 'admin'
       ? '/admin'
       : '/post-verse';
+  const isAdminUser = ['admin', 'superadmin'].includes(adminRole);
 
   const initials = useMemo(() => {
     return user?.email?.trim()?.[0]?.toUpperCase() || 'M';
@@ -28,6 +29,10 @@ const Navbar = () => {
   const handleSearchClick = (event) => {
     event.preventDefault();
     setMobileMenuOpen(false);
+    if (isAdminUser) {
+      navigate(dashboardPath);
+      return;
+    }
     if (isAuthenticated) {
       navigate('/search-verse');
       return;
@@ -61,7 +66,9 @@ const Navbar = () => {
   const navItems = [
     { path: '/', label: 'Home', testid: 'nav-link-home' },
     // Not logged in → show both. Business user → only BusinessVerse. Creator user → only CreatorVerse.
-    ...(!isAuthenticated
+    ...(isAdminUser
+      ? [{ path: dashboardPath, label: 'Dashboard', testid: 'nav-link-dashboard' }]
+      : !isAuthenticated
       ? [
           { path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' },
           { path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' },
@@ -74,7 +81,7 @@ const Navbar = () => {
               { path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' },
               { path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' },
             ]),
-    ...(isAuthenticated ? [{ path: '/verse-feed', label: 'VerseFeed', testid: 'nav-link-verse-feed' }] : []),
+    ...(isAuthenticated && !isAdminUser ? [{ path: '/verse-feed', label: 'VerseFeed', testid: 'nav-link-verse-feed' }] : []),
     { path: '/pricing', label: 'Pricing', testid: 'nav-link-pricing' },
     { path: '/contact', label: 'Contact Us', testid: 'nav-link-contact' }
   ];
@@ -109,14 +116,16 @@ const Navbar = () => {
             <LayoutDashboard className="h-4 w-4" />
             Open Dashboard
           </button>
-          <button
-            type="button"
-            onClick={() => navigate('/profile-verse')}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-          >
-            <UserRound className="h-4 w-4" />
-            Profile
-          </button>
+          {!isAdminUser && (
+            <button
+              type="button"
+              onClick={() => navigate('/profile-verse')}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+            >
+              <UserRound className="h-4 w-4" />
+              Profile
+            </button>
+          )}
           <button
             type="button"
             onClick={handleSignOut}
@@ -161,8 +170,8 @@ const Navbar = () => {
             className="hidden min-w-[300px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-slate-200 bg-slate-50/70 px-5 py-3 text-base text-slate-500 shadow-[0_3px_10px_rgba(15,23,42,0.06)] transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-slate-700 lg:flex"
             data-testid="nav-search"
           >
-            <Search className="h-5 w-5 shrink-0 text-slate-400" />
-            <span className="truncate">Search creators, businesses, industries...</span>
+            {isAdminUser ? <LayoutDashboard className="h-5 w-5 shrink-0 text-slate-400" /> : <Search className="h-5 w-5 shrink-0 text-slate-400" />}
+            <span className="truncate">{isAdminUser ? 'Open admin dashboard' : 'Search creators, businesses, industries...'}</span>
           </button>
 
           <div className="hidden items-center gap-1 xl:flex">
@@ -258,8 +267,8 @@ const Navbar = () => {
           onClick={handleSearchClick}
           className="flex w-full items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
         >
-          <Search className="h-5 w-5 text-slate-400" />
-          <span>Search creators, businesses...</span>
+          {isAdminUser ? <LayoutDashboard className="h-5 w-5 text-slate-400" /> : <Search className="h-5 w-5 text-slate-400" />}
+          <span>{isAdminUser ? 'Open admin dashboard' : 'Search creators, businesses...'}</span>
         </button>
 
         {isAuthenticated && (

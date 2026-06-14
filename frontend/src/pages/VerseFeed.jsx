@@ -7,17 +7,17 @@ import {
   Heart,
   Loader2,
   MessageCircle,
+  MoreHorizontal,
   Play,
   Search,
+  Send,
   Share2,
   Sparkles,
-  TrendingUp,
   Users,
   Zap
 } from 'lucide-react';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
-import WorkspaceSidebar from '@/components/dashboard/WorkspaceSidebar';
 
 const GateModal = ({ onClose }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
@@ -39,10 +39,10 @@ const GateModal = ({ onClose }) => (
 );
 
 const VerseBadge = ({ type }) => (
-  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${
+  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${
     type === 'creator' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-500'
   }`}>
-    {type === 'creator' ? <Camera size={10} /> : <BriefcaseBusiness size={10} />}
+    {type === 'creator' ? <Camera size={9} /> : <BriefcaseBusiness size={9} />}
     {type === 'creator' ? 'CreatorVerse' : 'BusinessVerse'}
   </span>
 );
@@ -53,6 +53,11 @@ const initialsFrom = (value) => (value || 'MI')
   .slice(0, 2)
   .map((part) => part[0]?.toUpperCase())
   .join('') || 'MI';
+
+const handleFrom = (value) => `@${String(value || 'member')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '')
+  .slice(0, 24) || 'member'}`;
 
 const timeAgo = (value) => {
   if (!value) return '';
@@ -65,23 +70,131 @@ const timeAgo = (value) => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
+const showcaseStories = [
+  { id: 'story-kavya', name: 'Kavya Studio', type: 'creator', image: '/assets/auth-characters.png', viewed: false },
+  { id: 'story-gujarat', name: 'Gujarat Foods', type: 'business', image: '/assets/india-coverage-map.png', viewed: false },
+  { id: 'story-reelcraft', name: 'ReelCraft', type: 'creator', image: '/assets/auth-characters.png', viewed: true },
+  { id: 'story-urban', name: 'Urban Spices', type: 'business', image: '/assets/india-coverage-map.png', viewed: true },
+  { id: 'story-brand', name: 'Brand Shoots', type: 'creator', image: '/assets/auth-characters.png', viewed: false },
+  { id: 'story-d2c', name: 'D2C Leads', type: 'business', image: '/assets/india-coverage-map.png', viewed: true }
+];
+
+const showcasePosts = [
+  {
+    id: 'showcase-business-launch',
+    showcase: true,
+    authorName: 'Gujarat Foods Co.',
+    authorCity: 'Ahmedabad',
+    authorCategory: 'Festive retail packaging launch',
+    accountType: 'business',
+    caption: 'Launching our festive snack boxes for retailers and cafe partners across Gujarat. Open for creator collaborations, product shoots, and local distribution leads.',
+    mediaUrl: '/assets/india-coverage-map.png',
+    mediaType: 'image',
+    publishedAt: new Date(Date.now() - 38 * 60 * 1000).toISOString(),
+    metrics: { views: 1240, likes: 186, comments: 24, shares: 18 }
+  },
+  {
+    id: 'showcase-creator-video',
+    showcase: true,
+    authorName: 'Kavya Visuals',
+    authorCity: 'Mumbai',
+    authorCategory: 'Portfolio reel update: product videos',
+    accountType: 'creator',
+    caption: 'New product-video reel format for food brands: quick hook, clean closeups, and direct CTA. Available for monthly content packages.',
+    mediaUrl: '',
+    posterUrl: '/assets/auth-characters.png',
+    mediaType: 'video',
+    publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    metrics: { views: 2180, likes: 312, comments: 41, shares: 29 }
+  },
+  {
+    id: 'showcase-creator-portfolio',
+    showcase: true,
+    authorName: 'ReelCraft Studio',
+    authorCity: 'Bengaluru',
+    authorCategory: 'UGC, photography, marketplace creatives',
+    accountType: 'creator',
+    caption: 'Portfolio update: product photography, marketplace images, and 15-second ad creatives for D2C startups. DM for collaboration.',
+    mediaUrl: '/assets/auth-characters.png',
+    mediaType: 'image',
+    publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    metrics: { views: 930, likes: 142, comments: 17, shares: 11 }
+  }
+];
+
+const showcaseRecommendations = [
+  {
+    id: 'showcase-rec-creator',
+    authorName: 'Kavya Visuals',
+    accountType: 'creator',
+    authorAvatarUrl: '',
+    reason: 'Recommended creator for product video collaborations'
+  },
+  {
+    id: 'showcase-rec-business',
+    authorName: 'Gujarat Foods Co.',
+    accountType: 'business',
+    authorAvatarUrl: '',
+    reason: 'Active business opportunity in Food & Beverage'
+  },
+  {
+    id: 'showcase-rec-studio',
+    authorName: 'ReelCraft Studio',
+    accountType: 'creator',
+    authorAvatarUrl: '',
+    reason: 'UGC and marketplace content specialist'
+  }
+];
+
+const postTags = (post) => {
+  const category = String(post.authorCategory || '').split(/[,\s/]+/).filter(Boolean)[0];
+  return [
+    post.accountType === 'creator' ? '#CreatorVerse' : '#BusinessVerse',
+    category ? `#${category.replace(/[^a-zA-Z0-9]/g, '')}` : null,
+    post.authorCity ? `#${String(post.authorCity).replace(/\s+/g, '')}` : null
+  ].filter(Boolean);
+};
+
+const mediaGradient = (post) => {
+  if (post.mediaType === 'video') return 'from-blue-100 to-indigo-50';
+  if (post.accountType === 'creator') return 'from-violet-100 to-purple-50';
+  return 'from-orange-100 to-amber-50';
+};
+
 const PostCard = ({ post, token, onMetrics }) => {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [comment, setComment] = useState('');
   const [metrics, setMetrics] = useState(post.metrics || {});
   const isCreator = post.accountType === 'creator';
+  const isShowcase = Boolean(post.showcase);
+  const MediaIcon = isCreator ? Camera : BriefcaseBusiness;
+  const caption = post.caption || '';
+  const tags = postTags(post);
+  const shouldCollapseCaption = caption.length > 150;
+  const visibleCaption = shouldCollapseCaption && !expanded ? `${caption.slice(0, 150).trim()}...` : caption;
+  const visibleTags = expanded ? tags : tags.slice(0, 3);
+  const hasMoreContent = shouldCollapseCaption || tags.length > visibleTags.length;
 
   useEffect(() => {
-    if (!token || !post.id) return;
+    if (!token || !post.id || isShowcase) return;
     apiRequest(`/api/posts/${post.id}/impression`, { method: 'POST', token }).then((payload) => {
       if (payload.metrics) {
         setMetrics(payload.metrics);
         onMetrics?.(post.id, payload.metrics);
       }
     }).catch(() => {});
-  }, [post.id, token]);
+  }, [post.id, token, isShowcase]);
 
   const handleLike = async () => {
+    if (isShowcase) {
+      setLiked((current) => !current);
+      setMetrics((current) => ({ ...current, likes: Math.max(0, (current.likes || 0) + (liked ? -1 : 1)) }));
+      return;
+    }
+
     try {
       const payload = await apiRequest(`/api/posts/${post.id}/like`, { method: 'POST', token });
       setLiked(Boolean(payload.liked));
@@ -95,25 +208,39 @@ const PostCard = ({ post, token, onMetrics }) => {
   };
 
   const handleComment = async () => {
-    const body = window.prompt('Write a comment');
-    if (!body?.trim()) return;
+    if (isShowcase) {
+      setMetrics((current) => ({ ...current, comments: (current.comments || 0) + 1 }));
+      setComment('');
+      setCommentOpen(false);
+      return;
+    }
+
+    const body = comment.trim();
+    if (!body) return;
 
     try {
       const payload = await apiRequest(`/api/posts/${post.id}/comments`, {
         method: 'POST',
         token,
-        body: { body: body.trim() }
+        body: { body }
       });
       if (payload.metrics) {
         setMetrics(payload.metrics);
         onMetrics?.(post.id, payload.metrics);
       }
+      setComment('');
+      setCommentOpen(false);
     } catch (error) {
       window.alert(error.message || 'Could not publish comment.');
     }
   };
 
   const handleShare = async () => {
+    if (isShowcase) {
+      setMetrics((current) => ({ ...current, shares: (current.shares || 0) + 1 }));
+      return;
+    }
+
     try {
       const payload = await apiRequest(`/api/posts/${post.id}/share`, {
         method: 'POST',
@@ -130,42 +257,79 @@ const PostCard = ({ post, token, onMetrics }) => {
   };
 
   return (
-    <article className="overflow-hidden rounded-[1.7rem] border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-      <div className="flex items-start justify-between gap-4 px-5 pt-5">
+    <article className="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_2px_14px_rgba(15,23,42,0.055)] transition-shadow duration-300 hover:shadow-[0_8px_28px_rgba(15,23,42,0.09)]">
+      <div className="flex items-center justify-between gap-4 px-4 pt-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black text-white ${isCreator ? 'bg-blue-600' : 'bg-orange-500'}`}>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] text-xs font-black text-white ${isCreator ? 'bg-blue-600' : 'bg-orange-500'}`}>
             {post.authorAvatarUrl ? <img src={post.authorAvatarUrl} alt={post.authorName} className="h-full w-full object-cover" /> : initialsFrom(post.authorName)}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-black text-slate-950">{post.authorName}</div>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate text-sm font-black text-slate-950">{post.authorName}</span>
               <VerseBadge type={post.accountType} />
-              <span className="text-xs font-semibold text-slate-400">{post.authorCity || 'India'} · {timeAgo(post.publishedAt)}</span>
+              {isShowcase && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Showcase</span>}
+            </div>
+            <div className="mt-0.5 text-xs font-semibold text-slate-400">
+              {handleFrom(post.authorName)} · {post.authorCity || 'India'} · {timeAgo(post.publishedAt)}
             </div>
           </div>
         </div>
-        <div className="text-right text-xs font-bold text-slate-400">{post.authorCategory}</div>
+        <button type="button" className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="More post options">
+          <MoreHorizontal size={18} />
+        </button>
       </div>
 
-      <div className="px-5 pt-4">
-        <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{post.caption}</p>
+      <div className="px-4 pt-3">
+        {post.authorCategory && <p className="text-[15px] font-black leading-7 text-slate-800">{post.authorCategory}</p>}
+        <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-500">
+          {visibleCaption}
+          {hasMoreContent && !expanded && (
+            <button type="button" onClick={() => setExpanded(true)} className="ml-1 font-black text-slate-700 hover:text-blue-600">
+              more
+            </button>
+          )}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {visibleTags.map((tag) => (
+            <span key={tag} className="cursor-pointer text-xs font-bold text-blue-500 hover:underline">{tag}</span>
+          ))}
+          {expanded && hasMoreContent && (
+            <button type="button" onClick={() => setExpanded(false)} className="text-xs font-black text-slate-500 hover:text-blue-600">
+              show less
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="mx-5 mt-4 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
-        {post.mediaType === 'video' ? (
-          <div className="relative">
-            <video src={post.mediaUrl} controls className="max-h-[420px] w-full bg-slate-950 object-contain" />
-            <div className="absolute left-3 top-3 rounded-full bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+      <div className={`relative mx-4 mt-3 flex h-[240px] items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-br sm:h-[280px] xl:h-[315px] ${mediaGradient(post)}`}>
+        {post.mediaUrl && post.mediaType !== 'video' ? (
+          <img src={post.mediaUrl} alt="VerseFeed post" className="h-full w-full object-cover" />
+        ) : post.mediaType === 'video' ? (
+          <div className="relative h-full w-full">
+            {post.mediaUrl ? (
+              <video src={post.mediaUrl} controls className="h-full w-full bg-slate-950 object-contain" />
+            ) : (
+              <div className="relative grid h-full place-items-center overflow-hidden">
+                <img src={post.posterUrl || '/assets/auth-characters.png'} alt="VerseFeed video preview" className="h-full w-full object-cover opacity-80" />
+                <div className="absolute grid h-16 w-16 place-items-center rounded-full bg-white/90 text-slate-950 shadow-2xl">
+                  <Play className="ml-1 h-7 w-7" fill="currentColor" />
+                </div>
+              </div>
+            )}
+            <div className="absolute bottom-3 left-3 rounded-full bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
               <Play className="mr-1 inline h-3 w-3" />
               Video
             </div>
           </div>
         ) : (
-          <img src={post.mediaUrl} alt="VerseFeed post" className="max-h-[520px] w-full object-cover" />
+          <div className="flex flex-col items-center gap-3 opacity-40">
+            <MediaIcon size={52} className={isCreator ? 'text-blue-500' : 'text-orange-500'} />
+            <div className="text-xs font-black uppercase tracking-widest text-slate-500">Verse media</div>
+          </div>
         )}
       </div>
 
-      <div className="flex items-center justify-between px-5 py-4">
+      <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-5">
           <button
             type="button"
@@ -175,7 +339,7 @@ const PostCard = ({ post, token, onMetrics }) => {
             <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
             <span>{metrics.likes || 0}</span>
           </button>
-          <button type="button" onClick={handleComment} className="flex items-center gap-1.5 text-sm font-bold text-slate-400 transition hover:text-blue-600">
+          <button type="button" onClick={() => setCommentOpen((current) => !current)} className="flex items-center gap-1.5 text-sm font-bold text-slate-400 transition hover:text-blue-600">
             <MessageCircle size={18} />
             <span>{metrics.comments || 0}</span>
           </button>
@@ -192,6 +356,21 @@ const PostCard = ({ post, token, onMetrics }) => {
           <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
         </button>
       </div>
+
+      {commentOpen && (
+        <div className="flex items-center gap-3 border-t border-slate-100 px-4 py-3">
+          <input
+            type="text"
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            placeholder="Write a comment..."
+            className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white placeholder:text-slate-400"
+          />
+          <button type="button" onClick={handleComment} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow transition hover:bg-blue-700" aria-label="Send comment">
+            <Send size={14} />
+          </button>
+        </div>
+      )}
     </article>
   );
 };
@@ -212,6 +391,8 @@ const VerseFeed = () => {
     { key: 'business', label: 'BusinessVerse' },
     { key: 'creator', label: 'CreatorVerse' }
   ];
+  const hasLivePosts = posts.length > 0;
+  const visibleRecommendations = recommendations.length ? recommendations : showcaseRecommendations;
 
   useEffect(() => {
     const loadFeed = async () => {
@@ -241,7 +422,7 @@ const VerseFeed = () => {
   }, [token]);
 
   const filteredPosts = useMemo(() => {
-    let nextPosts = posts;
+    let nextPosts = hasLivePosts ? posts : showcasePosts;
     if (activeFilter !== 'all') nextPosts = nextPosts.filter((post) => post.accountType === activeFilter);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -249,11 +430,12 @@ const VerseFeed = () => {
         post.authorName,
         post.authorCity,
         post.authorCategory,
-        post.caption
+        post.caption,
+        ...postTags(post)
       ].some((value) => String(value || '').toLowerCase().includes(q)));
     }
     return nextPosts;
-  }, [activeFilter, posts, searchQuery]);
+  }, [activeFilter, hasLivePosts, posts, searchQuery]);
 
   const updatePostMetrics = (postId, metrics) => {
     setPosts((current) => current.map((post) => (
@@ -267,129 +449,144 @@ const VerseFeed = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fbff] pt-28 pb-16">
+    <div className="min-h-screen bg-[#f4f6fb] pt-24 pb-16">
       {gateOpen && <GateModal onClose={closeGate} />}
-      <div className="mx-auto grid max-w-7xl gap-8 px-6 md:px-12 lg:grid-cols-[280px_1fr]">
-        <WorkspaceSidebar />
-
-        <div className="min-w-0">
-          <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <Sparkles size={18} className="text-slate-600" />
-                <span className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-600">VerseFeed</span>
-              </div>
-              <h1 className="mt-2 text-3xl font-black tracking-[-0.03em] text-slate-950 md:text-4xl">
-                What's happening in the Verse
-              </h1>
-              <p className="mt-2 text-sm font-semibold text-slate-500">
-                Real posts from active BusinessVerse and CreatorVerse members.
-              </p>
+      <div className="mx-auto max-w-[82rem] px-4 sm:px-6 lg:px-8">
+        <div className="mb-6 border-b border-slate-200/70 bg-[#f4f6fb] py-5">
+          <div className="mx-auto max-w-[82rem]">
+            <div className="flex items-center gap-2">
+              <Sparkles size={18} className="text-blue-600" />
+              <span className="text-[11px] font-black uppercase tracking-[0.28em] text-blue-600">VerseFeed</span>
             </div>
-            {member && (
-              <Link
-                to="/post-verse"
-                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-slate-800 px-6 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(15,23,42,0.16)] transition-all hover:-translate-y-0.5 hover:bg-slate-900"
-              >
-                <Zap size={15} />
-                Post Today
-              </Link>
+            <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-4xl">
+              What's happening in the Verse
+            </h1>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              Businesses and creators posting their best work, one post every 24 hours.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_330px] xl:grid-cols-[minmax(0,1fr)_350px]">
+          <div className="min-w-0 space-y-5">
+            <div className="rounded-[1.5rem] border border-slate-200/80 bg-white px-4 py-4 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
+              <div className="flex items-center gap-1 overflow-x-auto py-2">
+                {member && (
+                  <Link to="/post-verse" className="flex shrink-0 flex-col items-center gap-1.5 px-3">
+                    <div className="relative flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-blue-300 bg-blue-50 text-blue-600 transition hover:bg-blue-100">
+                      <span className="text-xl font-black">+</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-500">Your Post</span>
+                  </Link>
+                )}
+
+                {showcaseStories.map((story) => (
+                  <div key={story.id} className="flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3">
+                    <div className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-full text-sm font-black text-white transition-transform hover:scale-105 ${
+                      story.viewed ? 'ring-2 ring-slate-200 ring-offset-2' : story.type === 'creator' ? 'ring-2 ring-blue-500 ring-offset-2' : 'ring-2 ring-orange-500 ring-offset-2'
+                    }`}>
+                      <img src={story.image} alt={story.name} className="h-full w-full object-cover" />
+                    </div>
+                    <span className="w-16 truncate text-center text-[10px] font-bold text-slate-500">{story.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+                {filters.map((filter) => (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() => setActiveFilter(filter.key)}
+                    className={`rounded-xl px-4 py-2 text-xs font-black transition-all ${
+                      activeFilter === filter.key ? 'bg-blue-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+              <div className="relative flex-1 sm:max-w-xs">
+                <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search posts, creators, businesses..."
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-100 placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            {!hasLivePosts && !loading && !error && (
+              <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
+                Showcase posts are visible until members publish live posts.
+              </div>
+            )}
+
+            {loading ? (
+              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-8 text-sm font-bold text-slate-500">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Loading VerseFeed...
+              </div>
+            ) : error ? (
+              <div className="rounded-3xl border border-rose-100 bg-rose-50 p-8 text-sm font-semibold text-rose-600">{error}</div>
+            ) : filteredPosts.length ? (
+              <div className="space-y-5">
+                {filteredPosts.map((post) => <PostCard key={post.id} post={post} token={token} onMetrics={updatePostMetrics} />)}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white py-20 text-center">
+                <Sparkles size={32} className="text-slate-300" />
+                <p className="mt-3 text-sm font-bold text-slate-500">No posts found</p>
+                <p className="mt-1 text-xs text-slate-400">Try a different filter or search term.</p>
+              </div>
             )}
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
-            <div className="min-w-0 space-y-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
-                  {filters.map((filter) => (
-                    <button
-                      key={filter.key}
-                      type="button"
-                      onClick={() => setActiveFilter(filter.key)}
-                      className={`rounded-xl px-4 py-2 text-xs font-black transition-all ${
-                        activeFilter === filter.key ? 'bg-slate-800 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="relative flex-1 sm:max-w-xs">
-                  <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search posts, creators, businesses..."
-                    className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-8 text-sm font-bold text-slate-500">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Loading VerseFeed...
-                </div>
-              ) : error ? (
-                <div className="rounded-3xl border border-rose-100 bg-rose-50 p-8 text-sm font-semibold text-rose-600">{error}</div>
-              ) : filteredPosts.length ? (
-                filteredPosts.map((post) => <PostCard key={post.id} post={post} token={token} onMetrics={updatePostMetrics} />)
-              ) : (
-                <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white py-20 text-center">
-                  <Sparkles size={32} className="text-slate-300" />
-                  <p className="mt-3 text-sm font-bold text-slate-500">No posts found</p>
-                  <p className="mt-1 text-xs text-slate-400">Published member posts will appear here.</p>
-                </div>
-              )}
+          <aside className="hidden lg:block">
+            <div className="fixed right-8 top-28 w-[330px] space-y-4 xl:w-[350px] 2xl:right-[calc((100vw-82rem)/2+2rem)]">
+            <div className="rounded-[1.5rem] border border-blue-100 bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-[0_8px_24px_rgba(37,99,235,0.25)]">
+              <div className="text-[10px] font-black uppercase tracking-widest text-blue-200">Daily Rule</div>
+              <h3 className="mt-2 text-lg font-black leading-snug">1 post every 24 hours</h3>
+              <p className="mt-2 text-xs font-semibold leading-6 text-blue-100">
+                No spam. No feed domination. Every business and creator gets equal visibility.
+              </p>
             </div>
 
-            <aside className="hidden space-y-5 xl:block">
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Daily Rule</div>
-                <h3 className="mt-2 text-lg font-black leading-snug text-slate-900">1 post every 24 hours</h3>
-                <p className="mt-2 text-xs font-semibold leading-6 text-slate-500">
-                  No spam. No feed domination. Every member receives a fair slot.
-                </p>
+            <div className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
+              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500">
+                <Users size={13} />
+                Suggested For You
               </div>
-
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500">
-                  <Users size={13} />
-                  Recommended For You
-                </div>
-                <div className="mt-4 space-y-4">
-                  {recommendations.length ? recommendations.map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black text-white ${item.accountType === 'creator' ? 'bg-blue-600' : 'bg-orange-500'}`}>
-                          {item.authorAvatarUrl ? <img src={item.authorAvatarUrl} alt={item.authorName} className="h-full w-full object-cover" /> : initialsFrom(item.authorName)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-black text-slate-950">{item.authorName}</div>
-                          <div className="mt-1 text-[10px] font-semibold text-slate-400">{item.reason}</div>
-                        </div>
+              <div className="mt-4 space-y-4">
+                {visibleRecommendations.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black text-white ${item.accountType === 'creator' ? 'bg-blue-600' : 'bg-orange-500'}`}>
+                        {item.authorAvatarUrl ? <img src={item.authorAvatarUrl} alt={item.authorName} className="h-full w-full object-cover" /> : initialsFrom(item.authorName)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-black leading-tight text-slate-950">{item.authorName}</div>
+                        <div className="mt-0.5 truncate text-[10px] font-semibold text-slate-400">{item.reason}</div>
+                        <div className="mt-1"><VerseBadge type={item.accountType} /></div>
                       </div>
                     </div>
-                  )) : (
-                    <p className="text-sm font-semibold text-slate-500">Recommendations appear after members start posting.</p>
-                  )}
-                </div>
+                    <button type="button" className="shrink-0 rounded-full border border-blue-200 px-3 py-1.5 text-[11px] font-bold text-blue-600 transition hover:bg-blue-50">
+                      Follow
+                    </button>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500">
-                  <TrendingUp size={13} />
-                  Discovery Tips
-                </div>
-                <ul className="mt-4 space-y-3 text-sm font-semibold leading-6 text-slate-600">
-                  <li>Keep captions clear and collaboration-focused.</li>
-                  <li>Post product, service, portfolio, or opportunity updates.</li>
-                  <li>Use one strong media file instead of multiple posts.</li>
-                </ul>
-              </div>
-            </aside>
-          </div>
+            <p className="px-1 text-[11px] font-semibold leading-5 text-slate-400">
+              VerseFeed shows posts from verified BusinessVerse and CreatorVerse members. One post per 24 hours per account.
+            </p>
+            </div>
+          </aside>
         </div>
       </div>
     </div>

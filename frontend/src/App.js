@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { HOME } from "@/constants/testIds";
 
 import Navbar from "@/components/site/Navbar";
@@ -25,7 +25,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import AdminDashboard from "@/pages/AdminDashboard";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 import "@/App.css";
@@ -38,6 +38,16 @@ function Layout({ children }) {
       <Footer />
     </div>
   );
+}
+
+function MemberMarketingRoute({ children }) {
+  const { adminRole, loading } = useAuth();
+
+  if (loading) return children;
+  if (adminRole === 'superadmin') return <Navigate to="/superadmin" replace />;
+  if (adminRole === 'admin') return <Navigate to="/admin" replace />;
+
+  return children;
 }
 
 function App() {
@@ -61,20 +71,20 @@ function App() {
 
         <Routes>
           <Route path="/" element={<Layout><Home /></Layout>} />
-          <Route path="/business-verse" element={<Layout><BusinessVerse /></Layout>} />
-          <Route path="/creator-verse" element={<Layout><CreatorVerse /></Layout>} />
+          <Route path="/business-verse" element={<MemberMarketingRoute><Layout><BusinessVerse /></Layout></MemberMarketingRoute>} />
+          <Route path="/creator-verse" element={<MemberMarketingRoute><Layout><CreatorVerse /></Layout></MemberMarketingRoute>} />
           <Route path="/pricing" element={<Layout><Payment /></Layout>} />
           <Route path="/payment" element={<Layout><Payment /></Layout>} />
           <Route path="/contact" element={<Layout><JoinUs /></Layout>} />
           <Route path="/join" element={<Layout><JoinUs /></Layout>} />
           <Route path="/platform" element={<Layout><Platform /></Layout>} />
-          <Route path="/post-verse" element={<ProtectedRoute><Layout><PostVerse /></Layout></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Layout><PostVerse /></Layout></ProtectedRoute>} />
-          <Route path="/search-verse" element={<ProtectedRoute><Layout><SearchVerse /></Layout></ProtectedRoute>} />
-          <Route path="/verse-feed" element={<ProtectedRoute><Layout><VerseFeed /></Layout></ProtectedRoute>} />
-          <Route path="/profile-verse" element={<ProtectedRoute><Layout><ProfileVerse /></Layout></ProtectedRoute>} />
-          <Route path="/messages" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+          <Route path="/post-verse" element={<ProtectedRoute memberOnly><Layout><PostVerse /></Layout></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute memberOnly><Layout><PostVerse /></Layout></ProtectedRoute>} />
+          <Route path="/search-verse" element={<ProtectedRoute memberOnly><Layout><SearchVerse /></Layout></ProtectedRoute>} />
+          <Route path="/verse-feed" element={<ProtectedRoute memberOnly><Layout><VerseFeed /></Layout></ProtectedRoute>} />
+          <Route path="/profile-verse" element={<ProtectedRoute memberOnly><Layout><ProfileVerse /></Layout></ProtectedRoute>} />
+          <Route path="/messages" element={<ProtectedRoute memberOnly><Layout><Messages /></Layout></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute memberOnly><Layout><Settings /></Layout></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />

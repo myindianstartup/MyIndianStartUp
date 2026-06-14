@@ -1,122 +1,216 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
   BriefcaseBusiness,
   Camera,
   CheckCircle2,
+  Clock3,
+  Database,
   Eye,
+  Loader2,
   LockKeyhole,
+  RefreshCw,
   ShieldCheck,
   Users
 } from 'lucide-react';
+import { apiRequest } from '@/lib/apiClient';
+import { useAuth } from '@/contexts/AuthContext';
 
-const adminStats = [
-  ['12.4k', 'Active members', Users, 'text-blue-600', 'bg-blue-50'],
-  ['4.8k', 'Business profiles', BriefcaseBusiness, 'text-orange-500', 'bg-orange-50'],
-  ['7.6k', 'Creator profiles', Camera, 'text-blue-600', 'bg-blue-50'],
-  ['98%', 'Healthy posts', CheckCircle2, 'text-emerald-600', 'bg-emerald-50']
-];
+const formatNumber = (value) => new Intl.NumberFormat('en-IN').format(value || 0);
 
-const activity = [
-  ['Aurora Foods joined BusinessVerse', 'Business account', '2 min ago', 'orange'],
-  ['Riya Sharma published a portfolio post', 'Creator post', '12 min ago', 'blue'],
-  ['Admin reviewed support request', 'Operations', '28 min ago', 'slate'],
-  ['Payment marked active for annual plan', 'Subscription', '41 min ago', 'emerald']
-];
+const shortDate = (value) => {
+  if (!value) return 'Never';
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(new Date(value));
+};
 
-const adminControls = [
-  ['Member review', 'View accounts, subscriptions, and account type status.'],
-  ['Post moderation', 'Review posts, hide unsafe posts, and keep PostVerse clean.'],
-  ['Profile checks', 'Validate BusinessVerse and CreatorVerse profile completeness.'],
-  ['Support queue', 'Manage support issues without touching ownership settings.']
-];
+const StatusPill = ({ value }) => {
+  const active = ['active', 'online', 'trialing'].includes(String(value || '').toLowerCase());
+  return (
+    <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${
+      active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
+    }`}>
+      {value || 'unknown'}
+    </span>
+  );
+};
+
+const StatCard = ({ label, value, icon: Icon, tone = 'slate' }) => {
+  const tones = {
+    blue: 'bg-blue-50 text-blue-600',
+    orange: 'bg-orange-50 text-orange-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    slate: 'bg-slate-100 text-slate-700'
+  };
+
+  return (
+    <div className="rounded-[1.4rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${tones[tone] || tones.slate}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="mt-4 text-2xl font-black tracking-tight text-slate-900">{value}</div>
+      <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
+    </div>
+  );
+};
 
 const AdminDashboard = () => {
+  const { token, signOut } = useAuth();
+  const [overview, setOverview] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadData = async () => {
+    if (!token) return;
+    setError('');
+    try {
+      const [overviewData, membersData] = await Promise.all([
+        apiRequest('/api/admin/overview', { token }),
+        apiRequest('/api/admin/members', { token })
+      ]);
+      setOverview(overviewData);
+      setMembers(membersData.members || []);
+    } catch (requestError) {
+      setError(requestError.message || 'Could not load admin dashboard data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    const interval = window.setInterval(loadData, 30000);
+    return () => window.clearInterval(interval);
+  }, [token]);
+
+  const stats = overview?.stats || {};
+  const recentMembers = useMemo(() => members.slice(0, 12), [members]);
+
+  const statRows = [
+    ['Members', formatNumber(stats.members), Users, 'blue'],
+    ['Active subscriptions', formatNumber(stats.activeSubscriptions), CheckCircle2, 'emerald'],
+    ['Business profiles', formatNumber(stats.businessProfiles), BriefcaseBusiness, 'orange'],
+    ['Creator profiles', formatNumber(stats.creatorProfiles), Camera, 'blue'],
+    ['Published posts', formatNumber(stats.publishedPosts), BarChart3, 'slate'],
+    ['Media assets', formatNumber(stats.mediaAssets), Database, 'slate']
+  ];
+
   return (
-    <main className="min-h-screen bg-[#f8fbff] px-6 py-10 text-slate-950 md:px-12">
+    <main className="min-h-screen bg-[#f8fbff] px-6 py-8 text-slate-950 md:px-10">
       <div className="mx-auto max-w-7xl">
-        <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
-              <ShieldCheck className="h-4 w-4" />
-              Admin workspace
-            </div>
-            <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.015em] md:text-5xl">
-              Manage members, posts, and daily platform operations.
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600">
-              Admins can monitor activity, support users, and moderate platform content while ownership-level controls stay protected.
-            </p>
-          </div>
-
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Operational health</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">Today&apos;s overview</div>
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+                <ShieldCheck className="h-4 w-4" />
+                Admin workspace
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_16px_34px_rgba(37,99,235,0.24)]">
-                <BarChart3 className="h-7 w-7" />
-              </div>
+              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-[-0.03em] md:text-5xl">
+                Limited operations dashboard.
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600">
+                Admins can monitor members, subscriptions, profiles, posts, and media health. Superadmin-only actions such as user editing, plans, coupons, billing, and audit controls stay locked.
+              </p>
             </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {adminStats.map(([value, label, Icon, text, bg]) => (
-                <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bg} ${text}`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="mt-4 text-2xl font-semibold">{value}</div>
-                  <div className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">Admin controls</div>
-                <h2 className="mt-2 text-2xl font-semibold">Manager-level permissions</h2>
-              </div>
-              <LockKeyhole className="h-6 w-6 text-slate-400" />
-            </div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {adminControls.map(([title, copy]) => (
-                <div key={title} className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-5 transition-transform hover:-translate-y-1">
-                  <h3 className="text-base font-semibold text-slate-950">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">{copy}</p>
-                </div>
-              ))}
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={loadData}
+                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-700"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={signOut}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+              >
+                Logout
+              </button>
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-[0.2em] text-orange-500">Live activity</div>
-                <h2 className="mt-2 text-2xl font-semibold">Latest platform events</h2>
+          <div className="mt-6 grid gap-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 md:grid-cols-3">
+            {[
+              [LockKeyhole, 'Read-only role', 'No member edits or billing changes from admin accounts.'],
+              [Eye, 'Operations view', 'Monitor user and platform status without ownership controls.'],
+              [Clock3, 'Auto refresh', 'Dashboard refreshes every 30 seconds while open.']
+            ].map(([Icon, title, copy]) => (
+              <div key={title} className="rounded-2xl bg-white p-4 shadow-sm">
+                <Icon className="h-5 w-5 text-slate-500" />
+                <div className="mt-3 text-sm font-black text-slate-900">{title}</div>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{copy}</p>
               </div>
-              <Eye className="h-6 w-6 text-slate-400" />
-            </div>
-            <div className="mt-6 grid gap-3">
-              {activity.map(([title, type, time, tone]) => (
-                <div key={title} className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className={`h-2.5 w-2.5 rounded-full ${tone === 'orange' ? 'bg-orange-500' : tone === 'blue' ? 'bg-blue-600' : tone === 'emerald' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                    <div>
-                      <div className="text-sm font-semibold text-slate-950">{title}</div>
-                      <div className="text-xs font-medium text-slate-500">{type}</div>
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-400">{time}</span>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </section>
+
+        {loading ? (
+          <div className="mt-8 flex items-center gap-3 rounded-[1.5rem] border border-slate-200 bg-white p-6 text-sm font-black text-slate-500 shadow-sm">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            Loading live admin data...
+          </div>
+        ) : error ? (
+          <div className="mt-8 rounded-[1.5rem] border border-rose-100 bg-rose-50 p-6 text-sm font-bold text-rose-600">
+            {error}
+          </div>
+        ) : (
+          <>
+            <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {statRows.map(([label, value, Icon, tone]) => (
+                <StatCard key={label} label={label} value={value} icon={Icon} tone={tone} />
+              ))}
+            </section>
+
+            <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Limited user view</div>
+                  <h2 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-900">Recent members</h2>
+                </div>
+                <StatusPill value={`${recentMembers.length} shown`} />
+              </div>
+
+              <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-100">
+                <table className="w-full min-w-[900px] text-left text-sm">
+                  <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                    <tr>
+                      <th className="p-3">Name</th>
+                      <th className="p-3">Email</th>
+                      <th className="p-3">Type</th>
+                      <th className="p-3">Subscription</th>
+                      <th className="p-3">Account</th>
+                      <th className="p-3">Last active</th>
+                      <th className="p-3">Joined</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentMembers.length ? recentMembers.map((member) => (
+                      <tr key={member.id} className="border-b border-slate-100 font-semibold text-slate-600">
+                        <td className="p-3 font-black text-slate-900">{member.full_name || member.email}</td>
+                        <td className="p-3">{member.email}</td>
+                        <td className="p-3 capitalize">{member.account_type}</td>
+                        <td className="p-3"><StatusPill value={member.subscription_status} /></td>
+                        <td className="p-3"><StatusPill value={member.account_status || 'active'} /></td>
+                        <td className="p-3">{shortDate(member.last_active_at)}</td>
+                        <td className="p-3">{shortDate(member.created_at)}</td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan="7" className="p-10 text-center text-sm font-bold text-slate-500">No members found.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </main>
   );

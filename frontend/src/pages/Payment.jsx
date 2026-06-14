@@ -54,6 +54,13 @@ const Payment = () => {
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
   const finalAmount = quote?.finalAmountInr ?? selectedPlan?.amount_inr ?? 0;
   const discount = quote?.discountAmountInr ?? 0;
+  const isFullDiscountCoupon = Boolean(
+    quote?.valid
+    && quote?.coupon
+    && quote.coupon.discount_type === 'percentage'
+    && Number(quote.coupon.discount_value) === 100
+    && Number(finalAmount) === 0
+  );
 
   const applyCoupon = async () => {
     if (!isAuthenticated) {
@@ -108,9 +115,11 @@ const Payment = () => {
       });
 
       setQuote(data.quote);
-      setMessage(data.order.final_amount_inr === 0
-        ? 'Membership activated with coupon/free access.'
-        : `Razorpay order prepared: ${data.razorpay.providerOrderId}. Payment gateway keys can be connected without changing this flow.`);
+      if (data.freeCheckout && data.razorpay?.skipped) {
+        setMessage('100% coupon applied. Razorpay skipped and your 1-year membership is active from today.');
+        return;
+      }
+      setMessage(`Razorpay order prepared: ${data.razorpay.providerOrderId}. Payment gateway keys can be connected without changing this flow.`);
     } catch (requestError) {
       setError(requestError.message || 'Could not create checkout order.');
     } finally {
@@ -280,7 +289,7 @@ const Payment = () => {
                     className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-[0_12px_30px_rgba(37,99,235,0.22)] hover:bg-blue-700 disabled:opacity-60"
                   >
                     {creatingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                    Proceed to Payment
+                    {isFullDiscountCoupon ? 'Activate Membership' : 'Proceed to Payment'}
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </>

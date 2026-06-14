@@ -2,9 +2,12 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false }) => {
+const adminDashboardPath = (role) => (role === 'superadmin' ? '/superadmin' : '/admin');
+
+const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false, memberOnly = false }) => {
   const { isAuthenticated, loading, adminRole } = useAuth();
   const location = useLocation();
+  const isAdminUser = ['admin', 'superadmin'].includes(adminRole);
 
   if (loading) {
     return (
@@ -21,11 +24,15 @@ const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false })
   }
 
   if (superAdminOnly && adminRole !== 'superadmin') {
-    return <Navigate to="/post-verse" replace />;
+    return <Navigate to={adminRole === 'admin' ? '/admin' : '/post-verse'} replace />;
   }
 
   if (adminOnly && !['admin', 'superadmin'].includes(adminRole)) {
     return <Navigate to="/post-verse" replace />;
+  }
+
+  if (memberOnly && isAdminUser) {
+    return <Navigate to={adminDashboardPath(adminRole)} replace />;
   }
 
   return children;
