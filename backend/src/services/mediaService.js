@@ -1,10 +1,15 @@
 import crypto from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import sharp from 'sharp';
 import { env } from '../config/env.js';
 import { uploadToR2 } from '../lib/r2.js';
 import { supabaseAdmin } from '../lib/supabase.js';
 
+const execFileAsync = promisify(execFile);
 const imageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const videoMimeTypes = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
 
@@ -52,8 +57,51 @@ export const prepareImage = async (file, purpose) => {
 export const prepareVideo = async (file) => {
   assertFileSize(file, 'video');
 
-  // Keep backend lightweight for free-tier deployments. Video transcoding should run
-  // in a background worker later; for now, enforce size/type and upload the original.
+  const ffmpegPath = env.FFMPEG_PATH || 'ffmpeg';
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mis-video-'));
+  const inputPath = path.join(tempDir, `input${extensionFromMime(file.mimetype) || path.extname(file.originalname) || '.mp4'}`);
+  const outputPath = path.join(tempDir, 'optimized.mp4');
+
+  try {
+    await fs.writeFile(inputPath, file.buffer);
+    await execFileAsync(ffmpegPath, [
+      '-y',
+      '-i',
+      inputPath,
+      '-vf',
+      "scale='min(1280,iw)':-2",
+      '-c:v',
+      'libx264',
+      '-preset',
+      'veryfast',
+      '-crf',
+      '28',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '96k',
+      '-movflags',
+      '+faststart',
+      outputPath
+    ], { timeout: 120000, maxBuffer: 10 * 1024 * 1024 });
+
+    const optimizedBuffer = await fs.readFile(outputPath);
+    if (optimizedBuffer.length > 0 && optimizedBuffer.length < file.size) {
+      return {
+        buffer: optimizedBuffer,
+        contentType: 'video/mp4',
+        extension: '.mp4',
+        sizeBytes: optimizedBuffer.length
+      };
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Video optimization skipped:', error.message);
+    }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+
   return {
     buffer: file.buffer,
     contentType: file.mimetype,

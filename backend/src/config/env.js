@@ -17,7 +17,8 @@ const envSchema = z.object({
   R2_BUCKET: z.string().min(1),
   R2_PUBLIC_BASE_URL: z.string().url(),
   MAX_IMAGE_MB: z.coerce.number().default(5),
-  MAX_VIDEO_MB: z.coerce.number().default(50)
+  MAX_VIDEO_MB: z.coerce.number().default(50),
+  FFMPEG_PATH: z.string().optional()
 });
 
 export const env = envSchema.parse(process.env);
