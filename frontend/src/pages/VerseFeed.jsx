@@ -4,6 +4,8 @@ import {
   Bookmark,
   BriefcaseBusiness,
   Camera,
+  ChevronLeft,
+  ChevronRight,
   Heart,
   Loader2,
   MessageCircle,
@@ -83,11 +85,23 @@ const storyStickerOptions = ['Launch', 'Hiring', 'Collab', 'Offer', 'New', 'Open
 
 const cleanMention = (value = '') => value.replace(/^@+/, '').replace(/[^a-zA-Z0-9_.]/g, '').slice(0, 32);
 
+const cleanCompanyTag = (value = '') => String(value || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+
 const storyMetadataOverlays = (metadata = {}) => ({
   sticker: String(metadata.sticker || '').trim(),
   mention: cleanMention(metadata.mention || ''),
-  companyTag: String(metadata.companyTag || '').trim().slice(0, 40)
+  companyTag: cleanCompanyTag(metadata.companyTag || '')
 });
+
+const uniqueByKey = (items, keyFn) => {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = keyFn(item);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 
 const showcasePosts = [
   {
@@ -171,16 +185,35 @@ const mediaGradient = (post) => {
   return 'from-orange-100 to-amber-50';
 };
 
-const StoryViewer = ({ story, onClose }) => {
+const StoryViewer = ({ story, storyCount = 0, currentIndex = 0, onClose, onNavigate }) => {
   if (!story) return null;
   const overlays = storyMetadataOverlays(story.metadata);
+  const canNavigate = storyCount > 1;
+  const canGoPrevious = currentIndex > 0;
+  const canGoNext = currentIndex < storyCount - 1;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm">
+      {canNavigate && (
+        <button
+          type="button"
+          onClick={() => canGoPrevious && onNavigate?.(currentIndex - 1)}
+          disabled={!canGoPrevious}
+          className="absolute left-4 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white backdrop-blur transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
+          aria-label="Previous story"
+        >
+          <ChevronLeft className="h-7 w-7" />
+        </button>
+      )}
       <div className="relative flex h-full max-h-[760px] w-full max-w-sm flex-col overflow-hidden rounded-[2rem] bg-slate-950 shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
         <div className="absolute inset-x-4 top-4 z-10 h-1 rounded-full bg-white/25">
           <div className="h-full w-full rounded-full bg-white" />
         </div>
+        {canNavigate && (
+          <div className="absolute left-1/2 top-7 z-20 -translate-x-1/2 rounded-full bg-black/35 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur">
+            {currentIndex + 1} / {storyCount}
+          </div>
+        )}
         <button
           type="button"
           onClick={onClose}
@@ -224,7 +257,40 @@ const StoryViewer = ({ story, onClose }) => {
             {story.caption}
           </div>
         )}
+        {canNavigate && (
+          <div className="absolute inset-x-0 bottom-4 z-20 flex justify-between px-4 sm:hidden">
+            <button
+              type="button"
+              onClick={() => canGoPrevious && onNavigate?.(currentIndex - 1)}
+              disabled={!canGoPrevious}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur disabled:opacity-30"
+              aria-label="Previous story"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <button
+              type="button"
+              onClick={() => canGoNext && onNavigate?.(currentIndex + 1)}
+              disabled={!canGoNext}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur disabled:opacity-30"
+              aria-label="Next story"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </div>
+        )}
       </div>
+      {canNavigate && (
+        <button
+          type="button"
+          onClick={() => canGoNext && onNavigate?.(currentIndex + 1)}
+          disabled={!canGoNext}
+          className="absolute right-4 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white backdrop-blur transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
+          aria-label="Next story"
+        >
+          <ChevronRight className="h-7 w-7" />
+        </button>
+      )}
     </div>
   );
 };
@@ -233,6 +299,8 @@ const StoryEditor = ({
   draft,
   uploading,
   error,
+  mentionOptions = [],
+  companyOptions = [],
   onPickMedia,
   onDraftChange,
   onClose,
@@ -242,9 +310,9 @@ const StoryEditor = ({
   const overlays = storyMetadataOverlays(draft);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm">
-      <div className="grid max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)] lg:grid-cols-[1fr_320px]">
-        <div className="relative grid min-h-[560px] place-items-center bg-slate-950">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/80 px-3 py-4 backdrop-blur-sm">
+      <div className="grid h-[calc(100vh-2rem)] w-full max-w-4xl grid-rows-[minmax(220px,38vh)_minmax(0,1fr)] overflow-hidden overscroll-contain rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)] lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-none">
+        <div className="relative grid min-h-0 place-items-center bg-slate-950 lg:min-h-[560px]">
           {draft.previewUrl ? (
             draft.mediaType === 'video' ? (
               <video src={draft.previewUrl} controls className="h-full max-h-[86vh] w-full object-contain" />
@@ -284,7 +352,8 @@ const StoryEditor = ({
           )}
         </div>
 
-        <div className="flex flex-col bg-white p-6">
+        <div className="flex min-h-0 flex-col overflow-y-auto overscroll-contain bg-white">
+          <div className="p-6 pb-4">
           <div className="text-[11px] font-black uppercase tracking-[0.28em] text-blue-600">Story Editor</div>
           <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950">Create your story</h3>
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
@@ -328,20 +397,56 @@ const StoryEditor = ({
             <label className="grid gap-2">
               <span className="text-sm font-black text-slate-800">Mention someone</span>
               <input
-                value={draft.mention}
+                value={draft.mention ? `@${cleanMention(draft.mention)}` : ''}
                 onChange={(event) => onDraftChange({ mention: cleanMention(event.target.value) })}
                 placeholder="@creator or @business"
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
+              {mentionOptions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {mentionOptions.slice(0, 5).map((option) => (
+                    <button
+                      key={option.handle}
+                      type="button"
+                      onClick={() => onDraftChange({ mention: option.handle })}
+                      className={`rounded-full border px-3 py-1.5 text-[11px] font-black transition ${
+                        cleanMention(draft.mention) === option.handle
+                          ? 'border-blue-600 bg-blue-600 text-white'
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50'
+                      }`}
+                    >
+                      @{option.handle}
+                    </button>
+                  ))}
+                </div>
+              )}
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-black text-slate-800">Company tag</span>
               <input
                 value={draft.companyTag}
-                onChange={(event) => onDraftChange({ companyTag: event.target.value.slice(0, 40) })}
+                onChange={(event) => onDraftChange({ companyTag: cleanCompanyTag(event.target.value) })}
                 placeholder="Tag company or brand"
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
+              {companyOptions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {companyOptions.slice(0, 5).map((option) => (
+                    <button
+                      key={option.name}
+                      type="button"
+                      onClick={() => onDraftChange({ companyTag: option.name })}
+                      className={`rounded-full border px-3 py-1.5 text-[11px] font-black transition ${
+                        cleanCompanyTag(draft.companyTag) === option.name
+                          ? 'border-blue-600 bg-blue-600 text-white'
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50'
+                      }`}
+                    >
+                      {option.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </label>
           </div>
 
@@ -350,8 +455,9 @@ const StoryEditor = ({
               {error}
             </div>
           )}
+          </div>
 
-          <div className="mt-auto flex gap-3 pt-6">
+          <div className="sticky bottom-0 mt-auto flex gap-3 border-t border-slate-100 bg-white/95 p-6 pt-4 shadow-[0_-12px_28px_rgba(15,23,42,0.06)] backdrop-blur">
             <button
               type="button"
               onClick={onClose}
@@ -698,6 +804,27 @@ const VerseFeed = () => {
   const hasLivePosts = posts.length > 0;
   const visibleStories = stories.length ? stories : showcaseStories;
   const visibleRecommendations = recommendations.length ? recommendations : showcaseRecommendations;
+  const activeStoryIndex = activeStory ? visibleStories.findIndex((story) => story.id === activeStory.id) : -1;
+  const storyMentionOptions = useMemo(() => uniqueByKey([
+    ...visibleRecommendations.map((item) => ({
+      name: item.authorName,
+      handle: cleanMention(handleFrom(item.authorName)),
+      type: item.accountType
+    })),
+    ...(hasLivePosts ? posts : showcasePosts).map((post) => ({
+      name: post.authorName,
+      handle: cleanMention(handleFrom(post.authorName)),
+      type: post.accountType
+    }))
+  ], (item) => item.handle), [hasLivePosts, posts, visibleRecommendations]);
+  const storyCompanyOptions = useMemo(() => uniqueByKey([
+    ...visibleRecommendations
+      .filter((item) => item.accountType === 'business')
+      .map((item) => ({ name: cleanCompanyTag(item.authorName) })),
+    ...(hasLivePosts ? posts : showcasePosts)
+      .filter((post) => post.accountType === 'business')
+      .map((post) => ({ name: cleanCompanyTag(post.authorName) }))
+  ], (item) => item.name.toLowerCase()), [hasLivePosts, posts, visibleRecommendations]);
 
   useEffect(() => {
     const loadFeed = async () => {
@@ -732,6 +859,19 @@ const VerseFeed = () => {
   useEffect(() => () => {
     if (storyDraft?.previewUrl) URL.revokeObjectURL(storyDraft.previewUrl);
   }, [storyDraft?.previewUrl]);
+
+  useEffect(() => {
+    if (!storyDraft && !activeStory) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
+    };
+  }, [activeStory, storyDraft]);
 
   const filteredPosts = useMemo(() => {
     let nextPosts = hasLivePosts ? posts : showcasePosts;
@@ -822,7 +962,7 @@ const VerseFeed = () => {
       formData.append('metadata', JSON.stringify({
         sticker: storyDraft.sticker || '',
         mention: cleanMention(storyDraft.mention || ''),
-        companyTag: storyDraft.companyTag || ''
+        companyTag: cleanCompanyTag(storyDraft.companyTag || '')
       }));
       formData.append('file', storyDraft.file);
 
@@ -844,8 +984,7 @@ const VerseFeed = () => {
     }
   };
 
-  const openStory = async (story) => {
-    setActiveStory(story);
+  const markStoryViewed = async (story) => {
     if (!story?.id || story.id.startsWith('story-')) return;
 
     setStories((current) => current.map((item) => (
@@ -859,14 +998,35 @@ const VerseFeed = () => {
     }
   };
 
+  const openStory = async (story) => {
+    setActiveStory(story);
+    markStoryViewed(story);
+  };
+
+  const navigateStory = (nextIndex) => {
+    const nextStory = visibleStories[nextIndex];
+    if (!nextStory) return;
+
+    setActiveStory(nextStory);
+    markStoryViewed(nextStory);
+  };
+
   return (
     <div className="min-h-screen bg-[#f4f6fb] pt-24 pb-16">
       {gateOpen && <GateModal onClose={closeGate} />}
-      <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />
+      <StoryViewer
+        story={activeStory}
+        storyCount={visibleStories.length}
+        currentIndex={activeStoryIndex >= 0 ? activeStoryIndex : 0}
+        onClose={() => setActiveStory(null)}
+        onNavigate={navigateStory}
+      />
       <StoryEditor
         draft={storyDraft}
         uploading={storyUploading}
         error={storyError}
+        mentionOptions={storyMentionOptions}
+        companyOptions={storyCompanyOptions}
         onPickMedia={() => storyInputRef.current?.click()}
         onDraftChange={(changes) => {
           setStoryError('');
