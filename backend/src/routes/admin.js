@@ -883,15 +883,11 @@ adminRouter.patch('/superadmin/notifications/:id/read', requireAuth, requireAdmi
 
 adminRouter.get('/superadmin/plans', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
-    const { data } = await safeQuery(
-      supabaseAdmin
-        .schema('billing')
-        .from('plans')
-        .select('*')
-        .is('deleted_at', null)
-        .order('sort_order', { ascending: true }),
-      { data: fallbackPlans }
-    );
+    const { data, error } = await supabaseAdmin.rpc('billing_list_plans');
+    if (error) {
+      if (isMissingDatabaseFeature(error)) return res.json({ plans: fallbackPlans });
+      throw error;
+    }
     res.json({ plans: data || [] });
   } catch (error) {
     next(error);
@@ -901,25 +897,19 @@ adminRouter.get('/superadmin/plans', requireAuth, requireAdminRole('superadmin')
 adminRouter.post('/superadmin/plans', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
     const payload = planSchema.parse(req.body);
-    const { data, error } = await supabaseAdmin
-      .schema('billing')
-      .from('plans')
-      .insert({
-        code: payload.code,
-        name: payload.name,
-        description: payload.description || null,
-        account_type: payload.accountType || null,
-        amount_inr: payload.amountInr,
-        duration_days: payload.durationDays,
-        features: payload.features,
-        is_active: payload.isActive,
-        sort_order: payload.sortOrder
-      })
-      .select('*')
-      .single();
-
+    const { data, error } = await supabaseAdmin.rpc('billing_create_plan', {
+      p_code: payload.code,
+      p_name: payload.name,
+      p_description: payload.description || null,
+      p_account_type: payload.accountType || null,
+      p_amount_inr: payload.amountInr,
+      p_duration_days: payload.durationDays,
+      p_features: JSON.stringify(payload.features),
+      p_is_active: payload.isActive,
+      p_sort_order: payload.sortOrder
+    });
     if (error) throw error;
-    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.plan.created', entityType: 'billing.plans', entityId: data.id, metadata: data });
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.plan.created', entityType: 'billing.plans', entityId: data?.id, metadata: data });
     res.status(201).json({ plan: data });
   } catch (error) {
     next(error);
@@ -929,27 +919,20 @@ adminRouter.post('/superadmin/plans', requireAuth, requireAdminRole('superadmin'
 adminRouter.put('/superadmin/plans/:id', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
     const payload = planSchema.parse(req.body);
-    const { data, error } = await supabaseAdmin
-      .schema('billing')
-      .from('plans')
-      .update({
-        code: payload.code,
-        name: payload.name,
-        description: payload.description || null,
-        account_type: payload.accountType || null,
-        amount_inr: payload.amountInr,
-        duration_days: payload.durationDays,
-        features: payload.features,
-        is_active: payload.isActive,
-        sort_order: payload.sortOrder,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', req.params.id)
-      .select('*')
-      .single();
-
+    const { data, error } = await supabaseAdmin.rpc('billing_update_plan', {
+      p_id: req.params.id,
+      p_code: payload.code,
+      p_name: payload.name,
+      p_description: payload.description || null,
+      p_account_type: payload.accountType || null,
+      p_amount_inr: payload.amountInr,
+      p_duration_days: payload.durationDays,
+      p_features: JSON.stringify(payload.features),
+      p_is_active: payload.isActive,
+      p_sort_order: payload.sortOrder
+    });
     if (error) throw error;
-    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.plan.updated', entityType: 'billing.plans', entityId: data.id, metadata: data });
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.plan.updated', entityType: 'billing.plans', entityId: data?.id, metadata: data });
     res.json({ plan: data });
   } catch (error) {
     next(error);
@@ -958,14 +941,7 @@ adminRouter.put('/superadmin/plans/:id', requireAuth, requireAdminRole('superadm
 
 adminRouter.delete('/superadmin/plans/:id', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .schema('billing')
-      .from('plans')
-      .update({ is_active: false, deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq('id', req.params.id)
-      .select('*')
-      .single();
-
+    const { data, error } = await supabaseAdmin.rpc('billing_delete_plan', { p_id: req.params.id });
     if (error) throw error;
     await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.plan.deleted', entityType: 'billing.plans', entityId: req.params.id, metadata: data });
     res.json({ plan: data });
@@ -976,15 +952,11 @@ adminRouter.delete('/superadmin/plans/:id', requireAuth, requireAdminRole('super
 
 adminRouter.get('/superadmin/coupons', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
-    const { data } = await safeQuery(
-      supabaseAdmin
-        .schema('billing')
-        .from('coupons')
-        .select('*')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false }),
-      { data: [] }
-    );
+    const { data, error } = await supabaseAdmin.rpc('billing_list_coupons');
+    if (error) {
+      if (isMissingDatabaseFeature(error)) return res.json({ coupons: [] });
+      throw error;
+    }
     res.json({ coupons: data || [] });
   } catch (error) {
     next(error);
@@ -1008,27 +980,21 @@ adminRouter.post('/superadmin/coupons', requireAuth, requireAdminRole('superadmi
   try {
     const payload = couponSchema.parse(req.body);
     const resolvedUserIds = await resolveUserIds(payload.userIds);
-    const { data, error } = await supabaseAdmin
-      .schema('billing')
-      .from('coupons')
-      .insert({
-        code: payload.code,
-        title: payload.title,
-        discount_type: payload.discountType,
-        discount_value: payload.discountValue,
-        usage_limit: payload.usageLimit || null,
-        per_user_limit: payload.perUserLimit,
-        starts_at: payload.startsAt || null,
-        ends_at: payload.endsAt || null,
-        applicable_plan_ids: payload.applicablePlanIds,
-        user_ids: resolvedUserIds,
-        is_active: payload.isActive
-      })
-      .select('*')
-      .single();
-
+    const { data, error } = await supabaseAdmin.rpc('billing_create_coupon', {
+      p_code: payload.code,
+      p_title: payload.title,
+      p_discount_type: payload.discountType,
+      p_discount_value: payload.discountValue,
+      p_usage_limit: payload.usageLimit || null,
+      p_per_user_limit: payload.perUserLimit,
+      p_starts_at: payload.startsAt || null,
+      p_ends_at: payload.endsAt || null,
+      p_applicable_plan_ids: payload.applicablePlanIds,
+      p_user_ids: resolvedUserIds,
+      p_is_active: payload.isActive
+    });
     if (error) throw error;
-    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.coupon.created', entityType: 'billing.coupons', entityId: data.id, metadata: data });
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.coupon.created', entityType: 'billing.coupons', entityId: data?.id, metadata: data });
     res.status(201).json({ coupon: data });
   } catch (error) {
     next(error);
@@ -1039,29 +1005,22 @@ adminRouter.put('/superadmin/coupons/:id', requireAuth, requireAdminRole('supera
   try {
     const payload = couponSchema.parse(req.body);
     const resolvedUserIds = await resolveUserIds(payload.userIds);
-    const { data, error } = await supabaseAdmin
-      .schema('billing')
-      .from('coupons')
-      .update({
-        code: payload.code,
-        title: payload.title,
-        discount_type: payload.discountType,
-        discount_value: payload.discountValue,
-        usage_limit: payload.usageLimit || null,
-        per_user_limit: payload.perUserLimit,
-        starts_at: payload.startsAt || null,
-        ends_at: payload.endsAt || null,
-        applicable_plan_ids: payload.applicablePlanIds,
-        user_ids: resolvedUserIds,
-        is_active: payload.isActive,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', req.params.id)
-      .select('*')
-      .single();
-
+    const { data, error } = await supabaseAdmin.rpc('billing_update_coupon', {
+      p_id: req.params.id,
+      p_code: payload.code,
+      p_title: payload.title,
+      p_discount_type: payload.discountType,
+      p_discount_value: payload.discountValue,
+      p_usage_limit: payload.usageLimit || null,
+      p_per_user_limit: payload.perUserLimit,
+      p_starts_at: payload.startsAt || null,
+      p_ends_at: payload.endsAt || null,
+      p_applicable_plan_ids: payload.applicablePlanIds,
+      p_user_ids: resolvedUserIds,
+      p_is_active: payload.isActive
+    });
     if (error) throw error;
-    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.coupon.updated', entityType: 'billing.coupons', entityId: data.id, metadata: data });
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.coupon.updated', entityType: 'billing.coupons', entityId: data?.id, metadata: data });
     res.json({ coupon: data });
   } catch (error) {
     next(error);
@@ -1070,16 +1029,12 @@ adminRouter.put('/superadmin/coupons/:id', requireAuth, requireAdminRole('supera
 
 adminRouter.patch('/superadmin/coupons/:id/status', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .schema('billing')
-      .from('coupons')
-      .update({ is_active: Boolean(req.body?.isActive), updated_at: new Date().toISOString() })
-      .eq('id', req.params.id)
-      .select('*')
-      .single();
-
+    const { data, error } = await supabaseAdmin.rpc('billing_patch_coupon_status', {
+      p_id: req.params.id,
+      p_is_active: Boolean(req.body?.isActive)
+    });
     if (error) throw error;
-    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: data.is_active ? 'billing.coupon.activated' : 'billing.coupon.deactivated', entityType: 'billing.coupons', entityId: data.id, metadata: data });
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: data?.is_active ? 'billing.coupon.activated' : 'billing.coupon.deactivated', entityType: 'billing.coupons', entityId: data?.id, metadata: data });
     res.json({ coupon: data });
   } catch (error) {
     next(error);
@@ -1088,14 +1043,7 @@ adminRouter.patch('/superadmin/coupons/:id/status', requireAuth, requireAdminRol
 
 adminRouter.delete('/superadmin/coupons/:id', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .schema('billing')
-      .from('coupons')
-      .update({ is_active: false, deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq('id', req.params.id)
-      .select('*')
-      .single();
-
+    const { data, error } = await supabaseAdmin.rpc('billing_delete_coupon', { p_id: req.params.id });
     if (error) throw error;
     await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.coupon.deleted', entityType: 'billing.coupons', entityId: req.params.id, metadata: data });
     res.json({ coupon: data });
@@ -1107,34 +1055,28 @@ adminRouter.delete('/superadmin/coupons/:id', requireAuth, requireAdminRole('sup
 adminRouter.get('/superadmin/coupons/:id/redemptions', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
     const couponId = req.params.id;
-    const { data: redemptions, error: redError } = await supabaseAdmin
-      .schema('billing')
-      .from('coupon_redemptions')
-      .select('*')
-      .eq('coupon_id', couponId)
-      .order('created_at', { ascending: false });
-
+    const { data: redemptions, error: redError } = await supabaseAdmin.rpc('billing_list_coupon_redemptions', { p_coupon_id: couponId });
     if (redError) throw redError;
 
-    if (redemptions && redemptions.length > 0) {
-      const userIds = redemptions.map((r) => r.user_id);
-      const planIds = redemptions.map((r) => r.plan_id).filter(Boolean);
+    const redemptionList = redemptions || [];
+    if (redemptionList.length > 0) {
+      const userIds = redemptionList.map((r) => r.user_id);
+      const planIds = [...new Set(redemptionList.map((r) => r.plan_id).filter(Boolean))];
 
-      const [
-        { data: members, error: memError },
-        { data: plans, error: planError }
-      ] = await Promise.all([
+      const [{ data: members, error: memError }, plansResult] = await Promise.all([
         supabaseAdmin.schema('core').from('members').select('id, email, full_name, mobile_number').in('id', userIds),
-        supabaseAdmin.schema('billing').from('plans').select('id, name, code').in('id', planIds)
+        plansResult = planIds.length
+          ? supabaseAdmin.rpc('billing_list_plans').then(({ data, error }) => ({ data: (data || []).filter((p) => planIds.includes(p.id)), error }))
+          : Promise.resolve({ data: [], error: null })
       ]);
 
       if (memError) throw memError;
-      if (planError) throw planError;
+      if (plansResult.error) throw plansResult.error;
 
       const membersMap = Object.fromEntries((members || []).map((m) => [m.id, m]));
-      const plansMap = Object.fromEntries((plans || []).map((p) => [p.id, p]));
+      const plansMap = Object.fromEntries((plansResult.data || []).map((p) => [p.id, p]));
 
-      const enriched = redemptions.map((r) => ({
+      const enriched = redemptionList.map((r) => ({
         ...r,
         member: membersMap[r.user_id] || { email: 'Unknown', full_name: 'Unknown', mobile_number: '' },
         plan: plansMap[r.plan_id] || { name: 'Unknown', code: 'Unknown' }
@@ -1194,19 +1136,12 @@ adminRouter.post('/superadmin/subscriptions/cancel', requireAuth, requireAdminRo
 
 adminRouter.get('/superadmin/billing', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
-    const [
-      { data: subscriptions },
-      { data: orders },
-      { data: invoices },
-      { data: transactions }
-    ] = await Promise.all([
-      safeQuery(supabaseAdmin.schema('billing').from('subscriptions').select('*, plans(name, code, amount_inr)').order('created_at', { ascending: false }).limit(100), { data: [] }),
-      safeQuery(supabaseAdmin.schema('billing').from('orders').select('*, plans(name, code), coupons(code)').order('created_at', { ascending: false }).limit(100), { data: [] }),
-      safeQuery(supabaseAdmin.schema('billing').from('invoices').select('*').order('issued_at', { ascending: false }).limit(100), { data: [] }),
-      safeQuery(supabaseAdmin.schema('billing').from('transactions').select('*').order('created_at', { ascending: false }).limit(100), { data: [] })
-    ]);
-
-    res.json({ subscriptions, orders, invoices, transactions });
+    const { data, error } = await supabaseAdmin.rpc('billing_list_all');
+    if (error) {
+      if (isMissingDatabaseFeature(error)) return res.json({ subscriptions: [], orders: [], invoices: [], transactions: [] });
+      throw error;
+    }
+    res.json(data || { subscriptions: [], orders: [], invoices: [], transactions: [] });
   } catch (error) {
     next(error);
   }
@@ -1306,28 +1241,26 @@ adminRouter.get('/superadmin/reports/:type', requireAuth, requireAdminRole('supe
     const start = new Date(now);
     start.setFullYear(now.getFullYear() - 1);
 
-    const [
-      { data: members },
-      { data: subscriptions },
-      { data: posts },
-      { data: orders },
-      { data: metrics }
-    ] = await Promise.all([
+    const [membersResult, postsResult, metricsResult, subGrowthResult, revGrowthResult] = await Promise.all([
       safeQuery(supabaseAdmin.schema('core').from('members').select('id, account_type, subscription_status, created_at').gte('created_at', start.toISOString()), { data: [] }),
-      safeQuery(supabaseAdmin.schema('billing').from('subscriptions').select('id, status, created_at').gte('created_at', start.toISOString()), { data: [] }),
       safeQuery(supabaseAdmin.schema('postverse').from('posts').select('id, account_type, created_at').gte('created_at', start.toISOString()), { data: [] }),
-      safeQuery(supabaseAdmin.schema('billing').from('orders').select('id, final_amount_inr, status, created_at').gte('created_at', start.toISOString()), { data: [] }),
-      safeQuery(supabaseAdmin.schema('postverse').from('post_metrics').select('views, likes, comments, shares, reach, impressions, updated_at'), { data: [] })
+      safeQuery(supabaseAdmin.schema('postverse').from('post_metrics').select('views, likes, comments, shares, reach, impressions, updated_at'), { data: [] }),
+      supabaseAdmin.rpc('billing_subscription_growth', { p_start: start.toISOString(), p_end: now.toISOString() }),
+      supabaseAdmin.rpc('billing_revenue_growth', { p_start: start.toISOString(), p_end: now.toISOString() })
     ]);
 
+    const members = membersResult.data || [];
+    const posts = postsResult.data || [];
+    const metrics = metricsResult.data || [];
+
     const reportData = {
-      userGrowth: groupByDay(members || []),
-      creatorGrowth: groupByDay((members || []).filter((member) => member.account_type === 'creator')),
-      businessGrowth: groupByDay((members || []).filter((member) => member.account_type === 'business')),
-      subscriptionGrowth: groupByDay(subscriptions || []),
-      platformGrowth: groupByDay(posts || []),
-      revenueGrowth: groupByDay((orders || []).filter((order) => order.status === 'paid'), 'created_at', (order) => order.final_amount_inr || 0),
-      engagementGrowth: groupByDay(metrics || [], 'updated_at', (row) => (row.likes || 0) + (row.comments || 0) + (row.shares || 0))
+      userGrowth: groupByDay(members),
+      creatorGrowth: groupByDay(members.filter((m) => m.account_type === 'creator')),
+      businessGrowth: groupByDay(members.filter((m) => m.account_type === 'business')),
+      subscriptionGrowth: subGrowthResult.error ? [] : (subGrowthResult.data || []),
+      platformGrowth: groupByDay(posts),
+      revenueGrowth: revGrowthResult.error ? [] : (revGrowthResult.data || []),
+      engagementGrowth: groupByDay(metrics, 'updated_at', (row) => (row.likes || 0) + (row.comments || 0) + (row.shares || 0))
     };
 
     res.json({ report: { type, generatedAt: new Date().toISOString(), data: reportData } });

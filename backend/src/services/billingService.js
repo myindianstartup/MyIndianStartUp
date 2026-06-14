@@ -50,136 +50,48 @@ const getFallbackPlan = (planIdOrCode) => fallbackPlans.find((plan) => (
 ));
 
 const getPlan = async (planIdOrCode) => {
-  let query = supabaseAdmin
-    .schema('billing')
-    .from('plans')
-    .select('*')
-    .eq('is_active', true)
-    .is('deleted_at', null)
-    .limit(1);
-
-  query = /^[0-9a-f-]{36}$/i.test(planIdOrCode)
-    ? query.eq('id', planIdOrCode)
-    : query.eq('code', planIdOrCode);
-
-  const { data, error } = await query.maybeSingle();
+  const { data: allPlans, error } = await supabaseAdmin.rpc('billing_list_plans');
   if (error) {
     if (isMissingDatabaseFeature(error)) return getFallbackPlan(planIdOrCode);
     throw error;
   }
-  return data;
+  const plans = allPlans || [];
+  const isUuid = /^[0-9a-f-]{36}$/i.test(planIdOrCode);
+  return plans.find((p) => (isUuid ? p.id === planIdOrCode : p.code === planIdOrCode) && p.is_active && !p.deleted_at)
+    || getFallbackPlan(planIdOrCode);
 };
 
 export const listActivePlans = async () => {
-  const { data, error } = await supabaseAdmin
-    .schema('billing')
-    .from('plans')
-    .select('*')
-    .eq('is_active', true)
-    .is('deleted_at', null)
-    .order('sort_order', { ascending: true });
-
+  const { data, error } = await supabaseAdmin.rpc('billing_list_plans');
   if (error) {
     if (isMissingDatabaseFeature(error)) return fallbackPlans;
     throw error;
   }
-  return data || [];
+  return (data || []).filter((p) => p.is_active && !p.deleted_at);
 };
 
 export const validateCoupon = async ({ code, planId, userId }) => {
-  const plan = await getPlan(planId);
-  if (!plan) {
-    const error = new Error('Selected plan is not available.');
-    error.status = 404;
-    throw error;
-  }
-
-  const invalid = (reason, couponObj = null) => ({
-    valid: false,
-    plan,
-    coupon: couponObj,
-    discountAmountInr: 0,
-    finalAmountInr: plan.amount_inr,
-    reason
+  const { data: result, error } = await supabaseAdmin.rpc('billing_validate_coupon', {
+    p_code: code || null,
+    p_plan_id: planId,
+    p_user_id: userId || null
   });
 
-  if (!code?.trim()) {
-    return {
-      valid: true,
-      plan,
-      coupon: null,
-      discountAmountInr: 0,
-      finalAmountInr: plan.amount_inr,
-      reason: null
-    };
-  }
-
-  const normalizedCode = code.trim().toUpperCase();
-  const { data: coupon, error } = await supabaseAdmin
-    .schema('billing')
-    .from('coupons')
-    .select('*')
-    .eq('code', normalizedCode)
-    .is('deleted_at', null)
-    .maybeSingle();
-
   if (error) {
-    if (isMissingDatabaseFeature(error)) return invalid('Coupon system is not configured yet.');
+    if (isMissingDatabaseFeature(error)) {
+      // Fallback: no coupon validation, just return plan
+      const plan = await getPlan(planId);
+      if (!plan) {
+        const err = new Error('Selected plan is not available.');
+        err.status = 404;
+        throw err;
+      }
+      return { valid: true, plan, coupon: null, discountAmountInr: 0, finalAmountInr: plan.amount_inr, reason: null };
+    }
     throw error;
   }
 
-  if (!coupon) return invalid('Coupon code does not exist.');
-  if (!coupon.is_active) return invalid('Coupon is inactive.', coupon);
-
-  const now = new Date();
-  if (coupon.starts_at && new Date(coupon.starts_at) > now) return invalid('Coupon is not active yet.', coupon);
-  if (coupon.ends_at && new Date(coupon.ends_at) < now) return invalid('Coupon has expired.', coupon);
-  if (coupon.applicable_plan_ids?.length && !coupon.applicable_plan_ids.includes(plan.id)) {
-    return invalid('Coupon is not applicable to this plan.', coupon);
-  }
-  if (coupon.user_ids?.length) {
-    if (!userId) {
-      return invalid('Coupon is only valid for targeted registered users.', coupon);
-    }
-    if (!coupon.user_ids.includes(userId)) {
-      return invalid('Coupon is not assigned to this user.', coupon);
-    }
-  }
-
-  const [
-    { count: totalUses, error: totalUsesError },
-    { count: userUses, error: userUsesError }
-  ] = await Promise.all([
-    supabaseAdmin.schema('billing').from('coupon_redemptions').select('*', { count: 'exact', head: true }).eq('coupon_id', coupon.id),
-    userId
-      ? supabaseAdmin.schema('billing').from('coupon_redemptions').select('*', { count: 'exact', head: true }).eq('coupon_id', coupon.id).eq('user_id', userId)
-      : Promise.resolve({ count: 0, error: null })
-  ]);
-
-  if (totalUsesError) {
-    if (isMissingDatabaseFeature(totalUsesError)) return invalid('Coupon usage tracking is not configured yet.', coupon);
-    throw totalUsesError;
-  }
-  if (userUsesError) {
-    if (isMissingDatabaseFeature(userUsesError)) return invalid('Coupon usage tracking is not configured yet.', coupon);
-    throw userUsesError;
-  }
-
-  if (coupon.usage_limit !== null && totalUses >= coupon.usage_limit) return invalid('Coupon usage limit reached.', coupon);
-  if (userId && coupon.per_user_limit !== null && userUses >= coupon.per_user_limit) return invalid('Coupon already used by this user.', coupon);
-
-  const discountAmountInr = coupon.discount_type === 'percentage'
-    ? Math.min(plan.amount_inr, Math.round(plan.amount_inr * (coupon.discount_value / 100)))
-    : Math.min(plan.amount_inr, coupon.discount_value);
-
-  return {
-    valid: true,
-    plan,
-    coupon,
-    discountAmountInr,
-    finalAmountInr: Math.max(0, plan.amount_inr - discountAmountInr),
-    reason: null
-  };
+  return result;
 };
 
 export const syncMemberSubscription = async ({ userId, status, startedAt, expiresAt }) => {
@@ -211,124 +123,37 @@ export const assignPlanToUser = async ({
   extendFromCurrent = false,
   metadata = {}
 }) => {
-  const plan = await getPlan(planId);
-  if (!plan) {
-    const error = new Error('Plan not found.');
-    error.status = 404;
-    throw error;
-  }
-
-  const { data: currentSubscription, error: currentError } = await supabaseAdmin
-    .schema('billing')
-    .from('subscriptions')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .order('expires_at', { ascending: false, nullsFirst: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (currentError) throw currentError;
-
-  const now = new Date();
-  const startsAt = extendFromCurrent && currentSubscription?.expires_at && new Date(currentSubscription.expires_at) > now
-    ? new Date(currentSubscription.expires_at)
-    : now;
-  const expiresAt = new Date(startsAt);
-  expiresAt.setDate(expiresAt.getDate() + plan.duration_days);
-
-  if (currentSubscription && !extendFromCurrent) {
-    await supabaseAdmin
-      .schema('billing')
-      .from('subscriptions')
-      .update({ status: 'cancelled', cancelled_at: now.toISOString(), updated_at: now.toISOString() })
-      .eq('id', currentSubscription.id);
-  }
-
-  const { data: subscription, error } = await supabaseAdmin
-    .schema('billing')
-    .from('subscriptions')
-    .insert({
-      user_id: userId,
-      plan_id: plan.id,
-      status: 'active',
-      started_at: startsAt.toISOString(),
-      expires_at: expiresAt.toISOString(),
-      free_access: freeAccess,
-      source,
-      metadata
-    })
-    .select('*')
-    .single();
-
-  if (error) throw error;
-
-  await syncMemberSubscription({
-    userId,
-    status: 'active',
-    startedAt: startsAt.toISOString(),
-    expiresAt: expiresAt.toISOString()
+  const { data: result, error } = await supabaseAdmin.rpc('billing_assign_plan', {
+    p_user_id: userId,
+    p_plan_id: planId,
+    p_free_access: freeAccess,
+    p_source: source,
+    p_event_type: eventType,
+    p_extend_from_current: extendFromCurrent,
+    p_metadata: JSON.stringify(metadata)
   });
 
-  await supabaseAdmin
-    .schema('billing')
-    .from('subscription_events')
-    .insert({
-      subscription_id: subscription.id,
-      user_id: userId,
-      actor_id: actorId,
-      event_type: eventType,
-      from_plan_id: currentSubscription?.plan_id || null,
-      to_plan_id: plan.id,
-      from_status: currentSubscription?.status || null,
-      to_status: 'active',
-      metadata
-    });
+  if (error) throw error;
 
   await writeAuditLog({
     actorId,
     actorRole,
     action: `billing.subscription.${eventType}`,
     entityType: 'billing.subscriptions',
-    entityId: subscription.id,
-    metadata: { userId, planId: plan.id, freeAccess, source }
+    entityId: result?.subscription?.id,
+    metadata: { userId, planId, freeAccess, source }
   });
 
-  return { subscription, plan };
+  return result;
 };
 
 export const cancelSubscription = async ({ userId, actorId, actorRole, metadata = {} }) => {
-  const now = new Date().toISOString();
-  const { data: subscription, error } = await supabaseAdmin
-    .schema('billing')
-    .from('subscriptions')
-    .update({ status: 'cancelled', cancelled_at: now, updated_at: now })
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .select('*')
-    .maybeSingle();
-
-  if (error) throw error;
-
-  await syncMemberSubscription({
-    userId,
-    status: 'cancelled',
-    startedAt: subscription?.started_at || null,
-    expiresAt: subscription?.expires_at || null
+  const { data: subscription, error } = await supabaseAdmin.rpc('billing_cancel_subscription', {
+    p_user_id: userId,
+    p_metadata: JSON.stringify(metadata)
   });
 
-  if (subscription) {
-    await supabaseAdmin.schema('billing').from('subscription_events').insert({
-      subscription_id: subscription.id,
-      user_id: userId,
-      actor_id: actorId,
-      event_type: 'cancelled',
-      from_plan_id: subscription.plan_id,
-      from_status: 'active',
-      to_status: 'cancelled',
-      metadata
-    });
-  }
+  if (error) throw error;
 
   await writeAuditLog({
     actorId,
@@ -352,43 +177,27 @@ export const createCheckoutOrder = async ({ userId, planId, couponCode = null })
   }
 
   const providerOrderId = `rzp_ready_${crypto.randomUUID()}`;
-  const { data: order, error } = await supabaseAdmin
-    .schema('billing')
-    .from('orders')
-    .insert({
-      user_id: userId,
-      plan_id: quote.plan.id,
-      coupon_id: quote.coupon?.id || null,
-      base_amount_inr: quote.plan.amount_inr,
-      discount_amount_inr: quote.discountAmountInr,
-      final_amount_inr: quote.finalAmountInr,
-      status: quote.finalAmountInr === 0 ? 'paid' : 'created',
-      provider: 'razorpay',
-      provider_order_id: providerOrderId,
-      metadata: { architectureReady: true }
-    })
-    .select('*')
-    .single();
+  const invoiceNumber = `MIS-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`;
+
+  const { data: order, error } = await supabaseAdmin.rpc('billing_create_order', {
+    p_user_id: userId,
+    p_plan_id: quote.plan.id,
+    p_coupon_id: quote.coupon?.id || null,
+    p_base_amount: quote.plan.amount_inr,
+    p_discount_amount: quote.discountAmountInr,
+    p_final_amount: quote.finalAmountInr,
+    p_provider_order_id: providerOrderId,
+    p_invoice_number: invoiceNumber
+  });
 
   if (error) throw error;
 
-  const invoiceNumber = `MIS-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`;
-  await supabaseAdmin.schema('billing').from('invoices').insert({
-    invoice_number: invoiceNumber,
-    order_id: order.id,
-    user_id: userId,
-    subtotal_inr: quote.plan.amount_inr,
-    discount_inr: quote.discountAmountInr,
-    total_inr: quote.finalAmountInr,
-    status: order.status
-  });
-
   if (quote.coupon) {
-    await supabaseAdmin.schema('billing').from('coupon_redemptions').insert({
-      coupon_id: quote.coupon.id,
-      user_id: userId,
-      plan_id: quote.plan.id,
-      discount_amount_inr: quote.discountAmountInr
+    await supabaseAdmin.rpc('billing_record_coupon_redemption', {
+      p_coupon_id: quote.coupon.id,
+      p_user_id: userId,
+      p_plan_id: quote.plan.id,
+      p_discount_amount: quote.discountAmountInr
     });
   }
 
@@ -399,7 +208,7 @@ export const createCheckoutOrder = async ({ userId, planId, couponCode = null })
       eventType: 'free_access',
       freeAccess: true,
       source: 'coupon',
-      metadata: { orderId: order.id, couponCode }
+      metadata: { orderId: order?.id, couponCode }
     });
   }
 

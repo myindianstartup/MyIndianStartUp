@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
+  ArrowLeft,
   BarChart3,
   CheckCircle2,
   CreditCard,
@@ -511,7 +513,7 @@ const UserDetailPanel = ({ detail, onClose, onUpdateUser }) => {
         <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5">
           <h3 className="text-lg font-black text-slate-900">Historical Performance</h3>
           <div className="mt-4 h-72">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+            <ResponsiveContainer width="100%" height={288} minWidth={0}>
               <LineChart data={detail.growthAnalytics.historicalPerformance || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="date" stroke="#94a3b8" />
@@ -529,6 +531,7 @@ const UserDetailPanel = ({ detail, onClose, onUpdateUser }) => {
 
 const SuperAdminDashboard = () => {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Overview');
   const [overview, setOverview] = useState(null);
   const [health, setHealth] = useState(null);
@@ -850,6 +853,18 @@ const SuperAdminDashboard = () => {
 
       <div className="mx-auto max-w-[1600px]">
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          {/* Back navigation */}
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:shadow"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+              Previous Page
+            </button>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-600">
@@ -931,7 +946,7 @@ const SuperAdminDashboard = () => {
                       <StatusPill value={`${traffic?.summary?.realTimeVisitors || 0} live`} />
                     </div>
                     <div className="mt-5 h-80">
-                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <ResponsiveContainer width="100%" height={320} minWidth={0}>
                         <AreaChart data={traffic?.charts?.dailyTraffic || []}>
                           <defs>
                             <linearGradient id="trafficFill" x1="0" y1="0" x2="0" y2="1">
@@ -957,7 +972,7 @@ const SuperAdminDashboard = () => {
                 <div className="rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="text-xl font-black text-slate-900">User growth trends</h2>
                   <div className="mt-5 h-80">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <ResponsiveContainer width="100%" height={320} minWidth={0}>
                       <LineChart data={traffic?.charts?.userGrowth || []}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="date" stroke="#94a3b8" />
@@ -972,7 +987,7 @@ const SuperAdminDashboard = () => {
                 <div className="rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="text-xl font-black text-slate-900">Device analytics</h2>
                   <div className="mt-5 h-80">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <ResponsiveContainer width="100%" height={320} minWidth={0}>
                       <PieChart>
                         <Pie data={traffic?.charts?.deviceAnalytics || []} dataKey="value" nameKey="label" innerRadius={70} outerRadius={110} paddingAngle={4}>
                           {(traffic?.charts?.deviceAnalytics || []).map((entry, index) => <Cell key={entry.label} fill={chartColors[index % chartColors.length]} />)}
@@ -986,7 +1001,7 @@ const SuperAdminDashboard = () => {
                 <div className="rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
                   <h2 className="text-xl font-black text-slate-900">Browser analytics</h2>
                   <div className="mt-5 h-80">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <ResponsiveContainer width="100%" height={320} minWidth={0}>
                       <BarChart data={traffic?.charts?.browserAnalytics || []}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="label" stroke="#94a3b8" />
@@ -1382,7 +1397,7 @@ const SuperAdminDashboard = () => {
                   <button type="button" onClick={() => exportCsv(report?.data?.userGrowth || [], 'user-growth-report.csv')} className="rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white">Export CSV</button>
                 </div>
                 <div className="mt-6 h-80">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <ResponsiveContainer width="100%" height={320} minWidth={0}>
                     <LineChart data={report?.data?.userGrowth || []}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="date" stroke="#94a3b8" />
