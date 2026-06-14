@@ -24,7 +24,8 @@ const commentSchema = z.object({
 
 const storySchema = z.object({
   caption: z.string().trim().max(250).optional().nullable(),
-  accountType: z.enum(['business', 'creator'])
+  accountType: z.enum(['business', 'creator']),
+  metadata: z.string().optional().nullable()
 });
 
 export const postsRouter = Router();
@@ -37,6 +38,7 @@ const isMissingDatabaseFeature = (error) => {
     'pgrst106',
     'does not exist',
     'could not find',
+    'invalid input value for enum',
     'schema must be one of',
     'relationship'
   ].some((pattern) => message.includes(pattern));
@@ -285,6 +287,94 @@ const fetchCommentPreview = async (postIds = []) => {
     grouped[comment.post_id] = [...(grouped[comment.post_id] || []), shaped].slice(-3);
     return grouped;
   }, {});
+};
+
+const storyMarker = '__MIS_STORY__';
+
+const encodeStoryCaption = ({ caption = '', metadata = null }) => `${storyMarker}${JSON.stringify({
+  caption,
+  metadata: metadata || {},
+  expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+})}`;
+
+const decodeStoryCaption = (value = '') => {
+  if (!value.startsWith(storyMarker)) return null;
+  try {
+    return JSON.parse(value.slice(storyMarker.length));
+  } catch {
+    return { caption: '', metadata: {}, expiresAt: null };
+  }
+};
+
+const uploadStoryAsset = async ({ file, userId }) => {
+  try {
+    return await uploadMediaAsset({ file, userId, purpose: 'story' });
+  } catch (error) {
+    if (!isMissingDatabaseFeature(error)) throw error;
+    return uploadMediaAsset({ file, userId, purpose: 'post' });
+  }
+};
+
+const fetchStoriesFromHiddenPosts = async (viewerId) => {
+  let { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('posts')
+    .select('id, author_id, account_type, caption, media_url, media_type, created_at')
+    .eq('status', 'hidden')
+    .like('caption', `${storyMarker}%`)
+    .order('created_at', { ascending: false })
+    .limit(40);
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) {
+      const fallback = await supabaseAdmin
+        .schema('postverse')
+        .from('posts')
+        .select('id, author_id, account_type, caption, media_url, media_type, created_at')
+        .eq('status', 'draft')
+        .like('caption', `${storyMarker}%`)
+        .order('created_at', { ascending: false })
+        .limit(40);
+
+      if (fallback.error) {
+        if (isMissingDatabaseFeature(fallback.error)) return [];
+        throw fallback.error;
+      }
+
+      data = fallback.data || [];
+      error = null;
+    }
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  const now = Date.now();
+  const activeStories = (data || [])
+    .map((post) => ({ post, storyData: decodeStoryCaption(post.caption) }))
+    .filter(({ storyData }) => storyData && (!storyData.expiresAt || new Date(storyData.expiresAt).getTime() > now));
+
+  const authorsById = await getAuthorProfiles(activeStories.map(({ post }) => post.author_id));
+  const followingSet = await getFollowingSet(viewerId, activeStories.map(({ post }) => post.author_id));
+
+  return activeStories.map(({ post, storyData }) => {
+    const author = authorsById[post.author_id] || {};
+    return {
+      id: post.id,
+      authorId: post.author_id,
+      name: author.name || 'Member',
+      type: post.account_type,
+      image: post.media_url,
+      mediaUrl: post.media_url,
+      mediaType: post.media_type,
+      caption: storyData.caption || '',
+      metadata: storyData.metadata || {},
+      viewed: followingSet.has(post.author_id),
+      createdAt: post.created_at,
+      expiresAt: storyData.expiresAt
+    };
+  });
 };
 
 const shapePost = (post, author, extras = {}) => ({
@@ -561,16 +651,39 @@ postsRouter.get('/stories', requireAuth, async (req, res, next) => {
   try {
     await fetchMemberOrBlockFeed(req.user.id);
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .schema('postverse')
       .from('stories')
-      .select('id, author_id, account_type, caption, media_url, media_type, created_at, expires_at')
+      .select('id, author_id, account_type, caption, media_url, media_type, metadata, created_at, expires_at')
       .eq('status', 'active')
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
       .limit(40);
 
-    if (error) throw error;
+    if (error) {
+      const legacyStories = await supabaseAdmin
+        .schema('postverse')
+        .from('stories')
+        .select('id, author_id, account_type, caption, media_url, media_type, created_at, expires_at')
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(40);
+
+      if (!legacyStories.error) {
+        data = legacyStories.data || [];
+        error = null;
+      }
+    }
+
+    if (error) {
+      if (isMissingDatabaseFeature(error)) {
+        const stories = await fetchStoriesFromHiddenPosts(req.user.id);
+        res.json({ stories, fallback: true });
+        return;
+      }
+      throw error;
+    }
 
     const [authorsById, viewedSet] = await Promise.all([
       getAuthorProfiles((data || []).map((story) => story.author_id)),
@@ -603,6 +716,7 @@ postsRouter.get('/stories', requireAuth, async (req, res, next) => {
           mediaUrl: story.media_url,
           mediaType: story.media_type,
           caption: story.caption || '',
+          metadata: story.metadata || {},
           viewed: viewedSet.has(story.id),
           createdAt: story.created_at,
           expiresAt: story.expires_at
@@ -623,10 +737,18 @@ postsRouter.post('/stories', requireAuth, upload.single('file'), async (req, res
     const payload = storySchema.parse(req.body);
     await fetchMemberOrBlockFeed(req.user.id);
 
-    const asset = await uploadMediaAsset({
+    let metadata = {};
+    if (payload.metadata) {
+      try {
+        metadata = JSON.parse(payload.metadata);
+      } catch {
+        metadata = {};
+      }
+    }
+
+    const asset = await uploadStoryAsset({
       file: req.file,
-      userId: req.user.id,
-      purpose: 'story'
+      userId: req.user.id
     });
 
     const { data, error } = await supabaseAdmin
@@ -638,14 +760,63 @@ postsRouter.post('/stories', requireAuth, upload.single('file'), async (req, res
         caption: payload.caption || '',
         media_asset_id: asset.id,
         media_url: asset.public_url,
-        media_type: asset.media_type
+        media_type: asset.media_type,
+        metadata
       })
       .select('*')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (!isMissingDatabaseFeature(error)) throw error;
+
+      let { data: fallbackStory, error: fallbackError } = await supabaseAdmin
+        .schema('postverse')
+        .from('posts')
+        .insert({
+          author_id: req.user.id,
+          account_type: payload.accountType,
+          caption: encodeStoryCaption({ caption: payload.caption || '', metadata }),
+          media_asset_id: asset.id,
+          media_url: asset.public_url,
+          media_type: asset.media_type,
+          status: 'hidden',
+          published_at: new Date().toISOString()
+        })
+        .select('*')
+        .single();
+
+      if (fallbackError && isMissingDatabaseFeature(fallbackError)) {
+        const draftFallback = await supabaseAdmin
+          .schema('postverse')
+          .from('posts')
+          .insert({
+            author_id: req.user.id,
+            account_type: payload.accountType,
+            caption: encodeStoryCaption({ caption: payload.caption || '', metadata }),
+            media_asset_id: asset.id,
+            media_url: asset.public_url,
+            media_type: asset.media_type,
+            status: 'draft',
+            published_at: new Date().toISOString()
+          })
+          .select('*')
+          .single();
+
+        fallbackStory = draftFallback.data;
+        fallbackError = draftFallback.error;
+      }
+
+      if (fallbackError) throw fallbackError;
+      res.status(201).json({ story: fallbackStory, asset, fallback: true });
+      return;
+    }
     res.status(201).json({ story: data, asset });
   } catch (error) {
+    if (isMissingDatabaseFeature(error)) {
+      error.status = 503;
+      error.code = 'STORY_SCHEMA_REQUIRED';
+      error.message = 'Story database is not ready. Please apply the latest Supabase schema migration and try again.';
+    }
     next(error);
   }
 });

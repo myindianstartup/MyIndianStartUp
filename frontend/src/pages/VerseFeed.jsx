@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   BriefcaseBusiness,
@@ -78,6 +78,16 @@ const showcaseStories = [
   { id: 'story-brand', name: 'Brand Shoots', type: 'creator', image: '/assets/auth-characters.png', viewed: false },
   { id: 'story-d2c', name: 'D2C Leads', type: 'business', image: '/assets/india-coverage-map.png', viewed: true }
 ];
+
+const storyStickerOptions = ['Launch', 'Hiring', 'Collab', 'Offer', 'New', 'Open'];
+
+const cleanMention = (value = '') => value.replace(/^@+/, '').replace(/[^a-zA-Z0-9_.]/g, '').slice(0, 32);
+
+const storyMetadataOverlays = (metadata = {}) => ({
+  sticker: String(metadata.sticker || '').trim(),
+  mention: cleanMention(metadata.mention || ''),
+  companyTag: String(metadata.companyTag || '').trim().slice(0, 40)
+});
 
 const showcasePosts = [
   {
@@ -161,6 +171,211 @@ const mediaGradient = (post) => {
   return 'from-orange-100 to-amber-50';
 };
 
+const StoryViewer = ({ story, onClose }) => {
+  if (!story) return null;
+  const overlays = storyMetadataOverlays(story.metadata);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm">
+      <div className="relative flex h-full max-h-[760px] w-full max-w-sm flex-col overflow-hidden rounded-[2rem] bg-slate-950 shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
+        <div className="absolute inset-x-4 top-4 z-10 h-1 rounded-full bg-white/25">
+          <div className="h-full w-full rounded-full bg-white" />
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-7 z-20 rounded-full bg-black/40 px-3 py-1.5 text-xs font-black text-white backdrop-blur transition hover:bg-black/60"
+        >
+          Close
+        </button>
+        <div className="absolute left-4 top-7 z-20 flex items-center gap-3">
+          <div className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-xs font-black text-white ${story.type === 'creator' ? 'bg-blue-600' : 'bg-orange-500'}`}>
+            {story.image ? <img src={story.image} alt={story.name} className="h-full w-full object-cover" /> : initialsFrom(story.name)}
+          </div>
+          <div>
+            <div className="text-sm font-black text-white">{story.name}</div>
+            <div className="text-[11px] font-bold text-white/60">{timeAgo(story.createdAt)}</div>
+          </div>
+        </div>
+        <div className="grid flex-1 place-items-center bg-black">
+          {story.mediaType === 'video' ? (
+            <video src={story.mediaUrl || story.image} controls autoPlay className="h-full w-full object-contain" />
+          ) : (
+            <img src={story.mediaUrl || story.image} alt={story.name} className="h-full w-full object-contain" />
+          )}
+        </div>
+        {overlays.sticker && (
+          <div className="absolute right-6 top-24 rounded-2xl bg-white/90 px-4 py-2 text-sm font-black text-slate-950 shadow-2xl backdrop-blur">
+            {overlays.sticker}
+          </div>
+        )}
+        {overlays.companyTag && (
+          <div className="absolute left-6 top-24 max-w-[80%] rounded-2xl bg-blue-600/90 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur">
+            {overlays.companyTag}
+          </div>
+        )}
+        {overlays.mention && (
+          <div className="absolute left-6 bottom-28 max-w-[80%] rounded-2xl bg-white/15 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur">
+            @{overlays.mention}
+          </div>
+        )}
+        {story.caption && (
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-5 pt-20 text-sm font-semibold leading-6 text-white">
+            {story.caption}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const StoryEditor = ({
+  draft,
+  uploading,
+  error,
+  onPickMedia,
+  onDraftChange,
+  onClose,
+  onShare
+}) => {
+  if (!draft) return null;
+  const overlays = storyMetadataOverlays(draft);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm">
+      <div className="grid max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)] lg:grid-cols-[1fr_320px]">
+        <div className="relative grid min-h-[560px] place-items-center bg-slate-950">
+          {draft.previewUrl ? (
+            draft.mediaType === 'video' ? (
+              <video src={draft.previewUrl} controls className="h-full max-h-[86vh] w-full object-contain" />
+            ) : (
+              <img src={draft.previewUrl} alt="Story preview" className="h-full max-h-[86vh] w-full object-contain" />
+            )
+          ) : (
+            <button
+              type="button"
+              onClick={onPickMedia}
+              className="mx-8 flex max-w-xs flex-col items-center rounded-[2rem] border border-dashed border-white/25 bg-white/10 px-8 py-10 text-center text-white transition hover:bg-white/15"
+            >
+              <Camera className="h-10 w-10" />
+              <span className="mt-4 text-lg font-black">Choose photo or video</span>
+              <span className="mt-2 text-sm font-semibold text-white/60">Pick media, preview it, add caption, then share.</span>
+            </button>
+          )}
+          {draft.previewUrl && draft.caption && (
+            <div className="absolute inset-x-6 bottom-8 rounded-3xl bg-black/40 px-5 py-3 text-center text-lg font-black leading-7 text-white shadow-2xl backdrop-blur">
+              {draft.caption}
+            </div>
+          )}
+          {overlays.sticker && (
+            <div className="absolute right-8 top-24 rounded-2xl bg-white/90 px-4 py-2 text-sm font-black text-slate-950 shadow-2xl backdrop-blur">
+              {overlays.sticker}
+            </div>
+          )}
+          {overlays.companyTag && (
+            <div className="absolute left-8 top-24 max-w-[70%] rounded-2xl bg-blue-600/90 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur">
+              {overlays.companyTag}
+            </div>
+          )}
+          {overlays.mention && (
+            <div className="absolute left-8 bottom-24 max-w-[70%] rounded-2xl bg-white/15 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur">
+              @{overlays.mention}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col bg-white p-6">
+          <div className="text-[11px] font-black uppercase tracking-[0.28em] text-blue-600">Story Editor</div>
+          <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950">Create your story</h3>
+          <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+            Preview your image or video, add a short caption, then share it for 24 hours.
+          </p>
+
+          <label className="mt-6 grid gap-2">
+            <span className="text-sm font-black text-slate-800">Caption / overlay text</span>
+            <textarea
+              value={draft.caption}
+              onChange={(event) => onDraftChange({ caption: event.target.value })}
+              maxLength={250}
+              rows={5}
+              placeholder="Write something for your story..."
+              className="resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
+            />
+            <span className="text-right text-[11px] font-bold text-slate-400">{draft.caption.length}/250</span>
+          </label>
+
+          <div className="mt-4">
+            <div className="text-sm font-black text-slate-800">Sticker</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {storyStickerOptions.map((sticker) => (
+                <button
+                  key={sticker}
+                  type="button"
+                  onClick={() => onDraftChange({ sticker: draft.sticker === sticker ? '' : sticker })}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-black transition ${
+                    draft.sticker === sticker
+                      ? 'border-blue-600 bg-blue-600 text-white'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50'
+                  }`}
+                >
+                  {sticker}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            <label className="grid gap-2">
+              <span className="text-sm font-black text-slate-800">Mention someone</span>
+              <input
+                value={draft.mention}
+                onChange={(event) => onDraftChange({ mention: cleanMention(event.target.value) })}
+                placeholder="@creator or @business"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-black text-slate-800">Company tag</span>
+              <input
+                value={draft.companyTag}
+                onChange={(event) => onDraftChange({ companyTag: event.target.value.slice(0, 40) })}
+                placeholder="Tag company or brand"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
+              />
+            </label>
+          </div>
+
+          {error && (
+            <div className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">
+              {error}
+            </div>
+          )}
+
+          <div className="mt-auto flex gap-3 pt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={uploading}
+              className="inline-flex flex-1 items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onShare}
+              disabled={uploading || !draft.file}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-[0_12px_28px_rgba(37,99,235,0.25)] transition hover:bg-blue-700 disabled:opacity-60"
+            >
+              {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Share Story
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PostCard = ({ post, token, onMetrics }) => {
   const [liked, setLiked] = useState(Boolean(post.viewer?.liked));
   const [saved, setSaved] = useState(false);
@@ -182,9 +397,15 @@ const PostCard = ({ post, token, onMetrics }) => {
 
   useEffect(() => {
     setLiked(Boolean(post.viewer?.liked));
+  }, [post.id, post.viewer?.liked]);
+
+  useEffect(() => {
     setMetrics(post.metrics || {});
+  }, [post.id, post.metrics]);
+
+  useEffect(() => {
     setComments(post.commentsPreview || []);
-  }, [post.id, post.metrics, post.commentsPreview, post.viewer?.liked]);
+  }, [post.id, post.commentsPreview]);
 
   useEffect(() => {
     if (!token || !post.id || isShowcase) return;
@@ -198,11 +419,21 @@ const PostCard = ({ post, token, onMetrics }) => {
 
   const handleLike = async () => {
     if (isShowcase) {
-      setLiked((current) => !current);
-      setMetrics((current) => ({ ...current, likes: Math.max(0, (current.likes || 0) + (liked ? -1 : 1)) }));
+      setLiked((current) => {
+        const nextLiked = !current;
+        setMetrics((metricState) => ({ ...metricState, likes: Math.max(0, (metricState.likes || 0) + (nextLiked ? 1 : -1)) }));
+        return nextLiked;
+      });
       return;
     }
 
+    const previousLiked = liked;
+    const nextLiked = !previousLiked;
+    setLiked(nextLiked);
+    setMetrics((current) => ({
+      ...current,
+      likes: Math.max(0, (current.likes || 0) + (nextLiked ? 1 : -1))
+    }));
     try {
       const payload = await apiRequest(`/api/posts/${post.id}/like`, { method: 'POST', token });
       setLiked(Boolean(payload.liked));
@@ -211,6 +442,11 @@ const PostCard = ({ post, token, onMetrics }) => {
         onMetrics?.(post.id, payload.metrics);
       }
     } catch (error) {
+      setLiked(previousLiked);
+      setMetrics((current) => ({
+        ...current,
+        likes: Math.max(0, (current.likes || 0) + (nextLiked ? -1 : 1))
+      }));
       window.alert(error.message || 'Could not update like.');
     }
   };
@@ -448,6 +684,9 @@ const VerseFeed = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [storyUploading, setStoryUploading] = useState(false);
+  const [storyDraft, setStoryDraft] = useState(null);
+  const [storyError, setStoryError] = useState('');
+  const [activeStory, setActiveStory] = useState(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [error, setError] = useState('');
 
@@ -489,6 +728,10 @@ const VerseFeed = () => {
 
     loadFeed();
   }, [token]);
+
+  useEffect(() => () => {
+    if (storyDraft?.previewUrl) URL.revokeObjectURL(storyDraft.previewUrl);
+  }, [storyDraft?.previewUrl]);
 
   const filteredPosts = useMemo(() => {
     let nextPosts = hasLivePosts ? posts : showcasePosts;
@@ -533,22 +776,55 @@ const VerseFeed = () => {
     }
   };
 
-  const handleStoryUpload = async (event) => {
+  const handleStoryFileSelect = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = '';
-    if (!file || !token) return;
+    if (!file) return;
 
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
       window.alert('Please choose an image or video story.');
       return;
     }
 
+    if (storyDraft?.previewUrl) URL.revokeObjectURL(storyDraft.previewUrl);
+    setStoryError('');
+    setStoryDraft((current) => ({
+      ...(current || {}),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      mediaType: file.type.startsWith('video/') ? 'video' : 'image',
+      caption: current?.caption || '',
+      sticker: current?.sticker || '',
+      mention: current?.mention || '',
+      companyTag: current?.companyTag || ''
+    }));
+  };
+
+  const closeStoryEditor = () => {
+    if (storyDraft?.previewUrl) URL.revokeObjectURL(storyDraft.previewUrl);
+    setStoryError('');
+    setStoryDraft(null);
+  };
+
+  const shareStoryDraft = async () => {
+    if (!storyDraft?.file) {
+      setStoryError('Choose a photo or video before sharing your story.');
+      return;
+    }
+    if (!token) return;
+
+    setStoryError('');
     setStoryUploading(true);
     try {
       const formData = new FormData();
       formData.append('accountType', member?.account_type === 'creator' ? 'creator' : 'business');
-      formData.append('caption', '');
-      formData.append('file', file);
+      formData.append('caption', storyDraft.caption.trim());
+      formData.append('metadata', JSON.stringify({
+        sticker: storyDraft.sticker || '',
+        mention: cleanMention(storyDraft.mention || ''),
+        companyTag: storyDraft.companyTag || ''
+      }));
+      formData.append('file', storyDraft.file);
 
       const response = await fetch(`${API_URL}/api/posts/stories`, {
         method: 'POST',
@@ -560,16 +836,45 @@ const VerseFeed = () => {
 
       const storyData = await apiRequest('/api/posts/stories', { token });
       setStories(storyData.stories || []);
+      closeStoryEditor();
     } catch (uploadError) {
-      window.alert(uploadError.message || 'Story upload failed.');
+      setStoryError(uploadError.message || 'Story upload failed. Please try again.');
     } finally {
       setStoryUploading(false);
+    }
+  };
+
+  const openStory = async (story) => {
+    setActiveStory(story);
+    if (!story?.id || story.id.startsWith('story-')) return;
+
+    setStories((current) => current.map((item) => (
+      item.id === story.id ? { ...item, viewed: true } : item
+    )));
+
+    try {
+      await apiRequest(`/api/posts/stories/${story.id}/view`, { method: 'POST', token });
+    } catch {
+      // Viewing a story should never interrupt feed browsing.
     }
   };
 
   return (
     <div className="min-h-screen bg-[#f4f6fb] pt-24 pb-16">
       {gateOpen && <GateModal onClose={closeGate} />}
+      <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />
+      <StoryEditor
+        draft={storyDraft}
+        uploading={storyUploading}
+        error={storyError}
+        onPickMedia={() => storyInputRef.current?.click()}
+        onDraftChange={(changes) => {
+          setStoryError('');
+          setStoryDraft((current) => current ? { ...current, ...changes } : current);
+        }}
+        onClose={closeStoryEditor}
+        onShare={shareStoryDraft}
+      />
       <div className="mx-auto max-w-[82rem] px-4 sm:px-6 lg:px-8">
         <div className="mb-6 border-b border-slate-200/70 bg-[#f4f6fb] py-5">
           <div className="mx-auto max-w-[82rem]">
@@ -591,23 +896,27 @@ const VerseFeed = () => {
             <div className="rounded-[1.5rem] border border-slate-200/80 bg-white px-4 py-4 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
               <div className="flex items-center gap-1 overflow-x-auto py-2">
                 {member && (
-                  <Link to="/post-verse" className="flex shrink-0 flex-col items-center gap-1.5 px-3">
+                  <button type="button" onClick={() => {
+                    setStoryError('');
+                    setStoryDraft({ file: null, previewUrl: '', mediaType: 'image', caption: '', sticker: '', mention: '', companyTag: '' });
+                  }} className="flex shrink-0 flex-col items-center gap-1.5 px-3">
                     <div className="relative flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-blue-300 bg-blue-50 text-blue-600 transition hover:bg-blue-100">
-                      <span className="text-xl font-black">+</span>
+                      {storyUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <span className="text-xl font-black">+</span>}
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500">Your Post</span>
-                  </Link>
+                    <span className="text-[10px] font-bold text-slate-500">Your Story</span>
+                  </button>
                 )}
+                <input ref={storyInputRef} type="file" accept="image/*,video/*" className="sr-only" onChange={handleStoryFileSelect} />
 
                 {visibleStories.map((story) => (
-                  <div key={story.id} className="flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3">
+                  <button key={story.id} type="button" onClick={() => openStory(story)} className="flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3">
                     <div className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-full text-sm font-black text-white transition-transform hover:scale-105 ${
                       story.viewed ? 'ring-2 ring-slate-200 ring-offset-2' : story.type === 'creator' ? 'ring-2 ring-blue-500 ring-offset-2' : 'ring-2 ring-orange-500 ring-offset-2'
                     }`}>
                       <img src={story.image} alt={story.name} className="h-full w-full object-cover" />
                     </div>
                     <span className="w-16 truncate text-center text-[10px] font-bold text-slate-500">{story.name}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

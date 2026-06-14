@@ -223,6 +223,7 @@ create table if not exists postverse.stories (
   media_asset_id uuid references core.media_assets(id) on delete set null,
   media_url text not null,
   media_type core.media_type not null,
+  metadata jsonb not null default '{}'::jsonb,
   status text not null default 'active',
   expires_at timestamptz not null default (now() + interval '24 hours'),
   created_at timestamptz not null default now(),
@@ -236,6 +237,8 @@ create table if not exists postverse.story_views (
   created_at timestamptz not null default now(),
   unique(story_id, viewer_id)
 );
+
+alter table postverse.stories add column if not exists metadata jsonb not null default '{}'::jsonb;
 
 create table if not exists admin.traffic_events (
   id uuid primary key default gen_random_uuid(),
