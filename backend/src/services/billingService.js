@@ -94,6 +94,15 @@ export const validateCoupon = async ({ code, planId, userId }) => {
     throw error;
   }
 
+  const invalid = (reason, couponObj = null) => ({
+    valid: false,
+    plan,
+    coupon: couponObj,
+    discountAmountInr: 0,
+    finalAmountInr: plan.amount_inr,
+    reason
+  });
+
   if (!code?.trim()) {
     return {
       valid: true,
@@ -119,26 +128,22 @@ export const validateCoupon = async ({ code, planId, userId }) => {
     throw error;
   }
 
-  const invalid = (reason) => ({
-    valid: false,
-    plan,
-    coupon,
-    discountAmountInr: 0,
-    finalAmountInr: plan.amount_inr,
-    reason
-  });
-
   if (!coupon) return invalid('Coupon code does not exist.');
-  if (!coupon.is_active) return invalid('Coupon is inactive.');
+  if (!coupon.is_active) return invalid('Coupon is inactive.', coupon);
 
   const now = new Date();
-  if (coupon.starts_at && new Date(coupon.starts_at) > now) return invalid('Coupon is not active yet.');
-  if (coupon.ends_at && new Date(coupon.ends_at) < now) return invalid('Coupon has expired.');
+  if (coupon.starts_at && new Date(coupon.starts_at) > now) return invalid('Coupon is not active yet.', coupon);
+  if (coupon.ends_at && new Date(coupon.ends_at) < now) return invalid('Coupon has expired.', coupon);
   if (coupon.applicable_plan_ids?.length && !coupon.applicable_plan_ids.includes(plan.id)) {
-    return invalid('Coupon is not applicable to this plan.');
+    return invalid('Coupon is not applicable to this plan.', coupon);
   }
-  if (coupon.user_ids?.length && !coupon.user_ids.includes(userId)) {
-    return invalid('Coupon is not assigned to this user.');
+  if (coupon.user_ids?.length) {
+    if (!userId) {
+      return invalid('Coupon is only valid for targeted registered users.', coupon);
+    }
+    if (!coupon.user_ids.includes(userId)) {
+      return invalid('Coupon is not assigned to this user.', coupon);
+    }
   }
 
   const [
@@ -146,20 +151,22 @@ export const validateCoupon = async ({ code, planId, userId }) => {
     { count: userUses, error: userUsesError }
   ] = await Promise.all([
     supabaseAdmin.schema('billing').from('coupon_redemptions').select('*', { count: 'exact', head: true }).eq('coupon_id', coupon.id),
-    supabaseAdmin.schema('billing').from('coupon_redemptions').select('*', { count: 'exact', head: true }).eq('coupon_id', coupon.id).eq('user_id', userId)
+    userId
+      ? supabaseAdmin.schema('billing').from('coupon_redemptions').select('*', { count: 'exact', head: true }).eq('coupon_id', coupon.id).eq('user_id', userId)
+      : Promise.resolve({ count: 0, error: null })
   ]);
 
   if (totalUsesError) {
-    if (isMissingDatabaseFeature(totalUsesError)) return invalid('Coupon usage tracking is not configured yet.');
+    if (isMissingDatabaseFeature(totalUsesError)) return invalid('Coupon usage tracking is not configured yet.', coupon);
     throw totalUsesError;
   }
   if (userUsesError) {
-    if (isMissingDatabaseFeature(userUsesError)) return invalid('Coupon usage tracking is not configured yet.');
+    if (isMissingDatabaseFeature(userUsesError)) return invalid('Coupon usage tracking is not configured yet.', coupon);
     throw userUsesError;
   }
 
-  if (coupon.usage_limit !== null && totalUses >= coupon.usage_limit) return invalid('Coupon usage limit reached.');
-  if (coupon.per_user_limit !== null && userUses >= coupon.per_user_limit) return invalid('Coupon already used by this user.');
+  if (coupon.usage_limit !== null && totalUses >= coupon.usage_limit) return invalid('Coupon usage limit reached.', coupon);
+  if (userId && coupon.per_user_limit !== null && userUses >= coupon.per_user_limit) return invalid('Coupon already used by this user.', coupon);
 
   const discountAmountInr = coupon.discount_type === 'percentage'
     ? Math.min(plan.amount_inr, Math.round(plan.amount_inr * (coupon.discount_value / 100)))

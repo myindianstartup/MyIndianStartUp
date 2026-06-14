@@ -100,7 +100,7 @@ const couponSchema = z.object({
   startsAt: z.string().datetime().optional().nullable(),
   endsAt: z.string().datetime().optional().nullable(),
   applicablePlanIds: z.array(z.string().uuid()).optional().default([]),
-  userIds: z.array(z.string().uuid()).optional().default([]),
+  userIds: z.array(z.string()).optional().default([]),
   isActive: z.boolean().optional().default(true)
 }).superRefine((payload, ctx) => {
   if (payload.discountType === 'percentage' && payload.discountValue > 100) {
@@ -318,6 +318,50 @@ const logAudit = async ({ actorId, actorRole, action, entityType, entityId, meta
     });
 
   if (error && !isMissingDatabaseFeature(error)) throw error;
+};
+
+const resolveUserIds = async (userIds) => {
+  if (!userIds || !userIds.length) return [];
+  const resolved = [];
+  const emailsToLookUp = [];
+
+  for (const idOrEmail of userIds) {
+    const trimmed = idOrEmail.trim();
+    if (!trimmed) continue;
+    if (/^[0-9a-f-]{36}$/i.test(trimmed)) {
+      resolved.push(trimmed);
+    } else if (trimmed.includes('@')) {
+      emailsToLookUp.push(trimmed.toLowerCase());
+    } else {
+      const error = new Error(`Invalid identifier: "${trimmed}". Must be a user ID or email address.`);
+      error.status = 400;
+      throw error;
+    }
+  }
+
+  if (emailsToLookUp.length) {
+    const { data: members, error } = await supabaseAdmin
+      .schema('core')
+      .from('members')
+      .select('id, email')
+      .in('email', emailsToLookUp);
+
+    if (error) throw error;
+
+    const emailToIdMap = Object.fromEntries((members || []).map((m) => [m.email.toLowerCase(), m.id]));
+
+    for (const email of emailsToLookUp) {
+      const id = emailToIdMap[email];
+      if (!id) {
+        const error = new Error(`User with email "${email}" not found.`);
+        error.status = 400;
+        throw error;
+      }
+      resolved.push(id);
+    }
+  }
+
+  return [...new Set(resolved)];
 };
 
 adminRouter.get('/me', requireAuth, async (req, res, next) => {
@@ -658,6 +702,133 @@ adminRouter.get('/superadmin/users/:id', requireAuth, requireAdminRole('superadm
   }
 });
 
+const editUserSchema = z.object({
+  fullName: z.string().trim().min(2).optional(),
+  email: z.string().email().optional(),
+  mobileNumber: z.string().trim().optional().nullable(),
+  accountStatus: z.enum(['active', 'suspended', 'deactivated']).optional(),
+  businessName: z.string().trim().optional(),
+  industry: z.string().trim().optional(),
+  city: z.string().trim().optional(),
+  state: z.string().trim().optional(),
+  website: z.string().url().optional().or(z.literal('')).nullable(),
+  aboutCompany: z.string().trim().max(1000).optional().nullable(),
+  skills: z.array(z.string().trim()).optional(),
+  portfolioUrl: z.string().url().optional().or(z.literal('')).nullable(),
+  aboutMe: z.string().trim().max(1000).optional().nullable(),
+  contactDetails: z.object({
+    email: z.string().email().optional().or(z.literal('')).nullable(),
+    mobile: z.string().trim().optional().or(z.literal('')).nullable()
+  }).optional().default({})
+});
+
+adminRouter.put('/superadmin/users/:id', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+    const payload = editUserSchema.parse(req.body);
+
+    const { data: member, error: memberError } = await supabaseAdmin
+      .schema('core')
+      .from('members')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (memberError) throw memberError;
+    if (!member) return res.status(404).json({ error: 'User not found' });
+
+    const memberUpdate = {};
+    if (payload.fullName !== undefined) memberUpdate.full_name = payload.fullName;
+    if (payload.email !== undefined) memberUpdate.email = payload.email;
+    if (payload.mobileNumber !== undefined) memberUpdate.mobile_number = payload.mobileNumber;
+    if (payload.accountStatus !== undefined) memberUpdate.account_status = payload.accountStatus;
+    memberUpdate.updated_at = new Date().toISOString();
+
+    const { data: updatedMember, error: updateMemError } = await supabaseAdmin
+      .schema('core')
+      .from('members')
+      .update(memberUpdate)
+      .eq('id', userId)
+      .select('*')
+      .single();
+
+    if (updateMemError) throw updateMemError;
+
+    let updatedProfile = null;
+    if (member.account_type === 'creator') {
+      const creatorUpdate = {};
+      if (payload.fullName !== undefined) creatorUpdate.full_name = payload.fullName;
+      if (payload.skills !== undefined) creatorUpdate.skills = payload.skills;
+      if (payload.city !== undefined) creatorUpdate.city = payload.city;
+      if (payload.state !== undefined) creatorUpdate.state = payload.state;
+      if (payload.portfolioUrl !== undefined) creatorUpdate.portfolio_url = payload.portfolioUrl || null;
+      if (payload.aboutMe !== undefined) creatorUpdate.about_me = payload.aboutMe || null;
+      if (payload.contactDetails !== undefined) {
+        creatorUpdate.contact_details = {
+          email: payload.contactDetails.email || null,
+          mobile: payload.contactDetails.mobile || null
+        };
+      }
+      creatorUpdate.updated_at = new Date().toISOString();
+
+      const { data: profileData, error: profileError } = await supabaseAdmin
+        .schema('creatorverse')
+        .from('profiles')
+        .update(creatorUpdate)
+        .eq('owner_id', userId)
+        .select('*')
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      updatedProfile = profileData;
+    } else {
+      const businessUpdate = {};
+      if (payload.businessName !== undefined) businessUpdate.business_name = payload.businessName;
+      if (payload.industry !== undefined) businessUpdate.industry = payload.industry;
+      if (payload.city !== undefined) businessUpdate.city = payload.city;
+      if (payload.state !== undefined) businessUpdate.state = payload.state;
+      if (payload.website !== undefined) businessUpdate.website = payload.website || null;
+      if (payload.aboutCompany !== undefined) businessUpdate.about_company = payload.aboutCompany || null;
+      if (payload.contactDetails !== undefined) {
+        businessUpdate.contact_details = {
+          email: payload.contactDetails.email || null,
+          mobile: payload.contactDetails.mobile || null
+        };
+      }
+      businessUpdate.updated_at = new Date().toISOString();
+
+      const { data: profileData, error: profileError } = await supabaseAdmin
+        .schema('businessverse')
+        .from('profiles')
+        .update(businessUpdate)
+        .eq('owner_id', userId)
+        .select('*')
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      updatedProfile = profileData;
+    }
+
+    await logAudit({
+      actorId: req.user.id,
+      actorRole: req.adminRole,
+      action: 'superadmin.user.updated',
+      entityType: 'core.members',
+      entityId: userId,
+      metadata: { memberUpdate, profileUpdate: payload },
+      ipAddress: req.ip?.replace('::ffff:', '') || null
+    });
+
+    res.json({
+      success: true,
+      member: updatedMember,
+      profile: updatedProfile
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminRouter.get('/superadmin/audit-logs', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
     const { data } = await safeQuery(
@@ -836,6 +1007,7 @@ adminRouter.post('/superadmin/coupons/validate', requireAuth, requireAdminRole('
 adminRouter.post('/superadmin/coupons', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
     const payload = couponSchema.parse(req.body);
+    const resolvedUserIds = await resolveUserIds(payload.userIds);
     const { data, error } = await supabaseAdmin
       .schema('billing')
       .from('coupons')
@@ -849,7 +1021,7 @@ adminRouter.post('/superadmin/coupons', requireAuth, requireAdminRole('superadmi
         starts_at: payload.startsAt || null,
         ends_at: payload.endsAt || null,
         applicable_plan_ids: payload.applicablePlanIds,
-        user_ids: payload.userIds,
+        user_ids: resolvedUserIds,
         is_active: payload.isActive
       })
       .select('*')
@@ -866,6 +1038,7 @@ adminRouter.post('/superadmin/coupons', requireAuth, requireAdminRole('superadmi
 adminRouter.put('/superadmin/coupons/:id', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
     const payload = couponSchema.parse(req.body);
+    const resolvedUserIds = await resolveUserIds(payload.userIds);
     const { data, error } = await supabaseAdmin
       .schema('billing')
       .from('coupons')
@@ -879,7 +1052,7 @@ adminRouter.put('/superadmin/coupons/:id', requireAuth, requireAdminRole('supera
         starts_at: payload.startsAt || null,
         ends_at: payload.endsAt || null,
         applicable_plan_ids: payload.applicablePlanIds,
-        user_ids: payload.userIds,
+        user_ids: resolvedUserIds,
         is_active: payload.isActive,
         updated_at: new Date().toISOString()
       })
@@ -926,6 +1099,51 @@ adminRouter.delete('/superadmin/coupons/:id', requireAuth, requireAdminRole('sup
     if (error) throw error;
     await writeAuditLog({ actorId: req.user.id, actorRole: req.adminRole, action: 'billing.coupon.deleted', entityType: 'billing.coupons', entityId: req.params.id, metadata: data });
     res.json({ coupon: data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get('/superadmin/coupons/:id/redemptions', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
+  try {
+    const couponId = req.params.id;
+    const { data: redemptions, error: redError } = await supabaseAdmin
+      .schema('billing')
+      .from('coupon_redemptions')
+      .select('*')
+      .eq('coupon_id', couponId)
+      .order('created_at', { ascending: false });
+
+    if (redError) throw redError;
+
+    if (redemptions && redemptions.length > 0) {
+      const userIds = redemptions.map((r) => r.user_id);
+      const planIds = redemptions.map((r) => r.plan_id).filter(Boolean);
+
+      const [
+        { data: members, error: memError },
+        { data: plans, error: planError }
+      ] = await Promise.all([
+        supabaseAdmin.schema('core').from('members').select('id, email, full_name, mobile_number').in('id', userIds),
+        supabaseAdmin.schema('billing').from('plans').select('id, name, code').in('id', planIds)
+      ]);
+
+      if (memError) throw memError;
+      if (planError) throw planError;
+
+      const membersMap = Object.fromEntries((members || []).map((m) => [m.id, m]));
+      const plansMap = Object.fromEntries((plans || []).map((p) => [p.id, p]));
+
+      const enriched = redemptions.map((r) => ({
+        ...r,
+        member: membersMap[r.user_id] || { email: 'Unknown', full_name: 'Unknown', mobile_number: '' },
+        plan: plansMap[r.plan_id] || { name: 'Unknown', code: 'Unknown' }
+      }));
+
+      res.json({ redemptions: enriched });
+    } else {
+      res.json({ redemptions: [] });
+    }
   } catch (error) {
     next(error);
   }

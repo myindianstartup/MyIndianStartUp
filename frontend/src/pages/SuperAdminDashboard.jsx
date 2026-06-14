@@ -187,10 +187,76 @@ const UserTable = ({ title, users, loading, onSelect }) => (
   </div>
 );
 
-const UserDetailPanel = ({ detail, onClose }) => {
+const UserDetailPanel = ({ detail, onClose, onUpdateUser }) => {
   if (!detail) return null;
   const analytics = detail.activityAnalytics || {};
   const profile = detail.profile || {};
+  
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [formData, setFormData] = React.useState({});
+  const [saving, setSaving] = React.useState(false);
+  const [editError, setEditError] = React.useState('');
+
+  const startEditing = () => {
+    setFormData({
+      fullName: detail.user.userName || '',
+      email: detail.user.email || '',
+      mobileNumber: detail.user.mobileNumber || '',
+      accountStatus: detail.user.accountStatus || 'active',
+      businessName: profile.business_name || '',
+      industry: profile.industry || '',
+      city: profile.city || '',
+      state: profile.state || '',
+      website: profile.website || '',
+      aboutCompany: profile.about_company || '',
+      skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : '',
+      portfolioUrl: profile.portfolio_url || '',
+      aboutMe: profile.about_me || '',
+      contactEmail: profile.contact_details?.email || '',
+      contactMobile: profile.contact_details?.mobile || ''
+    });
+    setEditError('');
+    setIsEditing(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setEditError('');
+    try {
+      const payload = {
+        fullName: formData.fullName,
+        email: formData.email,
+        mobileNumber: formData.mobileNumber || null,
+        accountStatus: formData.accountStatus,
+        city: formData.city,
+        state: formData.state,
+        contactDetails: {
+          email: formData.contactEmail || null,
+          mobile: formData.contactMobile || null
+        }
+      };
+
+      if (detail.user.accountType === 'creator') {
+        payload.skills = formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
+        payload.portfolioUrl = formData.portfolioUrl || '';
+        payload.aboutMe = formData.aboutMe || '';
+      } else {
+        payload.businessName = formData.businessName;
+        payload.industry = formData.industry;
+        payload.website = formData.website || '';
+        payload.aboutCompany = formData.aboutCompany || '';
+      }
+
+      await onUpdateUser(detail.user.id, payload);
+      setIsEditing(false);
+    } catch (err) {
+      setEditError(err.message || 'Failed to update user details.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const profileFields = detail.user.accountType === 'creator'
     ? [
         ['Full name', profile.full_name],
@@ -232,15 +298,194 @@ const UserDetailPanel = ({ detail, onClose }) => {
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-black text-slate-900">Profile Details</h3>
-            <div className="mt-4 grid gap-3">
-              {profileFields.map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                  <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</div>
-                  <div className="mt-1 text-sm font-bold text-slate-800">{value || 'Not updated'}</div>
-                </div>
-              ))}
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h3 className="text-lg font-black text-slate-900">Profile Details</h3>
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={startEditing}
+                  className="rounded-full bg-slate-900 px-4 py-1.5 text-xs font-black text-white hover:bg-slate-700"
+                >
+                  Edit Profile
+                </button>
+              )}
             </div>
+
+            {isEditing ? (
+              <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
+                {editError && <div className="sm:col-span-2 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">{editError}</div>}
+                
+                {detail.user.accountType === 'creator' ? (
+                  <>
+                    <label className="grid gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Full Name</span>
+                      <input
+                        value={formData.fullName}
+                        onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+                        required
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                      />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Skills (comma separated)</span>
+                      <input
+                        value={formData.skills}
+                        onChange={e => setFormData({ ...formData, skills: e.target.value })}
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <label className="grid gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Business Name</span>
+                      <input
+                        value={formData.businessName}
+                        onChange={e => setFormData({ ...formData, businessName: e.target.value })}
+                        required
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                      />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Industry</span>
+                      <input
+                        value={formData.industry}
+                        onChange={e => setFormData({ ...formData, industry: e.target.value })}
+                        required
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                      />
+                    </label>
+                  </>
+                )}
+
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">City</span>
+                  <input
+                    value={formData.city}
+                    onChange={e => setFormData({ ...formData, city: e.target.value })}
+                    required
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">State</span>
+                  <input
+                    value={formData.state}
+                    onChange={e => setFormData({ ...formData, state: e.target.value })}
+                    required
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                  />
+                </label>
+
+                {detail.user.accountType === 'creator' ? (
+                  <label className="grid gap-1 sm:col-span-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Portfolio URL</span>
+                    <input
+                      value={formData.portfolioUrl}
+                      onChange={e => setFormData({ ...formData, portfolioUrl: e.target.value })}
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                    />
+                  </label>
+                ) : (
+                  <label className="grid gap-1 sm:col-span-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Website URL</span>
+                    <input
+                      value={formData.website}
+                      onChange={e => setFormData({ ...formData, website: e.target.value })}
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                    />
+                  </label>
+                )}
+
+                <label className="grid gap-1 sm:col-span-2">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                    {detail.user.accountType === 'creator' ? 'About Me' : 'About Company'}
+                  </span>
+                  <textarea
+                    value={detail.user.accountType === 'creator' ? formData.aboutMe : formData.aboutCompany}
+                    onChange={e => setFormData({ ...formData, [detail.user.accountType === 'creator' ? 'aboutMe' : 'aboutCompany']: e.target.value })}
+                    rows={3}
+                    className="resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                  />
+                </label>
+
+                <h4 className="sm:col-span-2 border-t border-slate-100 pt-3 mt-1 text-xs font-black uppercase tracking-[0.18em] text-slate-400">System & Contact</h4>
+
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Core Account Email</span>
+                  <input
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    required
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Core Mobile Number</span>
+                  <input
+                    value={formData.mobileNumber || ''}
+                    onChange={e => setFormData({ ...formData, mobileNumber: e.target.value })}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                  />
+                </label>
+
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Public Contact Email</span>
+                  <input
+                    value={formData.contactEmail}
+                    onChange={e => setFormData({ ...formData, contactEmail: e.target.value })}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Public Contact Mobile</span>
+                  <input
+                    value={formData.contactMobile}
+                    onChange={e => setFormData({ ...formData, contactMobile: e.target.value })}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                  />
+                </label>
+
+                <label className="grid gap-1 sm:col-span-2">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Account Status</span>
+                  <select
+                    value={formData.accountStatus}
+                    onChange={e => setFormData({ ...formData, accountStatus: e.target.value })}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                  >
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="deactivated">Deactivated</option>
+                  </select>
+                </label>
+
+                <div className="sm:col-span-2 flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-full bg-slate-900 px-5 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60"
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="grid gap-3">
+                {profileFields.map(([label, value]) => (
+                  <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</div>
+                    <div className="mt-1 text-sm font-bold text-slate-800">{value || 'Not updated'}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
@@ -266,7 +511,7 @@ const UserDetailPanel = ({ detail, onClose }) => {
         <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5">
           <h3 className="text-lg font-black text-slate-900">Historical Performance</h3>
           <div className="mt-4 h-72">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <LineChart data={detail.growthAnalytics.historicalPerformance || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="date" stroke="#94a3b8" />
@@ -299,6 +544,7 @@ const SuperAdminDashboard = () => {
   const [realtime, setRealtime] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedCouponRedemptions, setSelectedCouponRedemptions] = useState(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -374,6 +620,33 @@ const SuperAdminDashboard = () => {
     } catch (requestError) {
       setError(requestError.message || 'Could not load user details.');
       setSelectedUser(null);
+    }
+  };
+
+  const updateUser = async (id, payload) => {
+    try {
+      const response = await apiRequest(`/api/admin/superadmin/users/${id}`, {
+        method: 'PUT',
+        token,
+        body: payload
+      });
+      const detail = await apiRequest(`/api/admin/superadmin/users/${id}`, { token });
+      setSelectedUser(detail);
+      loadData();
+      return response;
+    } catch (requestError) {
+      throw new Error(requestError.message || 'Could not update user.');
+    }
+  };
+
+  const viewCouponUsage = async (coupon) => {
+    setSelectedCouponRedemptions({ coupon, redemptions: [], loading: true });
+    try {
+      const data = await apiRequest(`/api/admin/superadmin/coupons/${coupon.id}/redemptions`, { token });
+      setSelectedCouponRedemptions({ coupon, redemptions: data.redemptions || [], loading: false });
+    } catch (requestError) {
+      setError(requestError.message || 'Could not load coupon usage logs.');
+      setSelectedCouponRedemptions(null);
     }
   };
 
@@ -518,7 +791,62 @@ const SuperAdminDashboard = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40">
           <div className="rounded-2xl bg-white px-5 py-4 text-sm font-black text-slate-600"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading user...</div>
         </div>
-      ) : <UserDetailPanel detail={selectedUser} onClose={() => setSelectedUser(null)} />}
+      ) : <UserDetailPanel detail={selectedUser} onClose={() => setSelectedUser(null)} onUpdateUser={updateUser} />}
+
+      {selectedCouponRedemptions && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/50 px-4 py-8 backdrop-blur-sm flex items-center justify-center">
+          <div className="mx-auto w-full max-w-4xl rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_90px_rgba(15,23,42,0.25)]">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">Coupon Usage Logs</div>
+                <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-900">
+                  Redemptions for <span className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-white ml-2">{selectedCouponRedemptions.coupon.code}</span>
+                </h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">{selectedCouponRedemptions.coupon.title}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedCouponRedemptions(null)} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-200">Close</button>
+            </div>
+
+            <div className="mt-6 max-h-[400px] overflow-y-auto rounded-2xl border border-slate-100">
+              {selectedCouponRedemptions.loading ? (
+                <div className="p-10 text-center text-sm font-bold text-slate-500 flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" /> Loading redemption logs...
+                </div>
+              ) : selectedCouponRedemptions.redemptions.length ? (
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                    <tr>
+                      <th className="p-3">User</th>
+                      <th className="p-3">Mobile</th>
+                      <th className="p-3">Plan</th>
+                      <th className="p-3 text-right">Discount</th>
+                      <th className="p-3">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedCouponRedemptions.redemptions.map((redemption) => (
+                      <tr key={redemption.id} className="border-t border-slate-100 text-slate-700">
+                        <td className="p-3 font-semibold">
+                          <div className="font-black text-slate-900">{redemption.member?.full_name || 'N/A'}</div>
+                          <div className="text-xs text-slate-400">{redemption.member?.email}</div>
+                        </td>
+                        <td className="p-3 text-xs font-semibold">{redemption.member?.mobile_number || 'N/A'}</td>
+                        <td className="p-3 text-xs font-black uppercase tracking-[0.08em] text-blue-700">{redemption.plan?.name}</td>
+                        <td className="p-3 text-right font-black text-slate-900">Rs {redemption.discount_amount_inr}</td>
+                        <td className="p-3 text-xs font-semibold text-slate-500">{new Date(redemption.created_at).toLocaleString('en-IN')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="p-10 text-center text-sm font-bold text-slate-500">
+                  No redemptions found for this coupon.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-[1600px]">
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -603,7 +931,7 @@ const SuperAdminDashboard = () => {
                       <StatusPill value={`${traffic?.summary?.realTimeVisitors || 0} live`} />
                     </div>
                     <div className="mt-5 h-80">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <AreaChart data={traffic?.charts?.dailyTraffic || []}>
                           <defs>
                             <linearGradient id="trafficFill" x1="0" y1="0" x2="0" y2="1">
@@ -629,7 +957,7 @@ const SuperAdminDashboard = () => {
                 <div className="rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="text-xl font-black text-slate-900">User growth trends</h2>
                   <div className="mt-5 h-80">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <LineChart data={traffic?.charts?.userGrowth || []}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="date" stroke="#94a3b8" />
@@ -644,7 +972,7 @@ const SuperAdminDashboard = () => {
                 <div className="rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="text-xl font-black text-slate-900">Device analytics</h2>
                   <div className="mt-5 h-80">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie data={traffic?.charts?.deviceAnalytics || []} dataKey="value" nameKey="label" innerRadius={70} outerRadius={110} paddingAngle={4}>
                           {(traffic?.charts?.deviceAnalytics || []).map((entry, index) => <Cell key={entry.label} fill={chartColors[index % chartColors.length]} />)}
@@ -658,7 +986,7 @@ const SuperAdminDashboard = () => {
                 <div className="rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
                   <h2 className="text-xl font-black text-slate-900">Browser analytics</h2>
                   <div className="mt-5 h-80">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <BarChart data={traffic?.charts?.browserAnalytics || []}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="label" stroke="#94a3b8" />
@@ -980,6 +1308,9 @@ const SuperAdminDashboard = () => {
                               <td className="p-3"><StatusPill value={coupon.is_active ? 'active' : 'inactive'} /></td>
                               <td className="p-3">
                                 <div className="flex flex-wrap gap-2">
+                                  <button type="button" onClick={() => viewCouponUsage(coupon)} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+                                    <Eye className="mr-1 inline h-3.5 w-3.5" />Usage
+                                  </button>
                                   <button type="button" onClick={() => editCoupon(coupon)} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
                                     <Pencil className="mr-1 inline h-3.5 w-3.5" />Edit
                                   </button>
@@ -1051,7 +1382,7 @@ const SuperAdminDashboard = () => {
                   <button type="button" onClick={() => exportCsv(report?.data?.userGrowth || [], 'user-growth-report.csv')} className="rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white">Export CSV</button>
                 </div>
                 <div className="mt-6 h-80">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <LineChart data={report?.data?.userGrowth || []}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="date" stroke="#94a3b8" />

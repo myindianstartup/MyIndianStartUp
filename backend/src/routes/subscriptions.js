@@ -56,13 +56,13 @@ subscriptionsRouter.get('/me', requireAuth, async (req, res, next) => {
   }
 });
 
-subscriptionsRouter.post('/validate-coupon', requireAuth, async (req, res, next) => {
+subscriptionsRouter.post('/validate-coupon', async (req, res, next) => {
   try {
     const payload = couponValidationSchema.parse(req.body);
     const quote = await validateCoupon({
       code: payload.couponCode,
       planId: payload.planId,
-      userId: req.user.id
+      userId: req.user?.id || null
     });
 
     res.json({ quote });
