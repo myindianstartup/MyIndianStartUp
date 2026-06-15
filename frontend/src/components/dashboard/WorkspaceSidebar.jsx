@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageCircle, Newspaper, Settings, UserRound, Zap, Clock3 } from 'lucide-react';
+import { LayoutDashboard, MessageCircle, Newspaper, Settings, UserRound, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const workspaceItems = [
@@ -11,14 +11,7 @@ const workspaceItems = [
   { label: 'Settings', to: '/settings', icon: Settings }
 ];
 
-const formatRemaining = (seconds = 0) => {
-  if (!seconds || seconds <= 0) return 'Ready now';
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${minutes}m`;
-};
-
-const WorkspaceSidebar = ({ cooldownSeconds = null, canPost = null }) => {
+const WorkspaceSidebar = () => {
   const location = useLocation();
   const { member } = useAuth();
   const isCreator = member?.account_type === 'creator';
@@ -66,21 +59,6 @@ const WorkspaceSidebar = ({ cooldownSeconds = null, canPost = null }) => {
           );
         })}
       </nav>
-      
-      <div className="mt-4 mx-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
-        <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Next reset</div>
-        <div className="mt-2 flex items-center gap-2 text-sm font-black text-slate-800">
-          <Clock3 className="h-4 w-4 text-slate-500" />
-          <span>{canPost === null ? 'PostVerse sync' : canPost ? 'Ready now' : formatRemaining(cooldownSeconds)}</span>
-        </div>
-        <p className="mt-2 text-xs leading-5 text-slate-500">
-          {canPost === null
-            ? 'Open PostVerse to see your live posting timer.'
-            : canPost
-              ? 'Your daily posting slot is open.'
-              : 'Your next daily post slot opens after the 24-hour cycle.'}
-        </p>
-      </div>
     </aside>
   );
 };

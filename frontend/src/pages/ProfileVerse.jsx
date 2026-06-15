@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowRight,
   BriefcaseBusiness,
   Camera,
   CheckCircle2,
@@ -395,13 +393,6 @@ const ProfileVerse = () => {
                     ))}
                   </div>
 
-                  <Link
-                    to="/search-verse"
-                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:bg-slate-50 hover:text-slate-900"
-                  >
-                    <span>Preview discovery flow</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
                 </div>
               </div>
             </aside>

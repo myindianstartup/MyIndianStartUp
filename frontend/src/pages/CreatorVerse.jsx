@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -29,6 +29,8 @@ import {
   X,
   Zap
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/lib/apiClient';
 
 const joinFeatures = [
   'Creator Listing',
@@ -67,7 +69,7 @@ const profileIncludes = [
   'Portfolio Links',
   'Social Media Links',
   'City & State',
-  'Contact Information',
+  'Public Inquiry',
   'Daily Posts'
 ];
 
@@ -98,51 +100,131 @@ const pricingIncludes = [
   'No Commission'
 ];
 
-function CreatorProfileCard() {
+const creatorShowcaseStats = [
+  ['4.8/5', 'average creator rating'],
+  ['12K+', 'monthly portfolio views'],
+  ['55%', 'profile growth lift']
+];
+
+const safeText = (value, fallback = 'Not added yet') => {
+  const text = typeof value === 'string' ? value.trim() : value;
+  return text || fallback;
+};
+
+const safeDomain = (value) => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) return '';
+
+  try {
+    const parsed = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+    return parsed.hostname.replace(/^www\./, '');
+  } catch {
+    return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+  }
+};
+
+const compactLocation = (...parts) => parts.filter(Boolean).map((item) => String(item).trim()).filter(Boolean).join(', ');
+
+const socialLinkCount = (links) => {
+  if (!links || typeof links !== 'object') return 0;
+  return Object.values(links).filter(Boolean).length;
+};
+
+const compactSkills = (skills) => {
+  if (!Array.isArray(skills) || !skills.length) return 'Skills pending';
+  return skills.slice(0, 3).join(', ');
+};
+
+function CreatorProfileCard({ creatorProfile, loadingProfile, isCreatorMember }) {
+  const hasProfile = Boolean(creatorProfile?.full_name);
+  const isOwnProfile = isCreatorMember && hasProfile;
+  const creatorName = isOwnProfile ? safeText(creatorProfile.full_name, 'Your Creator Profile') : 'Top creator showcase';
+  const skillsPending = isOwnProfile && (!Array.isArray(creatorProfile.skills) || creatorProfile.skills.length === 0);
+  const locationPending = isOwnProfile && !compactLocation(creatorProfile.city, creatorProfile.state);
+  const portfolioPending = isOwnProfile && !creatorProfile.portfolio_url?.trim();
+  const skills = isOwnProfile ? compactSkills(creatorProfile.skills) : 'Photography, Reels, Design';
+  const location = isOwnProfile ? compactLocation(creatorProfile.city, creatorProfile.state) || 'Location pending' : 'Mumbai, Ahmedabad, Bengaluru';
+  const portfolio = isOwnProfile ? safeDomain(creatorProfile.portfolio_url) || 'Add portfolio' : 'verified portfolios';
+  const socialCount = isOwnProfile ? socialLinkCount(creatorProfile.social_links) : 6;
+  const socialPending = isOwnProfile && socialCount === 0;
+  const aboutPending = isOwnProfile && !creatorProfile.about_me?.trim();
+  const about = isOwnProfile
+    ? safeText(creatorProfile.about_me, 'Add a short public bio so businesses understand your work.')
+    : 'Visitors see high-rated creators, portfolio growth, public skills, and collaboration signals before joining CreatorVerse.';
+
+  const profileTiles = isOwnProfile
+    ? [
+        { label: 'Skills', value: skills, pending: skillsPending },
+        { label: 'Location', value: location, pending: locationPending },
+        { label: 'Portfolio', value: portfolio, pending: portfolioPending },
+        { label: 'Social links', value: socialCount ? `${socialCount} public link${socialCount > 1 ? 's' : ''}` : 'Add public links', pending: socialPending }
+      ]
+    : [
+        { label: 'Top skills', value: skills },
+        { label: 'Active cities', value: location },
+        { label: 'Portfolio views', value: '+55% growth' },
+        { label: 'Public trust', value: '4.8 rated creators' }
+      ];
+
   return (
     <div className="creator-float relative overflow-hidden rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.12)]">
       <div className="rounded-[26px] bg-[linear-gradient(135deg,rgba(255,247,237,0.94),rgba(239,246,255,0.88))] p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-blue-600 text-white shadow-[0_14px_28px_rgba(37,99,235,0.25)]">
-              <UserRound className="h-8 w-8" />
+            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-3xl bg-blue-600 text-white shadow-[0_14px_28px_rgba(37,99,235,0.25)]">
+              {isOwnProfile && creatorProfile.profile_image_url ? (
+                <img src={creatorProfile.profile_image_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <UserRound className="h-8 w-8" />
+              )}
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">Creator profile</div>
-              <h3 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950">Riya Sharma</h3>
-              <p className="text-sm font-semibold text-slate-500">Photographer | Reels Creator</p>
+              <div className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">
+                {isOwnProfile ? 'Your public creator profile' : 'Creator profile'}
+              </div>
+              <h3 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950">{loadingProfile ? 'Loading profile...' : creatorName}</h3>
+              <p className="text-sm font-semibold text-slate-500">{skills}</p>
             </div>
           </div>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Verified</span>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">
+            {isOwnProfile ? 'Public' : 'Verified'}
+          </span>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {['Portfolio', 'Skills', 'Social Links'].map((item) => (
-            <div key={item} className="rounded-2xl border border-white bg-white/85 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">
-              {item}
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {profileTiles.map((field) => (
+            <div
+              key={field.label}
+              className={`rounded-2xl px-4 py-3 shadow-sm ${
+                field.pending
+                  ? 'border border-dashed border-blue-200 bg-blue-50/80'
+                  : 'border border-white bg-white/85'
+              }`}
+            >
+              <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${field.pending ? 'text-blue-600' : 'text-slate-400'}`}>
+                {field.label}
+              </div>
+              <div className={`mt-1 truncate text-sm font-bold ${field.pending ? 'text-blue-700' : 'text-slate-700'}`}>{field.value}</div>
             </div>
           ))}
         </div>
 
-        <div className="mt-6 rounded-[24px] border border-slate-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Daily visibility</div>
-              <div className="mt-1 text-lg font-black text-slate-950">1 update every 24 hours</div>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-                <Image className="h-5 w-5" />
+        <p className={`mt-5 line-clamp-2 rounded-2xl px-3 py-2 text-sm font-semibold leading-6 ${
+          aboutPending ? 'border border-dashed border-blue-200 bg-blue-50/80 text-blue-700' : 'text-slate-600'
+        }`}>
+          {about}
+        </p>
+
+        {!isOwnProfile && (
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {creatorShowcaseStats.map(([value, label]) => (
+              <div key={label} className="rounded-2xl bg-white/70 p-3">
+                <div className="text-lg font-black text-slate-950">{value}</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</div>
               </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-600">
-                <Video className="h-5 w-5" />
-              </div>
-            </div>
+            ))}
           </div>
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="creator-progress h-full w-2/3 rounded-full bg-blue-600" />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -150,16 +232,53 @@ function CreatorProfileCard() {
 
 const CreatorVerse = () => {
   const navigate = useNavigate();
+  const { member, token, isAuthenticated } = useAuth();
+  const [creatorProfile, setCreatorProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const isCreatorMember = member?.account_type === 'creator';
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCreatorProfile = async () => {
+      if (!token || !isCreatorMember) {
+        setCreatorProfile(null);
+        return;
+      }
+
+      setLoadingProfile(true);
+      try {
+        const data = await apiRequest('/api/profiles/me', { token });
+        if (!cancelled) setCreatorProfile(data?.creatorProfile || null);
+      } catch {
+        if (!cancelled) setCreatorProfile(null);
+      } finally {
+        if (!cancelled) setLoadingProfile(false);
+      }
+    };
+
+    loadCreatorProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, isCreatorMember]);
+
+  const heroCta = useMemo(() => {
+    if (isAuthenticated && isCreatorMember) {
+      return creatorProfile?.full_name ? 'Update CreatorVerse Profile' : 'Complete CreatorVerse Profile';
+    }
+    return 'Create CreatorVerse Profile';
+  }, [creatorProfile?.full_name, isAuthenticated, isCreatorMember]);
+
+  const handleHeroCta = () => {
+    navigate(isAuthenticated && isCreatorMember ? '/profile-verse' : '/signup');
+  };
 
   return (
     <div className="bg-white text-slate-950">
       <style>{`
         .creator-float {
           animation: creatorFloat 5.2s ease-in-out infinite;
-        }
-
-        .creator-progress {
-          animation: creatorProgress 2.8s ease-in-out infinite;
         }
 
         .creator-card-hover {
@@ -177,14 +296,8 @@ const CreatorVerse = () => {
           50% { transform: translateY(-10px); }
         }
 
-        @keyframes creatorProgress {
-          0%, 100% { width: 38%; }
-          50% { width: 84%; }
-        }
-
         @media (prefers-reduced-motion: reduce) {
-          .creator-float,
-          .creator-progress {
+          .creator-float {
             animation: none;
           }
         }
@@ -213,10 +326,10 @@ const CreatorVerse = () => {
 
               <div className="mt-8">
                 <button
-                  onClick={() => navigate('/signup')}
+                  onClick={handleHeroCta}
                   className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(37,99,235,0.26)] transition-transform hover:scale-[1.02] hover:bg-blue-700"
                 >
-                  <span>Create CreatorVerse Profile</span>
+                  <span>{heroCta}</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -232,7 +345,7 @@ const CreatorVerse = () => {
             </div>
 
             <div className="lg:col-span-6">
-              <CreatorProfileCard />
+              <CreatorProfileCard creatorProfile={creatorProfile} loadingProfile={loadingProfile} isCreatorMember={isCreatorMember} />
             </div>
           </div>
         </div>
@@ -290,7 +403,7 @@ const CreatorVerse = () => {
             <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Creator profile preview</div>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Your professional identity in one place.</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
-              Build a profile that shows your work, skills, city, contact details, and daily posts.
+              Build a profile that shows your work, skills, city, portfolio links, and daily posts without exposing private account data.
             </p>
           </div>
 
@@ -331,7 +444,7 @@ const CreatorVerse = () => {
               </span>
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-emerald-700">
                 <Mail className="h-4 w-4" />
-                Contact
+                Public inquiry
               </span>
             </div>
           </div>

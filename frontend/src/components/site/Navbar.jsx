@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Menu, Search, Sparkles, UserRound, X } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, Search, UserRound, X } from 'lucide-react';
+import BrandLogo from '@/components/site/BrandLogo';
 import LoginPromptModal from '@/components/site/LoginPromptModal';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -155,13 +156,7 @@ const Navbar = () => {
             data-testid="nav-logo"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <span className="relative flex h-11 w-11 items-center justify-center rounded-[14px] bg-blue-600 text-white shadow-[0_10px_22px_rgba(37,99,235,0.35)]">
-              <Sparkles className="h-6 w-6" strokeWidth={2.6} />
-              <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-white bg-orange-500" />
-            </span>
-            <span className="text-xl font-black tracking-[-0.045em] text-slate-950">
-              MyIndian<span className="text-blue-600">Startup</span>
-            </span>
+            <BrandLogo />
           </Link>
 
           <button
@@ -244,13 +239,7 @@ const Navbar = () => {
             data-testid="mobile-nav-logo"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <span className="relative flex h-10 w-10 items-center justify-center rounded-[13px] bg-blue-600 text-white shadow-[0_10px_22px_rgba(37,99,235,0.35)]">
-              <Sparkles className="h-5 w-5" strokeWidth={2.6} />
-              <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-orange-500" />
-            </span>
-            <span className="text-lg font-black tracking-[-0.045em] text-slate-950">
-              MyIndian<span className="text-blue-600">Startup</span>
-            </span>
+            <BrandLogo markClassName="h-10 w-10" textClassName="text-lg text-slate-950" />
           </Link>
           <button
             className="text-slate-900 hover:text-blue-600 transition-colors"

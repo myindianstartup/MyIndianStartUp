@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
+import { mkdir, readFile, writeFile } from 'fs/promises';
+import path from 'path';
 import { env } from '../config/env.js';
 import { requireAuth } from '../middleware/auth.js';
 import { supabaseAdmin } from '../lib/supabase.js';
@@ -30,6 +32,9 @@ const storySchema = z.object({
 
 export const postsRouter = Router();
 
+const fallbackStorageDir = path.resolve(process.cwd(), 'storage');
+const connectionFallbackPath = path.join(fallbackStorageDir, 'connection-fallback.json');
+
 const isMissingDatabaseFeature = (error) => {
   const message = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''}`.toLowerCase();
   return [
@@ -44,8 +49,74 @@ const isMissingDatabaseFeature = (error) => {
   ].some((pattern) => message.includes(pattern));
 };
 
-const postSelectWithFullMetrics = 'id, author_id, account_type, caption, media_url, media_type, created_at, published_at, post_metrics(views, likes, comments, shares, saves, inquiries, reach, impressions)';
-const postSelectWithBasicMetrics = 'id, author_id, account_type, caption, media_url, media_type, created_at, published_at, post_metrics(views, saves, inquiries)';
+const readConnectionFallback = async () => {
+  try {
+    const raw = await readFile(connectionFallbackPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed.connections) ? parsed.connections : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeConnectionFallback = async (connections) => {
+  await mkdir(fallbackStorageDir, { recursive: true });
+  await writeFile(connectionFallbackPath, JSON.stringify({ connections }, null, 2));
+};
+
+const fallbackConnectionKey = (followerId, followingId) => `${followerId}:${followingId}`;
+
+const getFallbackFollowingSet = async (viewerId, userIds = []) => {
+  const targets = new Set([...new Set(userIds)].filter((id) => id && id !== viewerId));
+  if (!viewerId || !targets.size) return new Set();
+  const connections = await readConnectionFallback();
+  return new Set(connections
+    .filter((row) => row.follower_id === viewerId && targets.has(row.following_id))
+    .map((row) => row.following_id));
+};
+
+const getFallbackConnectionStats = async (userId) => {
+  const connections = await readConnectionFallback();
+  return {
+    following: connections.filter((row) => row.follower_id === userId).length,
+    followers: connections.filter((row) => row.following_id === userId).length
+  };
+};
+
+const getFallbackConnectionLists = async (userId) => {
+  const connections = await readConnectionFallback();
+  return {
+    following: connections
+      .filter((row) => row.follower_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    followers: connections
+      .filter((row) => row.following_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  };
+};
+
+const setFallbackConnection = async ({ followerId, followingId, following }) => {
+  const connections = await readConnectionFallback();
+  const key = fallbackConnectionKey(followerId, followingId);
+  const withoutExisting = connections.filter((row) => fallbackConnectionKey(row.follower_id, row.following_id) !== key);
+
+  if (following) {
+    withoutExisting.push({
+      id: key,
+      follower_id: followerId,
+      following_id: followingId,
+      status: 'connected',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  await writeConnectionFallback(withoutExisting);
+  return following;
+};
+
+const postSelectWithFullMetrics = 'id, author_id, account_type, caption, media_url, media_type, status, created_at, published_at, post_metrics(views, likes, comments, shares, saves, inquiries, reach, impressions)';
+const postSelectWithBasicMetrics = 'id, author_id, account_type, caption, media_url, media_type, status, created_at, published_at, post_metrics(views, saves, inquiries)';
 
 const publicMemberSelect = 'id, email, full_name, account_type';
 
@@ -226,11 +297,51 @@ const getFollowingSet = async (viewerId, userIds = []) => {
     .in('following_id', targets);
 
   if (error) {
-    if (isMissingDatabaseFeature(error)) return new Set();
+    if (isMissingDatabaseFeature(error)) return getFallbackFollowingSet(viewerId, targets);
     throw error;
   }
 
   return new Set((data || []).map((row) => row.following_id));
+};
+
+const getConnectionStats = async (userId) => {
+  if (!userId) return { following: 0, followers: 0 };
+
+  const [{ count: following, error: followingError }, { count: followers, error: followersError }] = await Promise.all([
+    supabaseAdmin.schema('postverse').from('user_follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
+    supabaseAdmin.schema('postverse').from('user_follows').select('*', { count: 'exact', head: true }).eq('following_id', userId)
+  ]);
+
+  if ([followingError, followersError].some(isMissingDatabaseFeature)) {
+    return getFallbackConnectionStats(userId);
+  }
+  if (followingError) throw followingError;
+  if (followersError) throw followersError;
+
+  return {
+    following: following || 0,
+    followers: followers || 0
+  };
+};
+
+const getFollowRow = async (followerId, followingId) => {
+  const { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('user_follows')
+    .select('id')
+    .eq('follower_id', followerId)
+    .eq('following_id', followingId)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) {
+      const followingSet = await getFallbackFollowingSet(followerId, [followingId]);
+      return followingSet.has(followingId) ? { id: fallbackConnectionKey(followerId, followingId), fallback: true } : null;
+    }
+    throw error;
+  }
+
+  return data || null;
 };
 
 const getLikedPostSet = async (viewerId, postIds = []) => {
@@ -375,6 +486,57 @@ const fetchStoriesFromHiddenPosts = async (viewerId) => {
       expiresAt: storyData.expiresAt
     };
   });
+};
+
+const fetchStoryArchiveFromHiddenPosts = async (viewerId) => {
+  let { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('posts')
+    .select('id, author_id, account_type, caption, media_url, media_type, created_at')
+    .eq('author_id', viewerId)
+    .like('caption', `${storyMarker}%`)
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return [];
+    throw error;
+  }
+
+  return (data || [])
+    .map((post) => {
+      const storyData = decodeStoryCaption(post.caption);
+      if (!storyData) return null;
+      const expiresAt = storyData.expiresAt || null;
+      const active = expiresAt ? new Date(expiresAt).getTime() > Date.now() : false;
+      return {
+        id: post.id,
+        authorId: post.author_id,
+        type: post.account_type,
+        image: post.media_url,
+        mediaUrl: post.media_url,
+        mediaType: post.media_type,
+        caption: storyData.caption || '',
+        metadata: storyData.metadata || {},
+        status: active ? 'active' : 'expired',
+        active,
+        createdAt: post.created_at,
+        expiresAt,
+        source: 'legacy-post'
+      };
+    })
+    .filter(Boolean);
+};
+
+const expireOldStories = async () => {
+  const { error } = await supabaseAdmin
+    .schema('postverse')
+    .from('stories')
+    .update({ status: 'expired', updated_at: new Date().toISOString() })
+    .eq('status', 'active')
+    .lte('expires_at', new Date().toISOString());
+
+  if (error && !isMissingDatabaseFeature(error)) throw error;
 };
 
 const shapePost = (post, author, extras = {}) => ({
@@ -579,6 +741,21 @@ postsRouter.get('/connections', requireAuth, async (req, res, next) => {
       supabaseAdmin.schema('postverse').from('user_follows').select('follower_id, created_at').eq('following_id', req.user.id).order('created_at', { ascending: false })
     ]);
 
+    if ([followingError, followersError].some(isMissingDatabaseFeature)) {
+      const fallbackLists = await getFallbackConnectionLists(req.user.id);
+      const followingProfiles = await getAuthorProfiles(fallbackLists.following.map((row) => row.following_id));
+      const followerProfiles = await getAuthorProfiles(fallbackLists.followers.map((row) => row.follower_id));
+      res.json({
+        stats: {
+          following: fallbackLists.following.length,
+          followers: fallbackLists.followers.length
+        },
+        following: fallbackLists.following.map((row) => ({ ...followingProfiles[row.following_id], followedAt: row.created_at })),
+        followers: fallbackLists.followers.map((row) => ({ ...followerProfiles[row.follower_id], followedAt: row.created_at })),
+        fallback: true
+      });
+      return;
+    }
     if (followingError) throw followingError;
     if (followersError) throw followersError;
 
@@ -586,6 +763,10 @@ postsRouter.get('/connections', requireAuth, async (req, res, next) => {
     const followerProfiles = await getAuthorProfiles((followers || []).map((row) => row.follower_id));
 
     res.json({
+      stats: {
+        following: (following || []).length,
+        followers: (followers || []).length
+      },
       following: (following || []).map((row) => ({ ...followingProfiles[row.following_id], followedAt: row.created_at })),
       followers: (followers || []).map((row) => ({ ...followerProfiles[row.follower_id], followedAt: row.created_at }))
     });
@@ -598,6 +779,7 @@ postsRouter.post('/users/:userId/follow', requireAuth, async (req, res, next) =>
   try {
     await fetchMemberOrBlockFeed(req.user.id);
     const targetUserId = req.params.userId;
+    const desiredFollowing = typeof req.body?.following === 'boolean' ? req.body.following : null;
     if (targetUserId === req.user.id) {
       const error = new Error('You cannot follow your own account.');
       error.status = 400;
@@ -618,30 +800,86 @@ postsRouter.post('/users/:userId/follow', requireAuth, async (req, res, next) =>
       throw error;
     }
 
-    const { data: existing, error: existingError } = await supabaseAdmin
-      .schema('postverse')
-      .from('user_follows')
-      .select('id')
-      .eq('follower_id', req.user.id)
-      .eq('following_id', targetUserId)
-      .maybeSingle();
+    const existing = await getFollowRow(req.user.id, targetUserId);
 
-    if (existingError) throw existingError;
+    if (existing && desiredFollowing !== true) {
+      if (existing.fallback) {
+        await setFallbackConnection({ followerId: req.user.id, followingId: targetUserId, following: false });
+      } else {
+        const { error } = await supabaseAdmin
+          .schema('postverse')
+          .from('user_follows')
+          .delete()
+          .eq('follower_id', req.user.id)
+          .eq('following_id', targetUserId);
 
-    if (existing) {
-      const { error } = await supabaseAdmin.schema('postverse').from('user_follows').delete().eq('id', existing.id);
-      if (error) throw error;
-      res.json({ following: false });
+        if (error) {
+          if (isMissingDatabaseFeature(error)) {
+            await setFallbackConnection({ followerId: req.user.id, followingId: targetUserId, following: false });
+          } else {
+            throw error;
+          }
+        }
+      }
+      const [viewerStats, targetStats] = await Promise.all([
+        getConnectionStats(req.user.id),
+        getConnectionStats(targetUserId)
+      ]);
+      res.json({ following: false, viewerStats, targetStats });
+      return;
+    }
+
+    if (existing && desiredFollowing === true) {
+      const [viewerStats, targetStats] = await Promise.all([
+        getConnectionStats(req.user.id),
+        getConnectionStats(targetUserId)
+      ]);
+      res.json({ following: true, viewerStats, targetStats });
+      return;
+    }
+
+    if (!existing && desiredFollowing === false) {
+      const [viewerStats, targetStats] = await Promise.all([
+        getConnectionStats(req.user.id),
+        getConnectionStats(targetUserId)
+      ]);
+      res.json({ following: false, viewerStats, targetStats });
       return;
     }
 
     const { error } = await supabaseAdmin
       .schema('postverse')
       .from('user_follows')
-      .insert({ follower_id: req.user.id, following_id: targetUserId });
+      .upsert(
+        {
+          follower_id: req.user.id,
+          following_id: targetUserId,
+          status: 'connected',
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'follower_id,following_id' }
+      );
 
-    if (error) throw error;
-    res.status(201).json({ following: true });
+    if (error) {
+      if (isMissingDatabaseFeature(error)) {
+        await setFallbackConnection({ followerId: req.user.id, followingId: targetUserId, following: true });
+      } else if (error.code === '23503') {
+        error.status = 404;
+        error.message = 'This member account is no longer available.';
+        throw error;
+      } else if (error.code === '23514') {
+        error.status = 400;
+        error.message = 'You cannot connect with your own account.';
+        throw error;
+      } else {
+        throw error;
+      }
+    }
+    const [viewerStats, targetStats] = await Promise.all([
+      getConnectionStats(req.user.id),
+      getConnectionStats(targetUserId)
+    ]);
+    res.status(201).json({ following: true, viewerStats, targetStats });
   } catch (error) {
     next(error);
   }
@@ -650,6 +888,7 @@ postsRouter.post('/users/:userId/follow', requireAuth, async (req, res, next) =>
 postsRouter.get('/stories', requireAuth, async (req, res, next) => {
   try {
     await fetchMemberOrBlockFeed(req.user.id);
+    await expireOldStories();
 
     let { data, error } = await supabaseAdmin
       .schema('postverse')
@@ -722,6 +961,56 @@ postsRouter.get('/stories', requireAuth, async (req, res, next) => {
           expiresAt: story.expires_at
         };
       })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+postsRouter.get('/stories/archive', requireAuth, async (req, res, next) => {
+  try {
+    await fetchMemberOrBlockFeed(req.user.id);
+    await expireOldStories();
+
+    const { data, error } = await supabaseAdmin
+      .schema('postverse')
+      .from('stories')
+      .select('id, author_id, account_type, caption, media_url, media_type, metadata, status, created_at, expires_at')
+      .eq('author_id', req.user.id)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      if (isMissingDatabaseFeature(error)) {
+        const legacyStories = await fetchStoryArchiveFromHiddenPosts(req.user.id);
+        res.json({ stories: legacyStories, fallback: true });
+        return;
+      }
+      throw error;
+    }
+
+    const legacyStories = await fetchStoryArchiveFromHiddenPosts(req.user.id);
+    const primaryStories = (data || []).map((story) => ({
+      id: story.id,
+      authorId: story.author_id,
+      type: story.account_type,
+      image: story.media_url,
+      mediaUrl: story.media_url,
+      mediaType: story.media_type,
+      caption: story.caption || '',
+      metadata: story.metadata || {},
+      status: story.status,
+      active: story.status === 'active' && new Date(story.expires_at).getTime() > Date.now(),
+      createdAt: story.created_at,
+      expiresAt: story.expires_at,
+      source: 'stories'
+    }));
+    const uniqueStories = [...primaryStories, ...legacyStories]
+      .filter((story, index, list) => list.findIndex((item) => item.id === story.id) === index)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    res.json({
+      stories: uniqueStories
     });
   } catch (error) {
     next(error);

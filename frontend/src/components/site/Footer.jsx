@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Facebook, Instagram, Linkedin, Mail, MapPin, Phone, Sparkles, Twitter } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Mail, MapPin, Phone, Twitter } from 'lucide-react';
+import BrandLogo from '@/components/site/BrandLogo';
 
 const services = [
   { label: 'BusinessVerse', to: '/business-verse' },
@@ -70,13 +71,12 @@ const Footer = () => {
         <div className="grid gap-10 rounded-[2rem] border border-white/10 bg-white/[0.06] p-7 shadow-[0_26px_90px_rgba(0,0,0,0.24)] backdrop-blur-xl md:grid-cols-12 md:p-10">
           <div className="md:col-span-5">
             <Link to="/" className="flex items-center gap-3" data-testid="footer-logo">
-              <span className="relative flex h-12 w-12 items-center justify-center rounded-[15px] bg-blue-600 text-white shadow-[0_12px_26px_rgba(37,99,235,0.28)]">
-                <Sparkles className="h-6 w-6" strokeWidth={2.6} />
-                <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-white bg-orange-500" />
-              </span>
-              <span className="text-xl font-black tracking-[-0.045em] text-white">
-                MyIndian<span className="text-blue-600">Startup</span>
-              </span>
+              <BrandLogo
+                markClassName="h-12 w-12 rounded-[15px]"
+                textClassName="text-xl text-white"
+                accentClassName="text-blue-300"
+                dark
+              />
             </Link>
 
             <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">

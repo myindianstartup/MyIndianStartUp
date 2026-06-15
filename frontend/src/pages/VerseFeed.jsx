@@ -6,6 +6,7 @@ import {
   Camera,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Heart,
   Loader2,
   MessageCircle,
@@ -15,6 +16,8 @@ import {
   Send,
   Share2,
   Sparkles,
+  UserCheck,
+  UserPlus,
   Users,
   Zap
 } from 'lucide-react';
@@ -70,6 +73,16 @@ const timeAgo = (value) => {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
+};
+
+const storyTimeLeft = (value) => {
+  if (!value) return '';
+  const diff = new Date(value).getTime() - Date.now();
+  if (diff <= 0) return 'Expired';
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  if (hours >= 1) return `${hours}h ${minutes}m left`;
+  return `${Math.max(1, minutes)}m left`;
 };
 
 const showcaseStories = [
@@ -212,6 +225,14 @@ const StoryViewer = ({ story, storyCount = 0, currentIndex = 0, onClose, onNavig
         {canNavigate && (
           <div className="absolute left-1/2 top-7 z-20 -translate-x-1/2 rounded-full bg-black/35 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur">
             {currentIndex + 1} / {storyCount}
+          </div>
+        )}
+        {story.expiresAt && (
+          <div className="absolute left-4 right-4 top-20 z-20 flex justify-center">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur">
+              <Clock className="h-3.5 w-3.5" />
+              {storyTimeLeft(story.expiresAt)}
+            </div>
           </div>
         )}
         <button
@@ -482,7 +503,7 @@ const StoryEditor = ({
   );
 };
 
-const PostCard = ({ post, token, onMetrics }) => {
+const PostCard = ({ post, token, onMetrics, onFollow }) => {
   const [liked, setLiked] = useState(Boolean(post.viewer?.liked));
   const [saved, setSaved] = useState(false);
   const [commentOpen, setCommentOpen] = useState(false);
@@ -500,6 +521,8 @@ const PostCard = ({ post, token, onMetrics }) => {
   const visibleCaption = shouldCollapseCaption && !expanded ? `${caption.slice(0, 150).trim()}...` : caption;
   const visibleTags = expanded ? tags : tags.slice(0, 3);
   const hasMoreContent = shouldCollapseCaption || tags.length > visibleTags.length;
+  const isFollowingAuthor = Boolean(post.viewer?.followingAuthor);
+  const canConnect = Boolean(post.authorId && !post.viewer?.ownPost && !isShowcase);
 
   useEffect(() => {
     setLiked(Boolean(post.viewer?.liked));
@@ -652,9 +675,25 @@ const PostCard = ({ post, token, onMetrics }) => {
             </div>
           </div>
         </div>
-        <button type="button" className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="More post options">
-          <MoreHorizontal size={18} />
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {canConnect && (
+            <button
+              type="button"
+              onClick={() => onFollow?.(post.authorId, !isFollowingAuthor)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-black transition ${
+                isFollowingAuthor
+                  ? 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  : 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'
+              }`}
+            >
+              {isFollowingAuthor ? <UserCheck size={13} /> : <UserPlus size={13} />}
+              <span>{isFollowingAuthor ? 'Connected' : 'Connect'}</span>
+            </button>
+          )}
+          <button type="button" className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="More post options">
+            <MoreHorizontal size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="px-4 pt-3">
@@ -786,6 +825,7 @@ const VerseFeed = () => {
   const [posts, setPosts] = useState([]);
   const [stories, setStories] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [connections, setConnections] = useState({ stats: { following: 0, followers: 0 }, following: [], followers: [] });
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -794,6 +834,7 @@ const VerseFeed = () => {
   const [storyError, setStoryError] = useState('');
   const [activeStory, setActiveStory] = useState(null);
   const [gateOpen, setGateOpen] = useState(false);
+  const [connectionNotice, setConnectionNotice] = useState('');
   const [error, setError] = useState('');
 
   const filters = [
@@ -804,6 +845,7 @@ const VerseFeed = () => {
   const hasLivePosts = posts.length > 0;
   const visibleStories = stories.length ? stories : showcaseStories;
   const visibleRecommendations = recommendations.length ? recommendations : showcaseRecommendations;
+  const visibleFollowing = connections.following || [];
   const activeStoryIndex = activeStory ? visibleStories.findIndex((story) => story.id === activeStory.id) : -1;
   const storyMentionOptions = useMemo(() => uniqueByKey([
     ...visibleRecommendations.map((item) => ({
@@ -833,12 +875,18 @@ const VerseFeed = () => {
       setLoading(true);
       setError('');
       try {
-        const [feedData, recommendationData] = await Promise.all([
+        const [feedData, recommendationData, connectionData] = await Promise.all([
           apiRequest('/api/posts/feed', { token }),
-          apiRequest('/api/posts/recommendations', { token })
+          apiRequest('/api/posts/recommendations', { token }),
+          apiRequest('/api/posts/connections', { token }).catch(() => ({ stats: { following: 0, followers: 0 }, following: [], followers: [] }))
         ]);
         setPosts(feedData.posts || []);
         setRecommendations(recommendationData.recommendations || []);
+        setConnections({
+          stats: connectionData.stats || { following: (connectionData.following || []).length, followers: (connectionData.followers || []).length },
+          following: connectionData.following || [],
+          followers: connectionData.followers || []
+        });
         apiRequest('/api/posts/stories', { token })
           .then((storyData) => setStories(storyData.stories || []))
           .catch(() => setStories([]));
@@ -900,19 +948,48 @@ const VerseFeed = () => {
     navigate('/pricing');
   };
 
-  const handleFollow = async (userId) => {
+  const updateFollowState = (userId, following) => {
+    setRecommendations((current) => current.map((item) => (
+      item.authorId === userId ? { ...item, isFollowing: following, viewer: { ...(item.viewer || {}), followingAuthor: following } } : item
+    )));
+    setPosts((current) => current.map((post) => (
+      post.authorId === userId ? { ...post, viewer: { ...(post.viewer || {}), followingAuthor: following } } : post
+    )));
+  };
+
+  const loadConnections = async () => {
+    if (!token) return;
+    const connectionData = await apiRequest('/api/posts/connections', { token });
+    setConnections({
+      stats: connectionData.stats || { following: (connectionData.following || []).length, followers: (connectionData.followers || []).length },
+      following: connectionData.following || [],
+      followers: connectionData.followers || []
+    });
+  };
+
+  const handleFollow = async (userId, desiredState) => {
     if (!userId) return;
 
+    const currentlyFollowing = recommendations.some((item) => item.authorId === userId && (item.isFollowing || item.viewer?.followingAuthor))
+      || posts.some((post) => post.authorId === userId && post.viewer?.followingAuthor);
+    const nextFollowing = typeof desiredState === 'boolean' ? desiredState : !currentlyFollowing;
+    updateFollowState(userId, nextFollowing);
+
     try {
-      const payload = await apiRequest(`/api/posts/users/${userId}/follow`, { method: 'POST', token });
-      setRecommendations((current) => current.map((item) => (
-        item.authorId === userId ? { ...item, isFollowing: payload.following, viewer: { ...(item.viewer || {}), followingAuthor: payload.following } } : item
-      )));
-      setPosts((current) => current.map((post) => (
-        post.authorId === userId ? { ...post, viewer: { ...(post.viewer || {}), followingAuthor: payload.following } } : post
-      )));
+      setConnectionNotice('');
+      const payload = await apiRequest(`/api/posts/users/${userId}/follow`, {
+        method: 'POST',
+        token,
+        body: { following: nextFollowing }
+      });
+      updateFollowState(userId, Boolean(payload.following));
+      if (payload.viewerStats) {
+        setConnections((current) => ({ ...current, stats: payload.viewerStats }));
+      }
+      loadConnections().catch(() => {});
     } catch (error) {
-      window.alert(error.message || 'Could not update follow status.');
+      updateFollowState(userId, currentlyFollowing);
+      setConnectionNotice(error.message || 'Could not update connection status.');
     }
   };
 
@@ -1076,6 +1153,7 @@ const VerseFeed = () => {
                       <img src={story.image} alt={story.name} className="h-full w-full object-cover" />
                     </div>
                     <span className="w-16 truncate text-center text-[10px] font-bold text-slate-500">{story.name}</span>
+                    {story.expiresAt && <span className="text-[9px] font-black text-slate-400">{storyTimeLeft(story.expiresAt)}</span>}
                   </button>
                 ))}
               </div>
@@ -1123,7 +1201,15 @@ const VerseFeed = () => {
               <div className="rounded-3xl border border-rose-100 bg-rose-50 p-8 text-sm font-semibold text-rose-600">{error}</div>
             ) : filteredPosts.length ? (
               <div className="space-y-5">
-                {filteredPosts.map((post) => <PostCard key={post.id} post={post} token={token} onMetrics={updatePostMetrics} />)}
+                {filteredPosts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    token={token}
+                    onMetrics={updatePostMetrics}
+                    onFollow={handleFollow}
+                  />
+                ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white py-20 text-center">
@@ -1145,9 +1231,54 @@ const VerseFeed = () => {
             </div>
 
             <div className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500">
+                  <Users size={13} />
+                  My Network
+                </div>
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black text-blue-600">
+                  Live
+                </span>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-slate-50 p-3">
+                  <div className="text-2xl font-black text-slate-950">{connections.stats?.following || 0}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Following</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-3">
+                  <div className="text-2xl font-black text-slate-950">{connections.stats?.followers || 0}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Followers</div>
+                </div>
+              </div>
+              <div className="mt-4 space-y-3">
+                {visibleFollowing.slice(0, 3).map((item) => (
+                  <div key={item.id} className="flex items-center gap-3">
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-xs font-black text-white ${item.accountType === 'creator' ? 'bg-blue-600' : 'bg-orange-500'}`}>
+                      {item.avatarUrl ? <img src={item.avatarUrl} alt={item.name} className="h-full w-full object-cover" /> : initialsFrom(item.name)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-black text-slate-900">{item.name}</div>
+                      <div className="truncate text-[10px] font-semibold text-slate-400">{item.category || item.city || 'Connected member'}</div>
+                    </div>
+                  </div>
+                ))}
+                {!visibleFollowing.length && (
+                  <p className="rounded-2xl bg-slate-50 px-3 py-3 text-xs font-semibold leading-5 text-slate-500">
+                    Start connecting with creators and businesses to build your network.
+                  </p>
+                )}
+                {connectionNotice && (
+                  <p className="rounded-2xl border border-amber-100 bg-amber-50 px-3 py-3 text-xs font-bold leading-5 text-amber-700">
+                    {connectionNotice}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
               <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500">
                 <Users size={13} />
-                Suggested For You
+                People You May Know
               </div>
               <div className="mt-4 space-y-4">
                 {visibleRecommendations.map((item) => (
@@ -1164,15 +1295,16 @@ const VerseFeed = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleFollow(item.authorId)}
+                      onClick={() => handleFollow(item.authorId, !(item.isFollowing || item.viewer?.followingAuthor))}
                       disabled={!item.authorId || item.viewer?.ownPost}
-                      className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold transition ${
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-bold transition ${
                         item.isFollowing || item.viewer?.followingAuthor
                           ? 'border-slate-200 bg-slate-100 text-slate-500'
                           : 'border-blue-200 text-blue-600 hover:bg-blue-50'
                       } disabled:cursor-not-allowed disabled:opacity-60`}
                     >
-                      {item.isFollowing || item.viewer?.followingAuthor ? 'Following' : 'Follow'}
+                      {item.isFollowing || item.viewer?.followingAuthor ? <UserCheck size={12} /> : <UserPlus size={12} />}
+                      {item.isFollowing || item.viewer?.followingAuthor ? 'Connected' : 'Connect'}
                     </button>
                   </div>
                 ))}

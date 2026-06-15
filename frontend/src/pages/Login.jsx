@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Mail, ShieldCheck } from 'lucide-react';
 import GoogleLogo from '@/components/auth/GoogleLogo';
+import BrandLogo from '@/components/site/BrandLogo';
 import { supabase } from '@/lib/supabaseClient';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -145,13 +146,7 @@ const Login = () => {
           <div className="absolute right-0 bottom-16 h-80 w-80 rounded-full bg-orange-500/10 blur-[120px]" />
 
           <Link to="/" className="relative z-10 flex w-fit items-center gap-2.5">
-            <span className="relative flex h-11 w-11 items-center justify-center rounded-[14px] bg-blue-600 text-white shadow-[0_10px_22px_rgba(37,99,235,0.35)]">
-              <Sparkles className="h-6 w-6" strokeWidth={2.6} />
-              <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-white bg-orange-500" />
-            </span>
-            <span className="text-xl font-black tracking-[-0.045em] text-slate-950">
-              MyIndian<span className="text-blue-600">Startup</span>
-            </span>
+            <BrandLogo />
           </Link>
 
           <div className="relative z-10 mx-auto mt-5 flex w-full max-w-xl flex-col justify-center">

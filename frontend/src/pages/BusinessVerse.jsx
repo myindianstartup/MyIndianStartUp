@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -23,6 +23,8 @@ import {
   Wallet,
   X
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/lib/apiClient';
 
 const joinFeatures = [
   'Business Listing',
@@ -59,7 +61,13 @@ const profileFields = [
   ['Website', 'aurorafoods.in'],
   ['Social Media', '@aurorafoods'],
   ['About Company', 'Premium packaged food brand serving retailers across India.'],
-  ['Contact Details', '+91 90236 15266']
+  ['Public Rating', '4.9 / 5 from member interactions']
+];
+
+const showcaseBusinessStats = [
+  ['4.9/5', 'average member rating'],
+  ['18K+', 'monthly profile views'],
+  ['62%', 'owner profile growth']
 ];
 
 const connectionTypes = [
@@ -98,50 +106,119 @@ const pricingIncludes = [
   'No Commission'
 ];
 
-function HeroProfileCard() {
+const safeText = (value, fallback = 'Not added yet') => {
+  const text = typeof value === 'string' ? value.trim() : value;
+  return text || fallback;
+};
+
+const safeDomain = (value) => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) return '';
+
+  try {
+    const parsed = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+    return parsed.hostname.replace(/^www\./, '');
+  } catch {
+    return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+  }
+};
+
+const compactLocation = (...parts) => parts.filter(Boolean).map((item) => String(item).trim()).filter(Boolean).join(', ');
+
+const socialLinkCount = (links) => {
+  if (!links || typeof links !== 'object') return 0;
+  return Object.values(links).filter(Boolean).length;
+};
+
+function HeroProfileCard({ businessProfile, loadingProfile, isBusinessMember }) {
+  const hasProfile = Boolean(businessProfile?.business_name);
+  const isOwnProfile = isBusinessMember && hasProfile;
+  const businessName = isOwnProfile ? safeText(businessProfile.business_name, 'Your Business') : 'Top rated business showcase';
+  const industryPending = isOwnProfile && !businessProfile.industry?.trim();
+  const locationPending = isOwnProfile && !compactLocation(businessProfile.city, businessProfile.state);
+  const websitePending = isOwnProfile && !businessProfile.website?.trim();
+  const industry = isOwnProfile ? safeText(businessProfile.industry, 'Add industry') : 'Food, D2C, Services';
+  const location = isOwnProfile ? compactLocation(businessProfile.city, businessProfile.state) || 'Add city and state' : 'Ahmedabad, Surat, Mumbai';
+  const website = isOwnProfile ? safeDomain(businessProfile.website) || 'Add website' : 'verified public listings';
+  const socialCount = isOwnProfile ? socialLinkCount(businessProfile.social_links) : 8;
+  const socialPending = isOwnProfile && socialCount === 0;
+  const aboutPending = isOwnProfile && !businessProfile.about_company?.trim();
+  const about = isOwnProfile
+    ? safeText(businessProfile.about_company, 'Add a short public company intro to attract customers and collaborators.')
+    : 'Visitors see trusted business examples, growth signals, ratings, and public profile previews before becoming members.';
+
+  const cardFields = isOwnProfile
+    ? [
+        { label: 'Industry', value: industry, pending: industryPending },
+        { label: 'Location', value: location, pending: locationPending },
+        { label: 'Website', value: website, pending: websitePending },
+        { label: 'Social links', value: socialCount ? `${socialCount} public link${socialCount > 1 ? 's' : ''}` : 'Add public links', pending: socialPending }
+      ]
+    : [
+        { label: 'Top categories', value: industry },
+        { label: 'Active cities', value: location },
+        { label: 'Owner growth', value: '+62% profile views' },
+        { label: 'Public trust', value: '4.9 rated profiles' }
+      ];
+
   return (
     <div className="business-float relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.12)]">
       <div className="rounded-xl bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,247,237,0.82))] p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-orange-500 text-white shadow-[0_12px_26px_rgba(249,115,22,0.25)]">
-              <Building2 className="h-7 w-7" />
+            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-orange-500 text-white shadow-[0_12px_26px_rgba(249,115,22,0.25)]">
+              {isOwnProfile && businessProfile.logo_url ? (
+                <img src={businessProfile.logo_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Building2 className="h-7 w-7" />
+              )}
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">Business profile</div>
-              <div className="mt-1 text-xl font-black tracking-[-0.03em] text-slate-950">Launch-ready listing</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">
+                {isOwnProfile ? 'Your public business profile' : 'Business profile'}
+              </div>
+              <div className="mt-1 text-xl font-black tracking-[-0.03em] text-slate-950">{loadingProfile ? 'Loading profile...' : businessName}</div>
             </div>
           </div>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Live</span>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">
+            {isOwnProfile ? 'Public' : 'Live'}
+          </span>
         </div>
 
         <div className="mt-7 grid gap-3 sm:grid-cols-2">
-          {['Products', 'Services', 'Website', 'Social Links'].map((item) => (
-            <div key={item} className="rounded-lg border border-white bg-white/85 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">
-              {item}
+          {cardFields.map((field) => (
+            <div
+              key={field.label}
+              className={`rounded-lg px-4 py-3 shadow-sm ${
+                field.pending
+                  ? 'border border-dashed border-orange-200 bg-orange-50/80'
+                  : 'border border-white bg-white/85'
+              }`}
+            >
+              <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${field.pending ? 'text-orange-500' : 'text-slate-400'}`}>
+                {field.label}
+              </div>
+              <div className={`mt-1 truncate text-sm font-bold ${field.pending ? 'text-orange-700' : 'text-slate-700'}`}>{field.value}</div>
             </div>
           ))}
         </div>
 
-        <div className="mt-7 rounded-xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Daily update</div>
-              <div className="mt-1 text-lg font-black text-slate-950">1 post every 24 hours</div>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-50 text-slate-600">
-                <Image className="h-5 w-5" />
+        <p className={`mt-5 line-clamp-2 rounded-lg px-3 py-2 text-sm font-semibold leading-6 ${
+          aboutPending ? 'border border-dashed border-orange-200 bg-orange-50/80 text-orange-700' : 'text-slate-600'
+        }`}>
+          {about}
+        </p>
+
+        {!isOwnProfile && (
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {showcaseBusinessStats.map(([value, label]) => (
+              <div key={label} className="rounded-lg bg-white/70 p-3">
+                <div className="text-lg font-black text-slate-950">{value}</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</div>
               </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
-                <Video className="h-5 w-5" />
-              </div>
-            </div>
+            ))}
           </div>
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="business-progress h-full w-2/3 rounded-full bg-orange-500" />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -149,16 +226,53 @@ function HeroProfileCard() {
 
 const BusinessVerse = () => {
   const navigate = useNavigate();
+  const { member, token, isAuthenticated } = useAuth();
+  const [businessProfile, setBusinessProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const isBusinessMember = member?.account_type === 'business';
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadBusinessProfile = async () => {
+      if (!token || !isBusinessMember) {
+        setBusinessProfile(null);
+        return;
+      }
+
+      setLoadingProfile(true);
+      try {
+        const data = await apiRequest('/api/profiles/me', { token });
+        if (!cancelled) setBusinessProfile(data?.businessProfile || null);
+      } catch {
+        if (!cancelled) setBusinessProfile(null);
+      } finally {
+        if (!cancelled) setLoadingProfile(false);
+      }
+    };
+
+    loadBusinessProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, isBusinessMember]);
+
+  const heroCta = useMemo(() => {
+    if (isAuthenticated && isBusinessMember) {
+      return businessProfile?.business_name ? 'Update BusinessVerse Profile' : 'Complete BusinessVerse Profile';
+    }
+    return 'Create BusinessVerse Profile';
+  }, [businessProfile?.business_name, isAuthenticated, isBusinessMember]);
+
+  const handleHeroCta = () => {
+    navigate(isAuthenticated && isBusinessMember ? '/profile-verse' : '/join');
+  };
 
   return (
     <div className="bg-white text-slate-950">
       <style>{`
         .business-float {
           animation: businessFloat 5.2s ease-in-out infinite;
-        }
-
-        .business-progress {
-          animation: businessProgress 2.8s ease-in-out infinite;
         }
 
         .business-card-hover {
@@ -176,14 +290,8 @@ const BusinessVerse = () => {
           50% { transform: translateY(-10px); }
         }
 
-        @keyframes businessProgress {
-          0%, 100% { width: 42%; }
-          50% { width: 82%; }
-        }
-
         @media (prefers-reduced-motion: reduce) {
-          .business-float,
-          .business-progress {
+          .business-float {
             animation: none;
           }
         }
@@ -211,10 +319,10 @@ const BusinessVerse = () => {
 
               <div className="mt-8 flex flex-wrap gap-4">
                 <button
-                  onClick={() => navigate('/join')}
+                  onClick={handleHeroCta}
                   className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(249,115,22,0.26)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
                 >
-                  <span>Create BusinessVerse Profile</span>
+                  <span>{heroCta}</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -230,7 +338,7 @@ const BusinessVerse = () => {
             </div>
 
             <div className="lg:col-span-6">
-              <HeroProfileCard />
+              <HeroProfileCard businessProfile={businessProfile} loadingProfile={loadingProfile} isBusinessMember={isBusinessMember} />
             </div>
           </div>
         </div>
@@ -327,7 +435,7 @@ const BusinessVerse = () => {
               </span>
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-emerald-700">
                 <Phone className="h-4 w-4" />
-                Contact
+                Public inquiry
               </span>
             </div>
           </div>

@@ -4,6 +4,28 @@ import { apiRequest } from '@/lib/apiClient';
 
 const AuthContext = createContext(null);
 
+const waitForUrlSessionClockSkew = async () => {
+  if (typeof window === 'undefined') return;
+
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, '') || window.location.search.replace(/^\?/, ''));
+  const accessToken = params.get('access_token');
+  if (!accessToken) return;
+
+  try {
+    const [, payload] = accessToken.split('.');
+    if (!payload) return;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = JSON.parse(window.atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')));
+    const issuedAt = Number(decoded.iat || 0);
+    const now = Math.floor(Date.now() / 1000);
+    if (issuedAt > now && issuedAt - now <= 10) {
+      await new Promise((resolve) => setTimeout(resolve, (issuedAt - now + 1) * 1000));
+    }
+  } catch {
+    // Supabase can still parse the URL session normally if this guard cannot.
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
@@ -72,6 +94,7 @@ export const AuthProvider = ({ children }) => {
     let isMounted = true;
 
     const init = async () => {
+      await waitForUrlSessionClockSkew();
       const { data } = await supabase.auth.getSession();
       if (!isMounted) return;
 
