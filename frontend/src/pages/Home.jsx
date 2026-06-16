@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/lib/apiClient';
 import {
   ArrowRight,
+  BarChart3,
   BadgeCheck,
   Check,
   CheckCircle2,
@@ -12,6 +14,7 @@ import {
   Globe2,
   Handshake,
   IndianRupee,
+  Link2,
   MapPin,
   MessageSquare,
   Search,
@@ -161,6 +164,12 @@ const growthTrend = {
 
 const chartPath = (points) => points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ');
 
+const snapshotTabs = [
+  { id: 'overview', label: 'Overview', icon: Circle },
+  { id: 'collabs', label: 'Collabs', icon: Link2 },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 }
+];
+
 const businessBullets = [
   'Business Listing',
   'Daily Visibility',
@@ -296,7 +305,169 @@ const AnimatedStat = ({ value, suffix = '', compact = false, precision = 0 }) =>
 
 const Home = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, member, adminRole } = useAuth();
+  const { isAuthenticated, member, adminRole, token } = useAuth();
+  const [activeSnapshotTab, setActiveSnapshotTab] = useState('overview');
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotData, setSnapshotData] = useState({
+    analytics: null,
+    history: [],
+    connections: null,
+    settings: null
+  });
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) return;
+
+    let cancelled = false;
+
+    const loadSnapshotData = async () => {
+      setSnapshotLoading(true);
+      try {
+        const [overviewResult, connectionResult, settingsResult] = await Promise.allSettled([
+          apiRequest('/api/posts/overview', { token }),
+          apiRequest('/api/posts/connections', { token }),
+          apiRequest('/api/members/settings', { token })
+        ]);
+
+        if (cancelled) return;
+
+        setSnapshotData({
+          analytics: overviewResult.status === 'fulfilled' ? overviewResult.value.analytics || null : null,
+          history: overviewResult.status === 'fulfilled' ? overviewResult.value.history || [] : [],
+          connections: connectionResult.status === 'fulfilled' ? connectionResult.value : null,
+          settings: settingsResult.status === 'fulfilled' ? settingsResult.value.settings || null : null
+        });
+      } finally {
+        if (!cancelled) setSnapshotLoading(false);
+      }
+    };
+
+    loadSnapshotData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, token]);
+
+  const publishedHistory = snapshotData.history || [];
+  const connectionStats = snapshotData.connections?.stats || { following: 0, followers: 0 };
+  const totalConnections = connectionStats.following + connectionStats.followers;
+  const settingsNotifications = snapshotData.settings?.notifications || {};
+  const enabledNotificationCount = Object.values(settingsNotifications).filter(Boolean).length;
+  const profileStrength = snapshotData.analytics?.profileCompletion || 82;
+  const chartSeries = publishedHistory.length
+    ? {
+        primary: publishedHistory.slice(0, 6).reverse().map((entry, index, items) => {
+          const maxViews = Math.max(...items.map((item) => item.views || 0), 1);
+          const x = 18 + (index * (294 / Math.max(items.length - 1, 1)));
+          const y = 104 - Math.round(((entry.views || 0) / maxViews) * 74);
+          return [Math.round(x), y];
+        }),
+        secondary: publishedHistory.slice(0, 6).reverse().map((entry, index, items) => {
+          const maxInquiries = Math.max(...items.map((item) => item.inquiries || 0), 1);
+          const x = 18 + (index * (294 / Math.max(items.length - 1, 1)));
+          const y = 104 - Math.round(((entry.inquiries || 0) / maxInquiries) * 74);
+          return [Math.round(x), y];
+        }),
+        primaryLabel: 'Views',
+        secondaryLabel: 'Inquiries'
+      }
+    : {
+        primary: growthTrend.business,
+        secondary: growthTrend.creator,
+        primaryLabel: 'Business',
+        secondaryLabel: 'Creator'
+      };
+
+  const snapshotCardsByTab = {
+    overview: [
+      {
+        eyebrow: 'Active profile',
+        value: `${profileStrength}%`,
+        detail: 'profile complete',
+        tone: 'bg-blue-600 text-white shadow-lg md:col-span-2',
+        eyebrowTone: 'text-blue-100',
+        detailTone: 'text-blue-100',
+        icon: <BadgeCheck className="h-3.5 w-3.5" />
+      },
+      {
+        eyebrow: 'Workspace',
+        value: isAuthenticated ? `${snapshotData.analytics?.postsPublished || 0}` : '24',
+        detail: isAuthenticated ? 'posts published' : 'projects live',
+        tone: 'bg-gradient-to-br from-orange-100 to-orange-50 md:col-span-2',
+        eyebrowTone: 'text-orange-600',
+        detailTone: 'text-slate-500'
+      }
+    ],
+    collabs: [
+      {
+        eyebrow: 'Connections',
+        value: `${isAuthenticated ? totalConnections : 18}`,
+        detail: isAuthenticated ? 'people in your network' : 'collabs ready',
+        tone: 'bg-blue-600 text-white shadow-lg md:col-span-2',
+        eyebrowTone: 'text-blue-100',
+        detailTone: 'text-blue-100',
+        icon: <Users className="h-3.5 w-3.5" />
+      },
+      {
+        eyebrow: 'Following',
+        value: `${isAuthenticated ? connectionStats.following : 9}`,
+        detail: isAuthenticated ? 'profiles you connected' : 'brands and creators',
+        tone: 'bg-gradient-to-br from-orange-100 to-orange-50 md:col-span-2',
+        eyebrowTone: 'text-orange-600',
+        detailTone: 'text-slate-500'
+      }
+    ],
+    analytics: [
+      {
+        eyebrow: 'Total views',
+        value: `${isAuthenticated ? snapshotData.analytics?.totalViews || 0 : 12480}`,
+        detail: isAuthenticated ? 'across your published posts' : 'monthly reach preview',
+        tone: 'bg-blue-600 text-white shadow-lg md:col-span-2',
+        eyebrowTone: 'text-blue-100',
+        detailTone: 'text-blue-100',
+        icon: <BarChart3 className="h-3.5 w-3.5" />
+      },
+      {
+        eyebrow: 'Inquiries',
+        value: `${isAuthenticated ? snapshotData.analytics?.totalInquiries || 0 : 42}`,
+        detail: isAuthenticated ? 'direct responses recorded' : 'collaboration responses',
+        tone: 'bg-gradient-to-br from-orange-100 to-orange-50 md:col-span-2',
+        eyebrowTone: 'text-orange-600',
+        detailTone: 'text-slate-500'
+      }
+    ]
+  };
+
+  const snapshotMetaByTab = {
+    overview: {
+      title: 'Growth overview',
+      primaryLabel: chartSeries.primaryLabel,
+      secondaryLabel: chartSeries.secondaryLabel
+    },
+    collabs: {
+      title: 'Recent collaboration signals',
+      primaryLabel: 'Followers',
+      secondaryLabel: 'Following'
+    },
+    analytics: {
+      title: 'Performance analytics',
+      primaryLabel: chartSeries.primaryLabel,
+      secondaryLabel: chartSeries.secondaryLabel
+    }
+  };
+
+  const collabHighlights = isAuthenticated
+    ? [
+        `${connectionStats.followers} members connected with you`,
+        `${connectionStats.following} profiles you already follow`,
+        totalConnections ? 'Open VerseFeed to continue conversations' : 'Start connecting to build your network'
+      ]
+    : [
+        'Connect with businesses and creators',
+        'Build your visible collaboration network',
+        'Keep every opportunity in one place'
+      ];
 
   return (
     <div className="bg-white text-slate-950">
@@ -326,6 +497,26 @@ const Home = () => {
           animation: visibilityDotPulse 1.8s ease-in-out infinite;
         }
 
+        .hero-word-swap {
+          display: inline-flex;
+          flex-direction: column;
+          height: 2.05em;
+          overflow: hidden;
+          vertical-align: top;
+        }
+
+        .hero-word-swap-track {
+          animation: heroWordSwap 5.6s ease-in-out infinite;
+        }
+
+        .hero-word-swap-frame {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          height: 2.05em;
+          line-height: 0.92;
+        }
+
         @keyframes perksCenterPulse {
           0%, 100% { box-shadow: 0 14px 40px rgba(15,23,42,0.12), 0 0 0 0 rgba(37,99,235,0.14); }
           50% { box-shadow: 0 18px 48px rgba(15,23,42,0.14), 0 0 0 16px rgba(37,99,235,0); }
@@ -350,6 +541,12 @@ const Home = () => {
           50% { opacity: 1; transform: scale(1.08); }
         }
 
+        @keyframes heroWordSwap {
+          0%, 38% { transform: translateY(0); }
+          50%, 88% { transform: translateY(-2.05em); }
+          100% { transform: translateY(0); }
+        }
+
         @media (max-width: 640px) {
           .perks-node {
             --orbit-radius: 140px;
@@ -361,7 +558,8 @@ const Home = () => {
           .perks-center,
           .perks-node,
           .visibility-orbit-runner,
-          .visibility-orbit-dot {
+          .visibility-orbit-dot,
+          .hero-word-swap-track {
             animation: none;
           }
         }
@@ -455,12 +653,12 @@ const Home = () => {
           }
         }
       `}</style>
-      <section className="relative overflow-hidden pt-28 pb-16 md:pt-32 md:pb-24">
+      <section className="relative overflow-hidden pb-14 pt-24 sm:pt-28 md:pb-24 md:pt-32">
         <div className="absolute inset-x-0 top-0 h-[760px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.09),transparent_35%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.08),transparent_28%)] pointer-events-none" />
         <div className="absolute -top-24 right-[-8rem] h-[26rem] w-[26rem] rounded-full bg-blue-500/5 blur-[110px] pointer-events-none" />
         <div className="absolute top-48 left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-orange-500/5 blur-[110px] pointer-events-none" />
 
-        <div className="relative mx-auto max-w-7xl px-6 md:px-12">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 md:px-12">
           <div className="grid gap-12 lg:grid-cols-12 lg:items-start lg:gap-16">
             <div className="lg:col-span-6">
               <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-blue-700">
@@ -468,8 +666,21 @@ const Home = () => {
                 India-first business + creator platform
               </div>
 
-              <h1 className="mt-6 max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
-                India&apos;s Biggest <span className="text-orange-500">Business</span> &amp; <span className="text-blue-600">Creator</span> Collaboration Platform
+              <h1 className="mt-6 max-w-xl text-[2.7rem] font-black leading-[0.94] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
+                India&apos;s Biggest{' '}
+                <span className="hero-word-swap">
+                  <span className="hero-word-swap-track">
+                    <span className="hero-word-swap-frame">
+                      <span className="text-orange-500">Business</span>
+                      <span><span className="text-slate-950">&amp;</span> <span className="text-blue-600">Creator</span></span>
+                    </span>
+                    <span className="hero-word-swap-frame">
+                      <span className="text-blue-600">Creator</span>
+                      <span><span className="text-slate-950">&amp;</span> <span className="text-orange-500">Business</span></span>
+                    </span>
+                  </span>
+                </span>{' '}
+                Collaboration Platform
               </h1>
 
               <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 md:text-lg">
@@ -537,7 +748,7 @@ const Home = () => {
                 )}
               </div>
 
-              <div className="mt-8 flex items-center gap-3 rounded-full border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="mt-8 flex flex-col items-start gap-3 rounded-[1.5rem] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:rounded-full">
                 <div className="flex -space-x-2">
                   {[
                     ['A', 'bg-orange-500'],
@@ -575,15 +786,15 @@ const Home = () => {
             <div className="lg:col-span-6 lg:pt-10">
               <div className="relative mx-auto mb-6 max-w-[620px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,247,237,0.9))] shadow-[0_22px_70px_rgba(15,23,42,0.11)] lg:ml-auto">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.12),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(37,99,235,0.12),transparent_40%)]" />
-                <div className="relative flex min-h-[220px] items-end justify-center px-6 pb-0 pt-8 md:min-h-[260px]">
+                <div className="relative flex min-h-[200px] items-end justify-center px-4 pb-0 pt-6 sm:px-6 sm:pt-8 md:min-h-[260px]">
                   <img
                     src="/assets/auth-characters.png"
                     alt="Business and creator collaboration across India"
                     className="max-h-[220px] w-auto object-contain drop-shadow-[0_24px_38px_rgba(15,23,42,0.16)] md:max-h-[250px]"
                   />
                 </div>
-                <div className="relative border-t border-white/70 bg-white/80 px-5 py-4 backdrop-blur">
-                  <div className="flex items-center justify-between gap-3">
+                <div className="relative border-t border-white/70 bg-white/80 px-4 py-4 backdrop-blur sm:px-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">Platform preview</div>
                       <div className="mt-1 text-sm font-bold text-slate-900">See how businesses &amp; creators connect daily</div>
@@ -609,58 +820,70 @@ const Home = () => {
 
                 <div className="grid gap-0 lg:grid-cols-12">
                   <div className="border-b border-slate-100 bg-slate-50/70 p-3 lg:col-span-4 lg:border-b-0 lg:border-r lg:border-slate-100">
-                    <div className="flex gap-1.5 lg:flex-col">
-                      {[
-                        ['Overview', true],
-                        ['Collabs', false],
-                        ['Analytics', false],
-                        ['Settings', false]
-                      ].map(([label, active]) => (
-                        <div
-                          key={label}
-                          className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold ${active ? 'bg-blue-50 text-blue-700' : 'text-slate-500'}`}
-                        >
-                          <Circle className={`h-3 w-3 ${active ? 'fill-blue-600 text-blue-600' : 'text-slate-300'}`} />
-                          <span>{label}</span>
-                        </div>
-                      ))}
+                    <div className="flex flex-wrap gap-1.5 lg:flex-col">
+                      {snapshotTabs.map(({ id, label, icon: Icon }) => {
+                        const active = activeSnapshotTab === id;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setActiveSnapshotTab(id)}
+                            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold transition-colors ${active ? 'bg-blue-50 text-blue-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`}
+                          >
+                            <Icon className={`h-3.5 w-3.5 ${active ? 'fill-current text-blue-600' : 'text-slate-300'}`} />
+                            <span>{label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  <div className="p-4 lg:col-span-8">
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                      <div className="rounded-[1.25rem] bg-blue-600 p-4 text-white shadow-lg md:col-span-2">
-                        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-[0.2em] text-blue-100">
-                          <span>Active profile</span>
-                          <BadgeCheck className="h-3.5 w-3.5" />
+                  <div className="p-4 sm:p-5 lg:col-span-8">
+                    {snapshotLoading ? (
+                      <div className="flex min-h-[220px] items-center justify-center rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 text-center text-sm font-bold text-slate-500 sm:min-h-[280px]">
+                        Loading workspace snapshot...
+                      </div>
+                    ) : (
+                      <>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      {snapshotCardsByTab[activeSnapshotTab].map((card) => (
+                        <div key={card.eyebrow} className={`rounded-[1.25rem] p-4 shadow-sm ${card.tone}`}>
+                          <div className={`flex items-center justify-between text-[9px] font-black uppercase tracking-[0.2em] ${card.eyebrowTone}`}>
+                            <span>{card.eyebrow}</span>
+                            {card.icon || null}
+                          </div>
+                          <div className="mt-4 text-2xl font-black tracking-tight text-current">{card.value}</div>
+                          <div className={`mt-1 text-[11px] font-semibold ${card.detailTone}`}>{card.detail}</div>
                         </div>
-                        <div className="mt-4 text-2xl font-black tracking-tight">24</div>
-                        <div className="mt-1 text-[11px] font-semibold text-blue-100">projects live</div>
-                      </div>
-
-                      <div className="rounded-[1.25rem] bg-gradient-to-br from-orange-100 to-orange-50 p-4 shadow-sm md:col-span-2">
-                        <div className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Team match</div>
-                        <div className="mt-4 text-2xl font-black tracking-tight text-slate-950">+48%</div>
-                        <div className="mt-1 text-[11px] font-semibold text-slate-500">reach this month</div>
-                      </div>
+                      ))}
                     </div>
 
-                    <div className="mt-3 rounded-[1.25rem] border border-slate-200 p-4">
-                      <div className="flex items-center justify-between gap-3 text-sm font-bold text-slate-800">
-                        <span>Growth overview</span>
+                      <div className="mt-3 rounded-[1.25rem] border border-slate-200 p-4">
+                      <div className="flex flex-col gap-2 text-sm font-bold text-slate-800 sm:flex-row sm:items-center sm:justify-between">
+                        <span>{snapshotMetaByTab[activeSnapshotTab].title}</span>
                         <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                          <span className="h-2 w-2 rounded-full bg-orange-500" /> Business
-                          <span className="ml-2 h-2 w-2 rounded-full bg-blue-600" /> Creator
+                          <span className="h-2 w-2 rounded-full bg-orange-500" /> {snapshotMetaByTab[activeSnapshotTab].secondaryLabel}
+                          <span className="ml-2 h-2 w-2 rounded-full bg-blue-600" /> {snapshotMetaByTab[activeSnapshotTab].primaryLabel}
                         </span>
                       </div>
+                      {activeSnapshotTab === 'collabs' ? (
+                        <div className="mt-4 space-y-3 rounded-2xl bg-gradient-to-b from-slate-50 to-white p-4">
+                          {collabHighlights.map((item) => (
+                            <div key={item} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                              <Users className="mt-0.5 h-4 w-4 text-orange-500" />
+                              <span className="text-sm font-semibold leading-6 text-slate-600">{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
                       <div className="mt-4 h-28 overflow-hidden rounded-2xl bg-gradient-to-b from-slate-50 to-white px-2 py-3">
-                        <svg viewBox="0 0 330 120" className="h-full w-full" role="img" aria-label="Fake trending chart for Business and Creator growth">
+                        <svg viewBox="0 0 330 120" className="h-full w-full" role="img" aria-label="Dashboard trend chart">
                           <defs>
-                            <linearGradient id="businessTrendFill" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="secondaryTrendFill" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="0%" stopColor="#f97316" stopOpacity="0.18" />
                               <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
                             </linearGradient>
-                            <linearGradient id="creatorTrendFill" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="primaryTrendFill" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="0%" stopColor="#2563eb" stopOpacity="0.16" />
                               <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
                             </linearGradient>
@@ -668,25 +891,28 @@ const Home = () => {
                           {[28, 56, 84].map((y) => (
                             <line key={y} x1="12" y1={y} x2="318" y2={y} stroke="#e2e8f0" strokeDasharray="4 7" strokeWidth="1" />
                           ))}
-                          <path d={`${chartPath(growthTrend.creator)} L 312 112 L 18 112 Z`} fill="url(#creatorTrendFill)" />
-                          <path d={`${chartPath(growthTrend.business)} L 312 112 L 18 112 Z`} fill="url(#businessTrendFill)" />
-                          <path d={chartPath(growthTrend.business)} fill="none" stroke="#f97316" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
-                          <path d={chartPath(growthTrend.creator)} fill="none" stroke="#2563eb" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
-                          {growthTrend.business.map(([x, y], index) => (
-                            <g key={`business-${index}`} className="transition-transform duration-300 hover:-translate-y-1">
+                          <path d={`${chartPath(chartSeries.primary)} L 312 112 L 18 112 Z`} fill="url(#primaryTrendFill)" />
+                          <path d={`${chartPath(chartSeries.secondary)} L 312 112 L 18 112 Z`} fill="url(#secondaryTrendFill)" />
+                          <path d={chartPath(chartSeries.secondary)} fill="none" stroke="#f97316" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+                          <path d={chartPath(chartSeries.primary)} fill="none" stroke="#2563eb" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+                          {chartSeries.secondary.map(([x, y], index) => (
+                            <g key={`secondary-${index}`} className="transition-transform duration-300 hover:-translate-y-1">
                               <circle cx={x} cy={y} r="5" fill="#f97316" />
                               <circle cx={x} cy={y} r="9" fill="#f97316" opacity="0.12" />
                             </g>
                           ))}
-                          {growthTrend.creator.map(([x, y], index) => (
-                            <g key={`creator-${index}`} className="transition-transform duration-300 hover:-translate-y-1">
+                          {chartSeries.primary.map(([x, y], index) => (
+                            <g key={`primary-${index}`} className="transition-transform duration-300 hover:-translate-y-1">
                               <circle cx={x} cy={y} r="5" fill="#2563eb" />
                               <circle cx={x} cy={y} r="9" fill="#2563eb" opacity="0.12" />
                             </g>
                           ))}
                         </svg>
                       </div>
+                      )}
                     </div>
+                    </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -696,15 +922,15 @@ const Home = () => {
       </section>
 
       <section className="border-t border-slate-100 bg-white py-10 md:py-14">
-        <div className="mx-auto max-w-7xl px-6 md:px-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-12">
           <div className="value-highlight-marquee overflow-hidden rounded-[1.75rem] border border-blue-100 bg-white shadow-[0_18px_55px_rgba(37,99,235,0.09)]">
             <div className="value-highlight-track flex">
               {[...valueHighlights, ...valueHighlights].map((item, index) => (
                 <div
                   key={`${item.title}-${index}`}
-                  className="value-highlight-item flex min-w-[340px] items-center gap-5 border-r border-slate-100 px-8 py-7 md:min-w-[380px]"
+                  className="value-highlight-item flex min-w-[280px] items-center gap-4 border-r border-slate-100 px-5 py-6 sm:min-w-[340px] sm:gap-5 sm:px-8 sm:py-7 md:min-w-[380px]"
                 >
-                  <div className={`value-highlight-icon flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.35rem] ${item.iconWrap}`}>
+                  <div className={`value-highlight-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.2rem] sm:h-16 sm:w-16 sm:rounded-[1.35rem] ${item.iconWrap}`}>
                     {item.icon}
                   </div>
                   <div>

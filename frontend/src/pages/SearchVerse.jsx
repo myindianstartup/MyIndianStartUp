@@ -18,6 +18,15 @@ const initialsFrom = (value = 'MI') => String(value)
   .map((part) => part[0]?.toUpperCase())
   .join('') || 'MI';
 
+const cleanProfileValue = (value = '') => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const normalized = text.toLowerCase();
+  if (normalized === 'to be updated') return '';
+  if (normalized.includes('to be updated, to be updated')) return '';
+  return text;
+};
+
 const typeStyles = {
   all: {
     pill: 'border-slate-200 bg-white text-slate-700',
@@ -37,14 +46,20 @@ const ProfileAvatar = ({ result, size = 'md' }) => {
   const isBusiness = result?.accountType === 'business';
   const sizeClass = size === 'lg' ? 'h-20 w-20 text-2xl rounded-[1.5rem]' : 'h-14 w-14 text-base rounded-2xl';
   const tone = isBusiness ? 'bg-orange-500 text-white' : 'bg-blue-600 text-white';
+  const dotClass = size === 'lg' ? 'h-5 w-5' : 'h-4 w-4';
 
   return (
-    <div className={`flex shrink-0 items-center justify-center overflow-hidden font-black ${sizeClass} ${tone}`}>
-      {result?.avatarUrl ? (
-        <img src={result.avatarUrl} alt={result.displayName || 'Profile'} className="h-full w-full object-cover" />
-      ) : (
-        result?.initials || initialsFrom(result?.displayName)
-      )}
+    <div className="relative shrink-0">
+      <div className={`flex items-center justify-center overflow-hidden font-black ${sizeClass} ${tone}`}>
+        {result?.avatarUrl ? (
+          <img src={result.avatarUrl} alt={result.displayName || 'Profile'} className="h-full w-full object-cover" />
+        ) : (
+          result?.initials || initialsFrom(result?.displayName)
+        )}
+      </div>
+      {result?.online ? (
+        <span className={`absolute bottom-1 right-1 rounded-full border-2 border-white bg-emerald-500 shadow-sm ${dotClass}`} />
+      ) : null}
     </div>
   );
 };
@@ -142,6 +157,29 @@ const SearchVerse = () => {
     [results, selectedId]
   );
 
+  const profilePreview = useMemo(() => {
+    if (!selectedResult) return null;
+
+    const headline = cleanProfileValue(selectedResult.headline) || (selectedResult.accountType === 'creator' ? 'Creator profile' : 'Business profile');
+    const location = cleanProfileValue(selectedResult.location);
+    const email = cleanProfileValue(selectedResult.email);
+    const website = cleanProfileValue(selectedResult.website);
+    const about = cleanProfileValue(selectedResult.about);
+    const tags = [...new Set((selectedResult.tags || []).map(cleanProfileValue).filter(Boolean))]
+      .filter((tag) => tag.toLowerCase() !== headline.toLowerCase())
+      .slice(0, 4);
+
+    return {
+      ...selectedResult,
+      headline,
+      location,
+      email,
+      website,
+      about,
+      tags
+    };
+  }, [selectedResult]);
+
   const resultLabel = query.trim() ? `Results for "${query.trim()}"` : 'Suggested profiles';
 
   return (
@@ -216,14 +254,14 @@ const SearchVerse = () => {
                           type="button"
                           onClick={() => setSelectedId(result.id)}
                           className={`flex w-full items-center gap-3 rounded-[1.4rem] border px-3 py-3 text-left transition-colors ${
-                            active ? 'border-slate-900 bg-slate-950 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'
+                            active ? 'border-slate-900 bg-white shadow-sm' : 'border-slate-200 bg-white hover:bg-slate-50'
                           }`}
                         >
                           <ProfileAvatar result={result} />
                           <div className="min-w-0 flex-1">
-                            <div className={`truncate text-sm font-black ${active ? 'text-white' : 'text-slate-950'}`}>{result.displayName}</div>
-                            <div className={`mt-0.5 truncate text-xs font-semibold ${active ? 'text-slate-300' : 'text-slate-500'}`}>{result.headline || 'Profile'}</div>
-                            <div className={`mt-1 truncate text-xs ${active ? 'text-slate-400' : 'text-slate-400'}`}>{result.location || 'Location not added yet'}</div>
+                            <div className="truncate text-sm font-black text-slate-950">{result.displayName}</div>
+                            <div className="mt-0.5 truncate text-xs font-semibold text-slate-500">{result.headline || 'Profile'}</div>
+                            <div className="mt-1 truncate text-xs text-slate-400">{result.location || 'Location not added yet'}</div>
                           </div>
                           <VersePill type={result.accountType} />
                         </button>
@@ -241,31 +279,26 @@ const SearchVerse = () => {
                 <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">
                   {error}
                 </div>
-              ) : selectedResult ? (
+              ) : profilePreview ? (
                 <div className="flex h-full flex-col">
-                  <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                  <div className="flex flex-col gap-5">
                     <div className="flex items-start gap-4">
-                      <ProfileAvatar result={selectedResult} size="lg" />
+                      <ProfileAvatar result={profilePreview} size="lg" />
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-3xl font-black tracking-[-0.03em] text-slate-950">{selectedResult.displayName}</h2>
-                          <VersePill type={selectedResult.accountType} />
+                          <h2 className="text-3xl font-black tracking-[-0.03em] text-slate-950">{profilePreview.displayName}</h2>
+                          <VersePill type={profilePreview.accountType} />
                         </div>
-                        <p className="mt-2 text-base font-bold text-slate-600">{selectedResult.headline || 'Profile overview'}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {(selectedResult.tags || []).slice(0, 6).map((tag) => (
+                        <p className="mt-2 text-base font-bold text-slate-600">{profilePreview.headline}</p>
+                        {profilePreview.tags.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {profilePreview.tags.map((tag) => (
                             <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-slate-600">
                               {tag}
                             </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-right">
-                      <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Availability</div>
-                      <div className={`mt-2 text-sm font-black ${selectedResult.online ? 'text-emerald-600' : 'text-slate-700'}`}>
-                        {selectedResult.online ? 'Online now' : 'Available on platform'}
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -277,7 +310,7 @@ const SearchVerse = () => {
                         Location
                       </div>
                       <div className="mt-3 text-sm font-bold leading-6 text-slate-900">
-                        {selectedResult.location || 'Location not shared yet'}
+                        {profilePreview.location || 'Location not shared yet'}
                       </div>
                     </div>
 
@@ -287,7 +320,7 @@ const SearchVerse = () => {
                         Contact
                       </div>
                       <div className="mt-3 break-all text-sm font-bold leading-6 text-slate-900">
-                        {selectedResult.email || 'Email not shared'}
+                        {profilePreview.email || 'Email not shared'}
                       </div>
                     </div>
 
@@ -297,7 +330,7 @@ const SearchVerse = () => {
                         Website
                       </div>
                       <div className="mt-3 break-all text-sm font-bold leading-6 text-slate-900">
-                        {selectedResult.website || 'Website not shared'}
+                        {profilePreview.website || 'Website not shared'}
                       </div>
                     </div>
                   </div>
@@ -308,24 +341,24 @@ const SearchVerse = () => {
                       Profile summary
                     </div>
                     <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-slate-700">
-                      {selectedResult.about || 'This profile has not added a detailed summary yet. SearchVerse still shows their name, role, and discovery details so users can find the right profile quickly.'}
+                      {profilePreview.about || 'This profile has not added a detailed public summary yet.'}
                     </p>
                   </div>
 
                   <div className="mt-8 flex flex-wrap gap-3">
                     <button
                       type="button"
-                      onClick={() => navigate('/verse-feed')}
+                      onClick={() => profilePreview?.ownerId && navigate(`/member-profile/${profilePreview.ownerId}`)}
                       className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800"
                     >
-                      Open VerseFeed
+                      Open Profile
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate('/profile-verse')}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900 hover:bg-slate-50"
+                      onClick={() => navigate('/verse-feed')}
+                      className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-800 hover:bg-slate-100"
                     >
-                      Open My Profile
+                      Back to VerseFeed
                     </button>
                   </div>
                 </div>

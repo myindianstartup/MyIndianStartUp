@@ -520,8 +520,20 @@ const VerseFeed = () => {
   ];
   const activeSubscription = ['active', 'trialing', 'paid'].includes(String(member?.subscription_status || '').toLowerCase());
   const hasLivePosts = posts.length > 0;
-  const visibleRecommendations = recommendations.length ? recommendations : showcaseRecommendations;
   const visibleFollowing = connections.following || [];
+  const visibleFollowers = connections.followers || [];
+  const connectedMembers = useMemo(() => {
+    const seen = new Set();
+    return [...visibleFollowing, ...visibleFollowers].filter((item) => {
+      if (!item?.id) return false;
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, [visibleFollowers, visibleFollowing]);
+  const connectionStats = useMemo(() => ({
+    totalConnections: connectedMembers.length
+  }), [connectedMembers.length]);
 
   useEffect(() => {
     const loadFeed = async () => {
@@ -649,7 +661,7 @@ const VerseFeed = () => {
               <Sparkles size={18} className="text-blue-600" />
               <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-blue-600">VerseFeed</span>
             </div>
-            <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-4xl">
+            <h1 className="mt-1 text-[2rem] font-black tracking-[-0.04em] text-slate-950 sm:text-3xl md:text-4xl">
               What's happening in the Verse
             </h1>
             <p className="mt-1 text-sm font-semibold text-slate-500">
@@ -663,7 +675,7 @@ const VerseFeed = () => {
             {activeSubscription && (
               <>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
                     {filters.map((filter) => (
                       <button
                         key={filter.key}
@@ -677,7 +689,7 @@ const VerseFeed = () => {
                       </button>
                     ))}
                   </div>
-                  <div className="relative flex-1 sm:max-w-xs">
+                  <div className="relative w-full sm:max-w-xs">
                     <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
@@ -700,9 +712,45 @@ const VerseFeed = () => {
             {!activeSubscription ? (
               <MembershipRequiredNotice />
             ) : loading ? (
-              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-8 text-sm font-bold text-slate-500">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Loading VerseFeed...
+              <div className="space-y-5">
+                <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-slate-200" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-40 rounded-full bg-slate-200" />
+                        <div className="h-3 w-28 rounded-full bg-slate-100" />
+                      </div>
+                    </div>
+                    <div className="mt-5 space-y-3">
+                      <div className="h-4 w-full rounded-full bg-slate-100" />
+                      <div className="h-4 w-10/12 rounded-full bg-slate-100" />
+                    </div>
+                    <div className="mt-5 h-72 rounded-[1.5rem] bg-gradient-to-br from-slate-100 to-slate-50" />
+                    <div className="mt-5 flex items-center gap-6">
+                      <div className="h-4 w-16 rounded-full bg-slate-100" />
+                      <div className="h-4 w-16 rounded-full bg-slate-100" />
+                      <div className="h-4 w-16 rounded-full bg-slate-100" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-slate-200" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-36 rounded-full bg-slate-200" />
+                        <div className="h-3 w-24 rounded-full bg-slate-100" />
+                      </div>
+                    </div>
+                    <div className="mt-5 space-y-3">
+                      <div className="h-4 w-11/12 rounded-full bg-slate-100" />
+                      <div className="h-4 w-8/12 rounded-full bg-slate-100" />
+                    </div>
+                    <div className="mt-5 h-64 rounded-[1.5rem] bg-gradient-to-br from-blue-50 to-white" />
+                  </div>
+                </div>
               </div>
             ) : error ? (
               error === 'FEED_UNAVAILABLE' ? <FeedUnavailableNotice /> : (
@@ -731,8 +779,8 @@ const VerseFeed = () => {
             )}
           </div>
 
-          <aside className="hidden lg:block">
-            <div className="sticky top-28 w-[330px] space-y-4 xl:w-[350px]">
+          <aside className="order-last lg:order-none">
+            <div className="space-y-4 lg:sticky lg:top-28 lg:w-[330px] xl:w-[350px]">
             <div className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500">
@@ -743,31 +791,50 @@ const VerseFeed = () => {
                   Live
                 </span>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-slate-50 p-3">
-                  <div className="text-2xl font-black text-slate-950">{connections.stats?.following || 0}</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Following</div>
-                </div>
-                <div className="rounded-2xl bg-slate-50 p-3">
-                  <div className="text-2xl font-black text-slate-950">{connections.stats?.followers || 0}</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Followers</div>
-                </div>
+              <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                <div className="text-2xl font-black text-slate-950">{connectionStats.totalConnections}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Connections</div>
               </div>
               <div className="mt-4 space-y-3">
-                {visibleFollowing.slice(0, 3).map((item) => (
-                  <div key={item.id} className="flex items-center gap-3">
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-xs font-black text-white ${item.accountType === 'creator' ? 'bg-blue-600' : 'bg-orange-500'}`}>
-                      {item.avatarUrl ? <img src={item.avatarUrl} alt={item.name} className="h-full w-full object-cover" /> : initialsFrom(item.name)}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-xs font-black text-slate-900">{item.name}</div>
-                      <div className="truncate text-[10px] font-semibold text-slate-400">{item.category || item.city || 'Connected member'}</div>
+                {connectedMembers.length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <div className="flex items-center">
+                      <div className="flex -space-x-2">
+                        {connectedMembers.slice(0, 5).map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => item.id && navigate(`/member-profile/${item.id}`)}
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white text-xs font-black text-white ${item.accountType === 'creator' ? 'bg-blue-600' : 'bg-orange-500'}`}
+                          >
+                            {item.avatarUrl ? <img src={item.avatarUrl} alt={item.name} className="h-full w-full object-cover" /> : initialsFrom(item.name)}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="ml-4 min-w-0 flex-1">
+                        <div className="truncate text-sm font-black text-slate-900">
+                          {connectedMembers.slice(0, 3).map((item) => item.name).join(', ')}
+                          {connectedMembers.length > 3 ? ` and ${connectedMembers.length - 3} more` : ''}
+                        </div>
+                        <div className="truncate text-xs font-semibold text-slate-500">
+                          Connected businesses and creators in your network
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ))}
-                {!visibleFollowing.length && (
+                )}
+                {connectedMembers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/search-verse')}
+                    className="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-800 transition hover:bg-slate-100"
+                  >
+                    Explore Connections
+                  </button>
+                )}
+                {!connectedMembers.length && (
                   <p className="rounded-2xl bg-slate-50 px-3 py-3 text-xs font-semibold leading-5 text-slate-500">
-                    Start connecting with creators and businesses to build your network.
+                    Start connecting with creators and businesses to build your connection circle.
                   </p>
                 )}
                 {connectionNotice && (
@@ -775,42 +842,6 @@ const VerseFeed = () => {
                     {connectionNotice}
                   </p>
                 )}
-              </div>
-            </div>
-
-            <div className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
-              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500">
-                <Users size={13} />
-                People You May Know
-              </div>
-              <div className="mt-4 space-y-4">
-                {visibleRecommendations.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black text-white ${item.accountType === 'creator' ? 'bg-blue-600' : 'bg-orange-500'}`}>
-                        {item.authorAvatarUrl ? <img src={item.authorAvatarUrl} alt={item.authorName} className="h-full w-full object-cover" /> : initialsFrom(item.authorName)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-black leading-tight text-slate-950">{item.authorName}</div>
-                        <div className="mt-0.5 truncate text-[10px] font-semibold text-slate-400">{item.reason}</div>
-                        <div className="mt-1"><VerseBadge type={item.accountType} /></div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleFollow(item.authorId, !(item.isFollowing || item.viewer?.followingAuthor))}
-                      disabled={!item.authorId || item.viewer?.ownPost}
-                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-bold transition ${
-                        item.isFollowing || item.viewer?.followingAuthor
-                          ? 'border-slate-200 bg-slate-100 text-slate-500'
-                          : 'border-blue-200 text-blue-600 hover:bg-blue-50'
-                      } disabled:cursor-not-allowed disabled:opacity-60`}
-                    >
-                      {item.isFollowing || item.viewer?.followingAuthor ? <UserCheck size={12} /> : <UserPlus size={12} />}
-                      {item.isFollowing || item.viewer?.followingAuthor ? 'Connected' : 'Connect'}
-                    </button>
-                  </div>
-                ))}
               </div>
             </div>
 

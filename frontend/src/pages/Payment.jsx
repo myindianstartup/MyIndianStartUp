@@ -241,7 +241,7 @@ const Payment = () => {
               </p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                {hasActiveMembership
+                {(hasActiveMembership
                   ? [
                       ['Membership active', 'Your annual access is already enabled'],
                       ['No duplicate payment', 'This page now stops repeat purchase confusion'],
@@ -254,7 +254,7 @@ const Payment = () => {
                       ['Coupon ready', 'Backend validated discounts'],
                       ['Razorpay ready', 'Order, invoice, transaction tables']
                     ]
-                .map(([title, copy]) => (
+                ).map(([title, copy]) => (
                   <div key={title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <Check className="h-5 w-5 text-emerald-600" />
                     <div className="mt-3 text-sm font-black text-slate-900">{title}</div>

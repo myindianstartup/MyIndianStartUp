@@ -222,14 +222,17 @@ const Navbar = () => {
             : 'border-b border-transparent bg-white/95 py-4 backdrop-blur-md'
         }`}
       >
-        <div className="mx-auto flex max-w-[1540px] items-center justify-between gap-5 px-5 sm:px-6 lg:px-10 xl:px-12">
+        <div className="mx-auto flex max-w-[1540px] items-center justify-between gap-3 px-4 sm:gap-5 sm:px-6 lg:px-10 xl:px-12">
           <Link
             to="/"
             className="flex shrink-0 items-center gap-2.5"
             data-testid="nav-logo"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <BrandLogo />
+            <BrandLogo
+              markClassName="h-9 w-9 sm:h-11 sm:w-11"
+              textClassName="text-lg text-slate-950 sm:text-xl"
+            />
           </Link>
 
           {isAdminUser ? (
@@ -382,7 +385,7 @@ const Navbar = () => {
       />
 
       <div
-        className={`fixed top-0 right-0 z-50 flex h-full w-[300px] transform flex-col gap-8 bg-white p-8 shadow-2xl transition-all duration-300 ease-in-out md:hidden ${
+        className={`fixed top-0 right-0 z-50 flex h-full w-full max-w-[360px] transform flex-col gap-6 bg-white p-6 shadow-2xl transition-all duration-300 ease-in-out md:hidden ${
           mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -435,7 +438,7 @@ const Navbar = () => {
           </div>
         )}
 
-        <div className="mt-8 flex flex-col gap-6">
+        <div className="mt-4 flex flex-col gap-5">
           {navItems.map((item) => (
             <Link
               key={item.path}

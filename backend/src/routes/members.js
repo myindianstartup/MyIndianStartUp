@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { mkdir, readFile, writeFile } from 'fs/promises';
+import path from 'path';
 import { requireAuth } from '../middleware/auth.js';
 import { supabaseAdmin } from '../lib/supabase.js';
 
@@ -10,6 +12,126 @@ const memberSchema = z.object({
 });
 
 export const membersRouter = Router();
+
+const fallbackStorageDir = path.resolve(process.cwd(), 'storage');
+const memberSettingsFallbackPath = path.join(fallbackStorageDir, 'member-settings.json');
+
+const defaultMemberSettings = () => ({
+  notifications: {
+    dailyPostReminder: true,
+    discoveryUpdates: true,
+    membershipNotices: true
+  }
+});
+
+const isMissingDatabaseFeature = (error) => {
+  const message = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+  return [
+    '42p01',
+    '42703',
+    'pgrst106',
+    'does not exist',
+    'could not find',
+    'schema must be one of'
+  ].some((pattern) => message.includes(pattern));
+};
+
+const memberSettingsSchema = z.object({
+  notifications: z.object({
+    dailyPostReminder: z.boolean(),
+    discoveryUpdates: z.boolean(),
+    membershipNotices: z.boolean()
+  })
+});
+
+const readMemberSettingsFallback = async () => {
+  try {
+    const raw = await readFile(memberSettingsFallbackPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const writeMemberSettingsFallback = async (settingsByUser) => {
+  await mkdir(fallbackStorageDir, { recursive: true });
+  await writeFile(memberSettingsFallbackPath, JSON.stringify(settingsByUser, null, 2));
+};
+
+const readSettingsFromDb = async (userId) => {
+  const { data, error } = await supabaseAdmin
+    .schema('core')
+    .from('member_settings')
+    .select('settings')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return null;
+    throw error;
+  }
+
+  return data?.settings || null;
+};
+
+const writeSettingsToDb = async (userId, settings) => {
+  const { data, error } = await supabaseAdmin
+    .schema('core')
+    .from('member_settings')
+    .upsert({
+      user_id: userId,
+      settings,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' })
+    .select('settings')
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return null;
+    throw error;
+  }
+
+  return data?.settings || settings;
+};
+
+const getMemberSettings = async (userId) => {
+  const databaseSettings = await readSettingsFromDb(userId);
+  if (databaseSettings) {
+    return memberSettingsSchema.parse({
+      ...defaultMemberSettings(),
+      ...databaseSettings,
+      notifications: {
+        ...defaultMemberSettings().notifications,
+        ...(databaseSettings.notifications || {})
+      }
+    });
+  }
+
+  const fallback = await readMemberSettingsFallback();
+  const fallbackSettings = fallback[userId];
+  if (!fallbackSettings) return defaultMemberSettings();
+
+  return memberSettingsSchema.parse({
+    ...defaultMemberSettings(),
+    ...fallbackSettings,
+    notifications: {
+      ...defaultMemberSettings().notifications,
+      ...(fallbackSettings.notifications || {})
+    }
+  });
+};
+
+const saveMemberSettings = async (userId, settings) => {
+  const normalized = memberSettingsSchema.parse(settings);
+  const databaseSettings = await writeSettingsToDb(userId, normalized);
+  if (databaseSettings) return normalized;
+
+  const fallback = await readMemberSettingsFallback();
+  fallback[userId] = normalized;
+  await writeMemberSettingsFallback(fallback);
+  return normalized;
+};
 
 const getMediaPublicUrl = async (assetId) => {
   if (!assetId) return '';
@@ -140,6 +262,25 @@ membersRouter.put('/me', requireAuth, async (req, res, next) => {
     }
 
     res.json({ member: await attachProfileImage(data) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+membersRouter.get('/settings', requireAuth, async (req, res, next) => {
+  try {
+    const settings = await getMemberSettings(req.user.id);
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+});
+
+membersRouter.put('/settings', requireAuth, async (req, res, next) => {
+  try {
+    const settings = memberSettingsSchema.parse(req.body);
+    const saved = await saveMemberSettings(req.user.id, settings);
+    res.json({ settings: saved });
   } catch (error) {
     next(error);
   }

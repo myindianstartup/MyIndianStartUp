@@ -16,6 +16,7 @@ import PostVerse from "@/pages/PostVerse";
 import SearchVerse from "@/pages/SearchVerse";
 import VerseFeed from "@/pages/VerseFeed";
 import ProfileVerse from "@/pages/ProfileVerse";
+import MemberProfile from "@/pages/MemberProfile";
 import Settings from "@/pages/Settings";
 import Login from "@/pages/Login";
 import SignIn from "@/pages/SignIn";
@@ -88,6 +89,7 @@ function App() {
           <Route path="/search-verse" element={<ProtectedRoute memberOnly requiresActiveSubscription><Layout><SearchVerse /></Layout></ProtectedRoute>} />
           <Route path="/verse-feed" element={<ProtectedRoute memberOnly><Layout><VerseFeed /></Layout></ProtectedRoute>} />
           <Route path="/profile-verse" element={<ProtectedRoute memberOnly><Layout><ProfileVerse /></Layout></ProtectedRoute>} />
+          <Route path="/member-profile/:userId" element={<ProtectedRoute memberOnly><Layout><MemberProfile /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute memberOnly><Layout><Settings /></Layout></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signin" element={<SignIn />} />

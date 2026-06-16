@@ -5,7 +5,6 @@ import {
   Building2,
   Globe,
   Handshake,
-  Headphones,
   HelpCircle,
   Mail,
   MessageSquare,
@@ -366,13 +365,10 @@ const JoinUs = () => {
                 <UserRound className="h-3.5 w-3.5" />
                 <span>CreatorVerse</span>
               </Link>
-              <Link
-                to="/pricing"
-                className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100"
-              >
-                <Headphones className="h-3.5 w-3.5" />
-                <span>View pricing</span>
-              </Link>
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>Annual membership access</span>
+              </div>
             </div>
           </div>
         </div>

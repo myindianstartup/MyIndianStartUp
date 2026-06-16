@@ -4,11 +4,10 @@ import {
   CheckCircle2,
   CreditCard,
   HelpCircle,
+  Loader2,
   LockKeyhole,
-  MonitorSmartphone,
   ShieldCheck,
   SlidersHorizontal,
-  UserRound,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiRequest } from '@/lib/apiClient';
@@ -16,28 +15,11 @@ import WorkspaceSidebar from '@/components/dashboard/WorkspaceSidebar';
 
 const settingTabs = [
   {
-    id: 'account',
-    label: 'Account',
-    icon: UserRound,
-    title: 'Account identity',
-    description: 'Manage the core information connected to your MyIndianStartup account.',
-    rows: [
-      ['Account type', 'Locked after registration to keep BusinessVerse and CreatorVerse data clean.'],
-      ['Login email', 'Used for secure sign in, notifications, and account recovery.'],
-      ['Workspace access', 'Your account opens the correct BusinessVerse or CreatorVerse experience automatically.']
-    ]
-  },
-  {
     id: 'notifications',
     label: 'Notifications',
     icon: Bell,
     title: 'Notification preferences',
-    description: 'Choose how the platform should inform you about visibility, activity, and membership updates.',
-    rows: [
-      ['Daily post reminder', 'Remind before the 24-hour posting slot resets.'],
-      ['Discovery updates', 'Summarize discovery reach and search activity.'],
-      ['Membership notices', 'Send reminders when plan access or billing status changes.']
-    ]
+    description: 'Choose which email notifications you want to receive from the platform.'
   },
   {
     id: 'privacy',
@@ -46,9 +28,8 @@ const settingTabs = [
     title: 'Visibility and privacy',
     description: 'Control what people see before they contact you for collaboration.',
     rows: [
-      ['Public visibility', 'Show your verified BusinessVerse or CreatorVerse presence in discovery.'],
-      ['Contact visibility', 'Display contact details only to logged-in members.'],
-      ['Lead access', 'Allow qualified members to discover and reach your workspace.']
+      ['Public visibility', 'Your profile can appear in discovery for logged-in members.'],
+      ['Contact visibility', 'Keep direct contact details limited to platform contexts.']
     ]
   },
   {
@@ -56,11 +37,10 @@ const settingTabs = [
     label: 'Membership',
     icon: CreditCard,
     title: 'Membership and billing',
-    description: 'Review annual access and subscription status for the platform.',
+    description: 'Review plan information and billing rules.',
     rows: [
-      ['Annual plan', 'Rs 999/year for one membership path.'],
-      ['Commission', 'No commission, no lead charges, and no success fees.'],
-      ['Payment owner', 'Membership payments are processed under 8TechBurp.']
+      ['Annual plan', 'Rs 999 per year for your active membership path.'],
+      ['Billing model', 'No commission, no lead charges, and no success fees.']
     ]
   },
   {
@@ -70,9 +50,8 @@ const settingTabs = [
     title: 'Security controls',
     description: 'Keep account access clean and safe across devices.',
     rows: [
-      ['Password access', 'Use Supabase authentication for secure email/password login.'],
-      ['Google sign in', 'Google login connects to the same locked account type.'],
-      ['Session control', 'Logout clears local account mode and session state.']
+      ['Sign-in method', 'Secure access through Supabase email/password or Google sign-in.'],
+      ['Session control', 'Logout clears the local session and account mode.']
     ]
   },
   {
@@ -80,27 +59,98 @@ const settingTabs = [
     label: 'Help',
     icon: HelpCircle,
     title: 'Help and support',
-    description: 'Get help for account setup, posting rules, payments, and collaboration issues.',
+    description: 'Find the right place for profile, posting, or membership help.',
     rows: [
-      ['Account setup', 'Complete your business or creator details during onboarding and membership setup.'],
-      ['Posting rule', 'One image or one video every 24 hours.'],
+      ['Profile editing', 'Use the Profile section to change photo, details, and contact data.'],
       ['Support contact', 'Use the Contact page for technical or membership help.']
     ]
   }
 ];
 
+const defaultSettings = {
+  notifications: {
+    dailyPostReminder: true,
+    discoveryUpdates: true,
+    membershipNotices: true
+  }
+};
+
+const notificationItems = [
+  {
+    key: 'dailyPostReminder',
+    title: 'Daily post reminder',
+    copy: 'Email me before the 24-hour posting slot resets.'
+  },
+  {
+    key: 'discoveryUpdates',
+    title: 'Discovery updates',
+    copy: 'Email me when profile reach and search activity matters.'
+  },
+  {
+    key: 'membershipNotices',
+    title: 'Membership notices',
+    copy: 'Email me about plan status, billing, and renewal updates.'
+  }
+];
+
+const buildSuggestedActions = ({ member, notifications }) => {
+  const enabledCount = Object.values(notifications || {}).filter(Boolean).length;
+  const accountLabel = member?.account_type === 'creator' ? 'creator' : 'business';
+
+  return [
+    {
+      title: 'Keep your profile complete',
+      copy: accountLabel === 'creator'
+        ? 'Update your photo, skills, city, and portfolio so businesses can trust your profile faster.'
+        : 'Update your logo, business category, location, and website so creators can understand your business faster.'
+    },
+    {
+      title: 'Use notification controls smartly',
+      copy: enabledCount
+        ? `${enabledCount} email alerts are active right now. Keep only the updates that help you post, respond, and renew on time.`
+        : 'Turn on the alerts you actually need so the platform can remind you about posting, discovery, and membership updates.'
+    },
+    {
+      title: 'Review membership and security monthly',
+      copy: 'Check your active plan, sign-in email, and session safety regularly so your workspace stays ready for daily use.'
+    }
+  ];
+};
+
+const Toggle = ({ checked, onChange, disabled = false }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    onClick={() => !disabled && onChange(!checked)}
+    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+      checked ? 'bg-blue-600' : 'bg-slate-300'
+    } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+  >
+    <span
+      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+        checked ? 'translate-x-6' : 'translate-x-1'
+      }`}
+    />
+  </button>
+);
+
 const Settings = () => {
-  const { member, user, token, refreshMember, session } = useAuth();
-  const [activeTab, setActiveTab] = useState('account');
-  const [profileData, setProfileData] = useState(null);
-  const [formState, setFormState] = useState({});
+  const { member, user, token } = useAuth();
+  const [activeTab, setActiveTab] = useState('notifications');
+  const [settings, setSettings] = useState(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [error, setError] = useState('');
-  const activeSetting = settingTabs.find((tab) => tab.id === activeTab) || settingTabs[0];
-  const isCreator = (member?.account_type || profileData?.member?.account_type) === 'creator';
-  const liveProfile = isCreator ? profileData?.creatorProfile : profileData?.businessProfile;
+  const activeSetting = useMemo(
+    () => settingTabs.find((tab) => tab.id === activeTab) || settingTabs[0],
+    [activeTab]
+  );
+  const suggestedActions = useMemo(
+    () => buildSuggestedActions({ member, notifications: settings.notifications }),
+    [member, settings.notifications]
+  );
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -108,29 +158,15 @@ const Settings = () => {
       setLoading(true);
       setError('');
       try {
-        const data = await apiRequest('/api/profiles/me', { token });
-        setProfileData(data);
-        const memberData = data.member || {};
-        const businessProfile = data.businessProfile || {};
-        const creatorProfile = data.creatorProfile || {};
-        const creator = memberData.account_type === 'creator';
-        const profile = creator ? creatorProfile : businessProfile;
-
-        setFormState({
-          fullName: creator ? (profile.full_name || memberData.full_name || '') : (profile.business_name || memberData.full_name || ''),
-          email: memberData.email || '',
-          mobileNumber: memberData.mobile_number || '',
-          city: profile.city || '',
-          state: profile.state || '',
-          website: creator ? (profile.portfolio_url || '') : (profile.website || ''),
-          industry: businessProfile.industry || '',
-          about: creator ? (profile.about_me || '') : (profile.about_company || ''),
-          skills: Array.isArray(creatorProfile.skills) ? creatorProfile.skills.join(', ') : '',
-          contactEmail: profile.contact_details?.email || memberData.email || '',
-          contactMobile: profile.contact_details?.mobile || memberData.mobile_number || ''
+        const data = await apiRequest('/api/members/settings', { token });
+        setSettings({
+          notifications: {
+            ...defaultSettings.notifications,
+            ...(data.settings?.notifications || {})
+          }
         });
       } catch (requestError) {
-        setError(requestError.message || 'Could not load settings data.');
+        setError(requestError.message || 'Could not load settings.');
       } finally {
         setLoading(false);
       }
@@ -139,63 +175,43 @@ const Settings = () => {
     loadSettings();
   }, [token]);
 
-  const updateField = (field, value) => {
+  const updateNotification = (key, value) => {
     setSaveMessage('');
-    setFormState((current) => ({ ...current, [field]: value }));
+    setSettings((current) => ({
+      ...current,
+      notifications: {
+        ...current.notifications,
+        [key]: value
+      }
+    }));
   };
 
-  const saveAccountSettings = async () => {
+  const saveNotifications = async () => {
     if (!token) return;
     setSaving(true);
     setSaveMessage('');
     setError('');
     try {
-      await apiRequest('/api/members/me', {
+      const payload = {
+        notifications: {
+          ...defaultSettings.notifications,
+          ...(settings.notifications || {})
+        }
+      };
+      const data = await apiRequest('/api/members/settings', {
         method: 'PUT',
         token,
-        body: {
-          fullName: formState.fullName,
-          mobileNumber: formState.mobileNumber || '',
-          accountType: isCreator ? 'creator' : 'business'
+        body: payload
+      });
+      setSettings({
+        notifications: {
+          ...defaultSettings.notifications,
+          ...(data.settings?.notifications || {})
         }
       });
-
-      await apiRequest(isCreator ? '/api/profiles/creator' : '/api/profiles/business', {
-        method: 'PUT',
-        token,
-        body: isCreator ? {
-          fullName: formState.fullName,
-          skills: formState.skills.split(',').map((item) => item.trim()).filter(Boolean),
-          city: formState.city,
-          state: formState.state,
-          portfolioUrl: formState.website || '',
-          aboutMe: formState.about || '',
-          contactDetails: {
-            email: formState.contactEmail || '',
-            mobile: formState.contactMobile || ''
-          }
-        } : {
-          businessName: formState.fullName,
-          industry: formState.industry,
-          city: formState.city,
-          state: formState.state,
-          website: formState.website || '',
-          aboutCompany: formState.about || '',
-          contactDetails: {
-            email: formState.contactEmail || '',
-            mobile: formState.contactMobile || ''
-          }
-        }
-      });
-
-      const refreshed = await apiRequest('/api/profiles/me', { token });
-      setProfileData(refreshed);
-      if (session) {
-        await refreshMember(session);
-      }
-      setSaveMessage('Settings saved successfully.');
+      setSaveMessage('Notification settings saved successfully.');
     } catch (requestError) {
-      setError(requestError.message || 'Could not save settings.');
+      setError(requestError.message || 'Could not save notification settings.');
     } finally {
       setSaving(false);
     }
@@ -203,7 +219,7 @@ const Settings = () => {
 
   return (
     <main className="min-h-screen bg-[#f8fbff] pt-28 text-slate-950">
-      <section className="mx-auto max-w-7xl px-5 pb-12 md:px-10">
+      <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-5 md:px-10">
         <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:items-start">
           <div>
             <WorkspaceSidebar />
@@ -215,7 +231,7 @@ const Settings = () => {
                 <div className="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-500">Control center</div>
                 <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] text-slate-950">Settings</h1>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Manage account access, visibility, notifications, billing, and help.
+                  Manage email notifications, privacy, membership, security, and support.
                 </p>
               </div>
 
@@ -244,124 +260,45 @@ const Settings = () => {
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-600">
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     {activeSetting.label}
                   </div>
-                  <h2 className="mt-4 text-4xl font-black tracking-[-0.05em] text-slate-800">{activeSetting.title}</h2>
-                  <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{activeSetting.description}</p>
+                  <h2 className="mt-4 text-3xl font-black tracking-[-0.05em] text-slate-800 sm:text-4xl">{activeSetting.title}</h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">{activeSetting.description}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3">
+                <div className="w-full rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 sm:w-auto">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Signed in as</div>
-                  <div className="mt-1 max-w-[240px] truncate text-sm font-black text-slate-800">{user?.email || member?.email || 'Member'}</div>
+                  <div className="mt-1 truncate text-sm font-black text-slate-800 sm:max-w-[240px]">{user?.email || member?.email || 'Member'}</div>
                 </div>
               </div>
 
               {loading ? (
-                <div className="mt-8 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-sm font-bold text-slate-500">
-                  Loading live settings...
+                <div className="mt-8 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-500">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Loading settings...
                 </div>
-              ) : activeTab === 'account' ? (
-                <div className="mt-8 space-y-5">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="grid gap-2">
-                      <span className="text-sm font-black text-slate-800">{isCreator ? 'Full name' : 'Business name'}</span>
-                      <input
-                        value={formState.fullName || ''}
-                        onChange={(event) => updateField('fullName', event.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
-                      />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-black text-slate-800">Login email</span>
-                      <input
-                        value={formState.email || ''}
-                        disabled
-                        className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-500 outline-none"
-                      />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-black text-slate-800">Mobile number</span>
-                      <input
-                        value={formState.mobileNumber || ''}
-                        onChange={(event) => updateField('mobileNumber', event.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
-                      />
-                    </label>
-                    {!isCreator && (
-                      <label className="grid gap-2">
-                        <span className="text-sm font-black text-slate-800">Industry</span>
-                        <input
-                          value={formState.industry || ''}
-                          onChange={(event) => updateField('industry', event.target.value)}
-                          className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
+              ) : activeTab === 'notifications' ? (
+                <div className="mt-8 space-y-4">
+                  {notificationItems.map((item) => (
+                    <div key={item.key} className="rounded-[1.5rem] border border-slate-200 bg-[#f8fafc] p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h3 className="text-lg font-black tracking-[-0.03em] text-slate-800">{item.title}</h3>
+                          <p className="mt-2 text-sm leading-6 text-slate-600">{item.copy}</p>
+                          <div className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Email</div>
+                        </div>
+                        <Toggle
+                          checked={Boolean(settings.notifications?.[item.key])}
+                          onChange={(value) => updateNotification(item.key, value)}
+                          disabled={saving}
                         />
-                      </label>
-                    )}
-                    <label className="grid gap-2">
-                      <span className="text-sm font-black text-slate-800">City</span>
-                      <input
-                        value={formState.city || ''}
-                        onChange={(event) => updateField('city', event.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
-                      />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-black text-slate-800">State</span>
-                      <input
-                        value={formState.state || ''}
-                        onChange={(event) => updateField('state', event.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
-                      />
-                    </label>
-                    <label className="grid gap-2 md:col-span-2">
-                      <span className="text-sm font-black text-slate-800">{isCreator ? 'Portfolio URL' : 'Website URL'}</span>
-                      <input
-                        value={formState.website || ''}
-                        onChange={(event) => updateField('website', event.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
-                      />
-                    </label>
-                    {isCreator && (
-                      <label className="grid gap-2 md:col-span-2">
-                        <span className="text-sm font-black text-slate-800">Skills</span>
-                        <input
-                          value={formState.skills || ''}
-                          onChange={(event) => updateField('skills', event.target.value)}
-                          placeholder="Video editing, photography, branding"
-                          className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
-                        />
-                      </label>
-                    )}
-                    <label className="grid gap-2 md:col-span-2">
-                      <span className="text-sm font-black text-slate-800">{isCreator ? 'About me' : 'About company'}</span>
-                      <textarea
-                        rows={4}
-                        value={formState.about || ''}
-                        onChange={(event) => updateField('about', event.target.value)}
-                        className="resize-none rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
-                      />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-black text-slate-800">Contact email</span>
-                      <input
-                        value={formState.contactEmail || ''}
-                        onChange={(event) => updateField('contactEmail', event.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
-                      />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-black text-slate-800">Contact mobile</span>
-                      <input
-                        value={formState.contactMobile || ''}
-                        onChange={(event) => updateField('contactMobile', event.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-300"
-                      />
-                    </label>
-                  </div>
+                      </div>
+                    </div>
+                  ))}
 
                   {error && <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">{error}</div>}
                   {saveMessage && <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{saveMessage}</div>}
@@ -370,16 +307,16 @@ const Settings = () => {
                     <div>
                       <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Backend connected</div>
                       <p className="mt-1 text-sm font-semibold text-slate-600">
-                        This section saves directly into your live member and profile records.
+                        These notification preferences are now loaded and saved through your member settings API.
                       </p>
                     </div>
                     <button
                       type="button"
-                      onClick={saveAccountSettings}
+                      onClick={saveNotifications}
                       disabled={saving}
                       className="rounded-full bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-700 disabled:opacity-60"
                     >
-                      {saving ? 'Saving...' : 'Save settings'}
+                      {saving ? 'Saving...' : 'Save preferences'}
                     </button>
                   </div>
                 </div>
@@ -387,41 +324,26 @@ const Settings = () => {
                 <div className="mt-8 grid gap-4">
                   {activeSetting.rows.map(([title, copy]) => (
                     <div key={title} className="rounded-[1.5rem] border border-slate-200 bg-[#f8fafc] p-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h3 className="text-lg font-black tracking-[-0.03em] text-slate-800">{title}</h3>
-                          <p className="mt-2 text-sm leading-6 text-slate-600">{copy}</p>
-                        </div>
-                        <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 ring-1 ring-slate-200">
-                          Live
-                        </span>
-                      </div>
+                      <h3 className="text-lg font-black tracking-[-0.03em] text-slate-800">{title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{copy}</p>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="mt-8 grid gap-4 md:grid-cols-3">
-                {[
-                  [MonitorSmartphone, 'Device ready', 'Desktop and mobile UI prepared.'],
-                  [ShieldCheck, 'Protected access', 'Login required for dashboard pages.'],
-                  [CreditCard, 'Membership', 'Annual access tracked in account data.']
-                ].map(([Icon, title, copy]) => (
-                  <div key={title} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-                      <Icon className="h-5 w-5" />
+              <div className="mt-8 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-slate-600">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Suggested setup
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  {suggestedActions.map((item) => (
+                    <div key={item.title} className="rounded-[1.4rem] border border-slate-200 bg-white p-4">
+                      <h3 className="text-sm font-black text-slate-800">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{item.copy}</p>
                     </div>
-                    <h3 className="mt-4 text-base font-black text-slate-800">{title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">{copy}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 rounded-[1.5rem] border border-slate-200 bg-slate-700 p-5 text-white">
-                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">Production note</div>
-                <p className="mt-2 text-sm font-semibold leading-6 text-white/80">
-                  Account settings are now connected to the live backend. Additional notification, privacy, billing, and security controls can be connected section-by-section as those rules become active.
-                </p>
+                  ))}
+                </div>
               </div>
             </section>
           </div>

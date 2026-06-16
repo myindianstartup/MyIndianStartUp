@@ -29,6 +29,65 @@ const creatorProfileSchema = z.object({
 
 export const profilesRouter = Router();
 
+profilesRouter.get('/public/:userId', requireAuth, async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+    const [
+      { data: member, error: memberError },
+      { data: business, error: businessError },
+      { data: creator, error: creatorError }
+    ] = await Promise.all([
+      supabaseAdmin.schema('core').from('members').select('id, email, full_name, mobile_number, account_type, subscription_status, created_at, last_active_at').eq('id', userId).maybeSingle(),
+      supabaseAdmin.schema('businessverse').from('profiles').select('*').eq('owner_id', userId).maybeSingle(),
+      supabaseAdmin.schema('creatorverse').from('profiles').select('*').eq('owner_id', userId).maybeSingle()
+    ]);
+
+    if (memberError) throw memberError;
+    if (businessError) throw businessError;
+    if (creatorError) throw creatorError;
+    if (!member) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    const assetIds = [
+      business?.logo_asset_id,
+      creator?.profile_asset_id
+    ].filter(Boolean);
+
+    let assetsById = {};
+    if (assetIds.length) {
+      const { data: assets, error: assetError } = await supabaseAdmin
+        .schema('core')
+        .from('media_assets')
+        .select('id, public_url')
+        .in('id', assetIds);
+
+      if (assetError) throw assetError;
+
+      assetsById = Object.fromEntries((assets || []).map((asset) => [asset.id, asset.public_url]));
+    }
+
+    const online = member?.last_active_at
+      ? Date.now() - new Date(member.last_active_at).getTime() < 5 * 60 * 1000
+      : false;
+
+    res.json({
+      member,
+      online,
+      businessProfile: business ? {
+        ...business,
+        logo_url: assetsById[business.logo_asset_id] || null
+      } : null,
+      creatorProfile: creator ? {
+        ...creator,
+        profile_image_url: assetsById[creator.profile_asset_id] || null
+      } : null
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 profilesRouter.get('/me', requireAuth, async (req, res, next) => {
   try {
     const [
