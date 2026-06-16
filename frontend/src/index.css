@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -57,25 +59,31 @@ code {
     }
     h1, h2, h3, h4, h5, h6 {
         font-family: inherit !important;
-        letter-spacing: -0.015em;
-        font-weight: 750;
+        letter-spacing: 0;
+        font-weight: 800;
     }
 }
 
 @layer utilities {
     .font-black {
-        font-weight: 750;
+        font-weight: 800;
     }
 
     .tracking-\[-0\.05em\],
     .tracking-\[-0\.045em\] {
-        letter-spacing: -0.025em;
+        letter-spacing: 0;
     }
 
     .tracking-\[-0\.04em\],
     .tracking-\[-0\.03em\],
+    .tracking-\[-0\.02em\],
+    .tracking-\[-0\.01em\],
     .tracking-tighter {
-        letter-spacing: -0.018em;
+        letter-spacing: 0;
+    }
+
+    .tracking-tight {
+        letter-spacing: 0;
     }
 }
 

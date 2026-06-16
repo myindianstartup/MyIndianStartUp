@@ -31,7 +31,6 @@ const toneMap = {
 
 const AuthShell = ({
   accent = 'blue',
-  eyebrow,
   title,
   description,
   actionLabel,
@@ -55,12 +54,7 @@ const AuthShell = ({
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
           <div className="grid gap-10 lg:grid-cols-[1fr_0.95fr] lg:items-center">
             <div>
-              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] ${theme.badge}`}>
-                <span className={`h-2 w-2 rounded-full ${accent === 'orange' ? 'bg-orange-500' : accent === 'emerald' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-                {eyebrow}
-              </div>
-
-              <h1 className="mt-4 max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
+              <h1 className="max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
                 {title}
               </h1>
 

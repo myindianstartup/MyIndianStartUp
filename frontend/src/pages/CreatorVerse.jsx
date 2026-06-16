@@ -311,12 +311,7 @@ const CreatorVerse = () => {
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
           <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-blue-700">
-                <span className="h-2 w-2 rounded-full bg-blue-600" />
-                CreatorVerse
-              </div>
-
-              <h1 className="mt-6 max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
+              <h1 className="max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
                 Get discovered by businesses across India.
               </h1>
 
@@ -354,8 +349,7 @@ const CreatorVerse = () => {
       <section className="border-t border-slate-100 bg-white py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Why join CreatorVerse?</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Everything you need to grow your professional presence.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Everything you need to grow your professional presence.</h2>
           </div>
 
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -376,8 +370,7 @@ const CreatorVerse = () => {
       <section className="bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Professionals we welcome</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Join CreatorVerse as a professional.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Join CreatorVerse as a professional.</h2>
           </div>
 
           <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -400,8 +393,7 @@ const CreatorVerse = () => {
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Creator profile preview</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Your professional identity in one place.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Your professional identity in one place.</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
               Build a profile that shows your work, skills, city, portfolio links, and daily posts without exposing private account data.
             </p>
@@ -474,8 +466,7 @@ const CreatorVerse = () => {
           </div>
 
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Daily visibility & marketing</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Promote yourself every day.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Promote yourself every day.</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
               Post one image or one video every 24 hours so your skills stay visible to businesses across India.
             </p>
@@ -486,8 +477,7 @@ const CreatorVerse = () => {
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">How CreatorVerse works</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">From profile to direct collaboration.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">From profile to direct collaboration.</h2>
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-5">
@@ -504,8 +494,7 @@ const CreatorVerse = () => {
       <section className="bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Why creators love MyIndianStartup</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">A cleaner path than traditional platforms.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">A cleaner path than traditional platforms.</h2>
           </div>
 
           <div className="mt-10 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
@@ -538,8 +527,7 @@ const CreatorVerse = () => {
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-8 px-6 md:px-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Pricing</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">CreatorVerse Membership</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">CreatorVerse Membership</h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
               One annual membership for profile listing, daily visibility, business discovery, and direct collaboration.
             </p>
@@ -572,8 +560,7 @@ const CreatorVerse = () => {
           </div>
 
           <div className="rounded-[30px] bg-[linear-gradient(135deg,#0f172a,#11264f)] p-7 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)] md:p-9">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-100">Ready to showcase your skills?</div>
-            <h3 className="mt-3 text-3xl font-black tracking-[-0.04em]">Connect with businesses across India.</h3>
+            <h3 className="text-3xl font-black tracking-[-0.04em]">Connect with businesses across India.</h3>
             <p className="mt-4 text-sm leading-7 text-blue-50/85">
               Join CreatorVerse and make your professional work easier for businesses to discover.
             </p>

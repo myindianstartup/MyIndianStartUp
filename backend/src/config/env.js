@@ -6,7 +6,7 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(5000),
-  FRONTEND_ORIGIN: z.string().default('http://localhost:3000'),
+  FRONTEND_ORIGIN: z.string().default('http://localhost:3000,http://localhost:3001'),
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
@@ -22,3 +22,8 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
+
+export const frontendOrigins = env.FRONTEND_ORIGIN
+  .split(',')
+  .map((value) => value.trim().replace(/\/+$/, ''))
+  .filter(Boolean);

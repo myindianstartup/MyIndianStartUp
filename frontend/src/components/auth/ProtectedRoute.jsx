@@ -4,8 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const adminDashboardPath = (role) => (role === 'superadmin' ? '/superadmin' : '/admin');
 
-const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false, memberOnly = false }) => {
-  const { isAuthenticated, loading, adminRole } = useAuth();
+const isActiveSubscription = (member) => (
+  ['active', 'trialing', 'paid'].includes(String(member?.subscription_status || '').toLowerCase())
+);
+
+const ProtectedRoute = ({
+  children,
+  adminOnly = false,
+  superAdminOnly = false,
+  memberOnly = false,
+  requiresActiveSubscription = false
+}) => {
+  const { isAuthenticated, loading, adminRole, member } = useAuth();
   const location = useLocation();
   const isAdminUser = ['admin', 'superadmin'].includes(adminRole);
 
@@ -33,6 +43,10 @@ const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false, m
 
   if (memberOnly && isAdminUser) {
     return <Navigate to={adminDashboardPath(adminRole)} replace />;
+  }
+
+  if (requiresActiveSubscription && !isActiveSubscription(member)) {
+    return <Navigate to="/pricing" replace state={{ from: location.pathname }} />;
   }
 
   return children;

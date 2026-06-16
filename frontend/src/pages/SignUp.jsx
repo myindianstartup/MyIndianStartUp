@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, Mail, Phone, ShieldCheck, UserRound } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Eye, EyeOff, Mail, Phone, ShieldCheck, UserRound } from 'lucide-react';
 import GoogleLogo from '@/components/auth/GoogleLogo';
 import BrandLogo from '@/components/site/BrandLogo';
-import { supabase } from '@/lib/supabaseClient';
+import { getAuthRedirectUrl, supabase } from '@/lib/supabaseClient';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -18,13 +18,12 @@ const SignUp = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const focusTone = accountType === 'business'
     ? 'focus-within:border-orange-500 focus-within:ring-orange-100'
     : 'focus-within:border-blue-600 focus-within:ring-blue-100';
-  const inputTone = accountType === 'business'
-    ? 'focus:border-orange-500 focus:ring-orange-100'
-    : 'focus:border-blue-600 focus:ring-blue-100';
   const leftPanelTheme = accountType === 'business'
     ? {
         label: 'text-orange-600',
@@ -136,7 +135,7 @@ const SignUp = () => {
         window.localStorage.setItem('myindianstartup_login_email', email);
       }
 
-      navigate('/post-verse', { replace: true });
+      navigate('/pricing', { replace: true });
     } catch (requestError) {
       setFormError(requestError.message || 'Account was created, but profile setup failed. Please login and try again.');
       setLoading(false);
@@ -158,7 +157,7 @@ const SignUp = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/post-verse`
+        redirectTo: getAuthRedirectUrl('/pricing')
       }
     });
 
@@ -256,7 +255,7 @@ const SignUp = () => {
         </section>
 
         <section className="signup-panel rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_90px_rgba(15,23,42,0.12)] md:p-6">
-          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] ${accountType === 'business' ? 'border-orange-100 bg-orange-50 text-orange-600' : 'border-blue-100 bg-blue-50 text-blue-700'}`}>
+          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-[0.2em] ${accountType === 'business' ? 'border-orange-100 bg-orange-50 text-orange-600' : 'border-blue-100 bg-blue-50 text-blue-700'}`}>
             <BadgeCheck className="h-3.5 w-3.5" />
             New member
           </div>
@@ -336,24 +335,44 @@ const SignUp = () => {
 
             <label className="grid gap-2">
               <span className="text-sm font-bold text-slate-800">Password</span>
-              <input
-                name="password"
-                type="password"
-                placeholder="Create a password"
-                required
-                className={`rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 ${inputTone}`}
-              />
+              <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
+                <input
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Create a password"
+                  required
+                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white hover:text-slate-700"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </label>
 
             <label className="grid gap-2">
               <span className="text-sm font-bold text-slate-800">Confirm Password</span>
-              <input
-                name="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                required
-                className={`rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 ${inputTone}`}
-              />
+              <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
+                <input
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Confirm your password"
+                  required
+                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((visible) => !visible)}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white hover:text-slate-700"
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </label>
 
             <label className="flex items-start gap-2 text-sm font-semibold text-slate-600">
@@ -426,7 +445,7 @@ const SignUp = () => {
               <div>
                 <div className="text-sm font-black text-slate-950">Next step after signup</div>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Your account is created first. Then PostVerse opens as your main dashboard after login.
+                  Your account is created first. Then pricing opens so membership can be activated before PostVerse access.
                 </p>
               </div>
             </div>

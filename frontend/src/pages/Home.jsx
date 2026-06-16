@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   ArrowRight,
   BadgeCheck,
@@ -44,12 +45,9 @@ const SectionEyebrow = ({ children, accent = 'blue', className = '' }) => {
   );
 };
 
-const SectionHeader = ({ eyebrow, title, description, accent = 'blue' }) => (
+const SectionHeader = ({ title, description }) => (
   <div className="mx-auto max-w-4xl text-center">
-    <SectionEyebrow accent={accent} className="mx-auto">
-      {eyebrow}
-    </SectionEyebrow>
-    <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
+    <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
       {title}
     </h2>
     {description && (
@@ -91,7 +89,7 @@ const valueHighlights = [
   {
     icon: <IndianRupee className="h-5 w-5 text-blue-600" />,
     iconWrap: 'bg-blue-50',
-    title: '₹999 Annual Membership',
+    title: 'Rs 999 Annual Membership',
     description: 'Simple, transparent pricing'
   },
   {
@@ -222,25 +220,33 @@ const coverageCards = [
   {
     icon: Handshake,
     tone: 'blue',
-    title: 'Collaborate & grow',
-    copy: 'From startups and local businesses to creators and industry professionals — succeed together beyond boundaries.'
+    title: 'Collaborate and grow',
+    copy: 'From startups and local businesses to creators and industry professionals, succeed together beyond boundaries.'
   }
-];
-
-const IndiaCoveragePins = [
-  { label: 'Delhi NCR', top: '31%', left: '45%', tone: 'blue' },
-  { label: 'Ahmedabad', top: '51%', left: '25%', tone: 'blue' },
-  { label: 'Mumbai', top: '64%', left: '30%', tone: 'orange' },
-  { label: 'Hyderabad', top: '69%', left: '48%', tone: 'blue' },
-  { label: 'Bengaluru', top: '83%', left: '40%', tone: 'blue' },
-  { label: 'Chennai', top: '86%', left: '49%', tone: 'orange' },
-  { label: 'Kolkata', top: '55%', left: '72%', tone: 'orange' }
 ];
 
 const coverageStats = [
   { value: 20000, suffix: '+', label: 'Projects', compact: true },
   { value: 180, suffix: '+', label: 'Cities' },
   { value: 12400, label: 'Active members', compact: true, precision: 1 }
+];
+
+const coverageRegions = [
+  {
+    title: 'North and West',
+    tone: 'blue',
+    cities: ['Delhi NCR', 'Ahmedabad', 'Jaipur', 'Mumbai']
+  },
+  {
+    title: 'South growth corridor',
+    tone: 'orange',
+    cities: ['Bengaluru', 'Hyderabad', 'Chennai', 'Kochi']
+  },
+  {
+    title: 'East and remote-ready',
+    tone: 'blue',
+    cities: ['Kolkata', 'Bhubaneswar', 'Guwahati', 'Remote collaboration']
+  }
 ];
 
 const AnimatedStat = ({ value, suffix = '', compact = false, precision = 0 }) => {
@@ -290,6 +296,7 @@ const AnimatedStat = ({ value, suffix = '', compact = false, precision = 0 }) =>
 
 const Home = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, member, adminRole } = useAuth();
 
   return (
     <div className="bg-white text-slate-950">
@@ -431,56 +438,10 @@ const Home = () => {
           box-shadow: 0 26px 70px rgba(37, 99, 235, 0.14);
         }
 
-        .india-map-shape {
-          filter: drop-shadow(0 24px 42px rgba(37, 99, 235, 0.08));
-          animation: mapFloat 5.5s ease-in-out infinite;
-          transform-origin: center;
-        }
-
-        .coverage-route {
-          stroke-dasharray: 9 12;
-          animation: routeFlow 10s linear infinite;
-        }
-
-        .coverage-pin {
-          animation: pinFloat 3.4s ease-in-out infinite;
-        }
-
-        .coverage-pin-dot {
-          animation: pinPulse 2.2s ease-in-out infinite;
-        }
-
-        .coverage-pin-label {
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-        }
-
-        @keyframes mapFloat {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-
-        @keyframes routeFlow {
-          to { stroke-dashoffset: -84; }
-        }
-
-        @keyframes pinFloat {
-          0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-          50% { transform: translate(-50%, -50%) translateY(-5px); }
-        }
-
-        @keyframes pinPulse {
-          0%, 100% { box-shadow: 0 0 0 7px rgba(37, 99, 235, 0.1); }
-          50% { box-shadow: 0 0 0 13px rgba(37, 99, 235, 0); }
-        }
-
         @media (prefers-reduced-motion: reduce) {
           .verse-choice-card,
           .verse-pill,
-          .verse-card-cta svg,
-          .india-map-shape,
-          .coverage-route,
-          .coverage-pin,
-          .coverage-pin-dot {
+          .verse-card-cta svg {
             transition: none;
             animation: none;
           }
@@ -520,22 +481,60 @@ const Home = () => {
               </p>
 
               <div className="mt-8 flex flex-wrap gap-4">
-                <button
-                  onClick={() => navigate('/signup')}
-                  className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
-                  data-testid="hero-cta-business"
-                >
-                  <span>Create BusinessVerse Profile</span>
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => navigate('/signup')}
-                  className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)] transition-transform hover:scale-[1.02] hover:bg-blue-700"
-                  data-testid="hero-cta-creator"
-                >
-                  <span>Create CreatorVerse Profile</span>
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+                {!isAuthenticated ? (
+                  <>
+                    <button
+                      onClick={() => navigate('/signup')}
+                      className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
+                      data-testid="hero-cta-business"
+                    >
+                      <span>Create BusinessVerse Profile</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => navigate('/signup')}
+                      className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)] transition-transform hover:scale-[1.02] hover:bg-blue-700"
+                      data-testid="hero-cta-creator"
+                    >
+                      <span>Create CreatorVerse Profile</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        if (adminRole === 'superadmin') navigate('/superadmin');
+                        else if (adminRole === 'admin') navigate('/admin');
+                        else if (member?.account_type === 'business') navigate('/business-verse');
+                        else if (member?.account_type === 'creator') navigate('/creator-verse');
+                        else navigate('/profile-verse');
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
+                      data-testid="hero-cta-business"
+                    >
+                      <span>
+                        {adminRole === 'superadmin'
+                          ? 'SuperAdmin Dashboard'
+                          : adminRole === 'admin'
+                          ? 'Admin Dashboard'
+                          : member?.account_type
+                          ? `Go to ${member.account_type === 'business' ? 'BusinessVerse' : 'CreatorVerse'}`
+                          : 'Complete Your Profile'}
+                      </span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                    {!adminRole && (
+                      <button
+                        onClick={() => navigate('/post-verse')}
+                        className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)] transition-transform hover:scale-[1.02] hover:bg-blue-700"
+                      >
+                        <span>Go to PostVerse Feed</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="mt-8 flex items-center gap-3 rounded-full border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
@@ -722,35 +721,38 @@ const Home = () => {
       <section className="bg-white pb-16 pt-8 md:pb-20 md:pt-10">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <SectionHeader
-            eyebrow="How it works"
             title="How It Works"
             description="Three simple steps to build visibility, publish daily, and connect directly across India."
           />
 
           <div className="mt-10 grid gap-6 md:grid-cols-3 md:items-stretch">
-            {stepCards.map((step) => (
-              <div
-                key={step.number}
-                className="equal-card relative min-h-[320px] rounded-[1.75rem] border border-slate-200 bg-white p-7 shadow-[0_12px_40px_rgba(15,23,42,0.05)] transition-transform hover:-translate-y-1"
-              >
-                <div className="absolute right-6 top-6 text-2xl font-bold text-slate-300/90">{step.number}</div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50">{step.icon}</div>
-                <div className="equal-card-body">
-                  <h3 className="mt-6 min-h-[3.25rem] text-lg font-bold leading-snug tracking-[-0.01em] text-slate-950">
-                    {step.title}
-                  </h3>
-                  <p className="mt-3 min-h-[6.5rem] text-[15px] leading-7 text-slate-600">{step.description}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate(step.to)}
-                  className="mt-6 inline-flex items-center gap-1 self-start rounded-full px-0 text-sm font-semibold text-slate-900 transition-all hover:gap-2 hover:text-blue-600"
+            {stepCards.map((step) => {
+              const to = (step.number === '01' && isAuthenticated) ? '/profile-verse' : step.to;
+              const action = (step.number === '01' && isAuthenticated) ? 'Continue setup' : step.action;
+              return (
+                <div
+                  key={step.number}
+                  className="equal-card relative min-h-[320px] rounded-[1.75rem] border border-slate-200 bg-white p-7 shadow-[0_12px_40px_rgba(15,23,42,0.05)] transition-transform hover:-translate-y-1"
                 >
-                  <span>{step.action}</span>
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
+                  <div className="absolute right-6 top-6 text-2xl font-bold text-slate-300/90">{step.number}</div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50">{step.icon}</div>
+                  <div className="equal-card-body">
+                    <h3 className="mt-6 min-h-[3.25rem] text-lg font-bold leading-snug tracking-[-0.01em] text-slate-950">
+                      {step.title}
+                    </h3>
+                    <p className="mt-3 min-h-[6.5rem] text-[15px] leading-7 text-slate-600">{step.description}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate(to)}
+                    className="mt-6 inline-flex items-center gap-1 self-start rounded-full px-0 text-sm font-semibold text-slate-900 transition-all hover:gap-2 hover:text-blue-600"
+                  >
+                    <span>{action}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -889,12 +891,11 @@ const Home = () => {
           </div>
 
           <div>
-            <SectionEyebrow accent="orange">Daily Visibility System</SectionEyebrow>
-            <h2 className="mt-5 max-w-2xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
+            <h2 className=" max-w-2xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
               Fair Visibility For Every Member
             </h2>
             <p className="mt-4 max-w-2xl text-[15px] font-normal leading-7 text-slate-600 sm:text-base">
-              To ensure equal exposure, every business and creator gets a fair chance to be discovered — no paid boosts, no feed domination.
+              To ensure equal exposure, every business and creator gets a fair chance to be discovered - no paid boosts and no feed domination.
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -920,14 +921,13 @@ const Home = () => {
       <section className="border-y border-slate-100 bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <SectionHeader
-            eyebrow="Why MyIndianStartup?"
-            title="Visibility, discovery, and collaboration — in one platform."
+            title="Visibility, discovery, and collaboration in one platform."
             description="Most platforms focus on either networking, freelancing, or social media. MyIndianStartup combines all three in one place."
           />
 
           <div className="mx-auto mt-8 max-w-3xl rounded-[1.5rem] border border-orange-100 bg-gradient-to-r from-orange-50/80 via-white to-blue-50/80 px-6 py-5 text-center shadow-sm">
             <p className="text-[15px] font-semibold leading-7 text-slate-800">
-              Direct Deals. No Middlemen. — Businesses and creators connect directly and keep 100% of their agreed project value.
+              Direct deals, no middlemen - businesses and creators connect directly and keep 100% of their agreed project value.
             </p>
           </div>
 
@@ -951,10 +951,8 @@ const Home = () => {
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <SectionHeader
-            eyebrow="Membership Benefits"
-            title="Built For Businesses & Creators Across India"
-            description="Choose BusinessVerse or CreatorVerse — both included in one annual membership."
-            accent="orange"
+            title="Built For Businesses And Creators Across India"
+            description="Choose BusinessVerse or CreatorVerse, both included in one annual membership."
           />
 
           <div className="mt-12 grid gap-6 lg:grid-cols-2 lg:items-stretch">
@@ -988,8 +986,7 @@ const Home = () => {
       <section className="bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <SectionHeader
-            eyebrow="India Coverage"
-            title="Connect beyond geographical boundaries."
+            title="Built for collaboration across cities, industries, and remote teams."
             description="A nationwide platform for businesses, creators, freelancers, and professionals to collaborate, grow, and succeed together."
           />
 
@@ -1028,60 +1025,35 @@ const Home = () => {
             ))}
           </div>
 
-          <div className="mx-auto mt-6 max-w-2xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+          <div className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
               <MapPin className="h-4 w-4 text-blue-600" />
-              <span>Coverage map — 28 states &amp; growing</span>
+              <span>Coverage network</span>
             </div>
-            <div className="relative mt-5 aspect-square overflow-hidden rounded-[1.6rem] border border-slate-100 bg-white">
-              <img
-                src="/assets/india-coverage-map.png"
-                alt="India coverage map"
-                className="india-map-shape absolute inset-0 h-full w-full object-cover"
-              />
-              <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-                <path
-                  className="coverage-route"
-                  d="M45 31 C36 39 28 46 25 51 C26 58 28 62 30 64 C35 74 38 80 40 83 C43 85 47 86 49 86 C55 76 64 64 72 55 C66 46 55 37 45 31 Z"
-                  stroke="rgba(37,99,235,0.14)"
-                  strokeWidth="0.8"
-                  strokeLinecap="round"
-                />
-                <path
-                  className="coverage-route"
-                  d="M45 31 C52 38 62 47 72 55"
-                  stroke="rgba(249,115,22,0.16)"
-                  strokeWidth="0.8"
-                  strokeLinecap="round"
-                  style={{ animationDelay: '-4s' }}
-                />
-                <path
-                  className="coverage-route"
-                  d="M30 64 C36 66 42 68 48 69 C55 66 64 60 72 55"
-                  stroke="rgba(37,99,235,0.13)"
-                  strokeWidth="0.7"
-                  strokeLinecap="round"
-                  style={{ animationDelay: '-4s' }}
-                />
-              </svg>
-
-              {IndiaCoveragePins.map((pin, index) => (
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              {coverageRegions.map((region) => (
                 <div
-                  key={pin.label}
-                  className="coverage-pin absolute flex items-center gap-2"
-                  style={{ top: pin.top, left: pin.left, animationDelay: `${index * 0.18}s` }}
+                  key={region.title}
+                  className={region.tone === 'orange'
+                    ? 'rounded-[1.5rem] border border-orange-100 bg-orange-50/60 p-5'
+                    : 'rounded-[1.5rem] border border-blue-100 bg-blue-50/60 p-5'}
                 >
-                  <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-[0_8px_18px_rgba(15,23,42,0.12)]">
-                    <span
-                      className={`coverage-pin-dot h-3 w-3 rounded-full ${pin.tone === 'orange' ? 'bg-orange-500' : 'bg-blue-600'}`}
-                      style={{ animationDelay: `${index * 0.2}s` }}
-                    />
-                  </span>
-                  <span className="coverage-pin-label whitespace-nowrap rounded-lg border border-slate-100 bg-white/95 px-2.5 py-1 text-[10px] font-bold leading-none text-slate-700">
-                    {pin.label}
-                  </span>
+                  <div className="text-sm font-black text-slate-950">{region.title}</div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {region.cities.map((city) => (
+                      <span
+                        key={city}
+                        className="rounded-full border border-white bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm"
+                      >
+                        {city}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-5 rounded-[1.5rem] border border-slate-100 bg-slate-50 px-5 py-4 text-sm leading-7 text-slate-600">
+              We highlight verified business and creator activity across major cities and remote-first collaborations without using restricted geographic artwork.
             </div>
           </div>
         </div>
@@ -1090,10 +1062,8 @@ const Home = () => {
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <SectionHeader
-            eyebrow="Annual Membership"
             title="Simple. Transparent. Affordable."
             description="At MyIndianStartup, we believe in direct and transparent connections. Your membership includes access to either BusinessVerse or CreatorVerse."
-            accent="orange"
           />
 
           <div className="mx-auto mt-10 max-w-4xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
@@ -1133,27 +1103,62 @@ const Home = () => {
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.07),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.08),transparent_42%)] p-8 md:p-12">
             <SectionHeader
-              eyebrow="Get started today"
               title="Ready To Build Connections Across India?"
               description="Join thousands of businesses and creators building visibility and opportunities."
-              accent="muted"
             />
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <button
-                onClick={() => navigate('/signup')}
-                className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
-              >
-                <span>Create BusinessVerse Profile</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => navigate('/signup')}
-                className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)] transition-transform hover:scale-[1.02] hover:bg-blue-700"
-              >
-                <span>Create CreatorVerse Profile</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
+              {!isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => navigate('/signup')}
+                    className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
+                  >
+                    <span>Create BusinessVerse Profile</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => navigate('/signup')}
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)] transition-transform hover:scale-[1.02] hover:bg-blue-700"
+                  >
+                    <span>Create CreatorVerse Profile</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      if (adminRole === 'superadmin') navigate('/superadmin');
+                      else if (adminRole === 'admin') navigate('/admin');
+                      else if (member?.account_type === 'business') navigate('/business-verse');
+                      else if (member?.account_type === 'creator') navigate('/creator-verse');
+                      else navigate('/profile-verse');
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition-transform hover:scale-[1.02] hover:bg-orange-600"
+                  >
+                    <span>
+                      {adminRole === 'superadmin'
+                        ? 'SuperAdmin Dashboard'
+                        : adminRole === 'admin'
+                        ? 'Admin Dashboard'
+                        : member?.account_type
+                        ? `Go to ${member.account_type === 'business' ? 'BusinessVerse' : 'CreatorVerse'}`
+                        : 'Complete Your Profile'}
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  {!adminRole && (
+                    <button
+                      onClick={() => navigate('/post-verse')}
+                      className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-4 text-sm font-bold text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)] transition-transform hover:scale-[1.02] hover:bg-blue-700"
+                    >
+                      <span>Go to PostVerse Feed</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

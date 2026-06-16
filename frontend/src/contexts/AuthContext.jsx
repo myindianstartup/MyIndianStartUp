@@ -4,6 +4,35 @@ import { apiRequest } from '@/lib/apiClient';
 
 const AuthContext = createContext(null);
 
+const normalizeAccountType = (value) => {
+  const normalized = String(value || '').toLowerCase();
+  return ['business', 'creator'].includes(normalized) ? normalized : '';
+};
+
+const fallbackMemberFromSession = (activeSession) => {
+  const authUser = activeSession?.user;
+  if (!authUser) return null;
+
+  const metadata = authUser.user_metadata || {};
+  const accountType = normalizeAccountType(
+    metadata.account_type
+    || window.localStorage.getItem('myindianstartup_account_type')
+    || window.localStorage.getItem('myindianstartup_pending_account_type')
+  );
+
+  if (!accountType) return null;
+
+  return {
+    id: authUser.id,
+    email: authUser.email,
+    full_name: metadata.full_name || metadata.name || authUser.email?.split('@')[0] || 'Member',
+    mobile_number: metadata.mobile_number || null,
+    account_type: accountType,
+    subscription_status: 'inactive',
+    profile_image_url: ''
+  };
+};
+
 const waitForUrlSessionClockSkew = async () => {
   if (typeof window === 'undefined') return;
 
@@ -72,6 +101,10 @@ export const AuthProvider = ({ children }) => {
         window.localStorage.removeItem('myindianstartup_pending_account_type');
       }
 
+      if (!currentMember) {
+        currentMember = fallbackMemberFromSession(activeSession);
+      }
+
       setMember(currentMember);
 
       try {
@@ -83,10 +116,16 @@ export const AuthProvider = ({ children }) => {
 
       return currentMember;
     } catch (error) {
-      console.error('Error in refreshMember:', error);
-      setMember(null);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error in refreshMember:', error);
+      }
+      const fallbackMember = fallbackMemberFromSession(activeSession);
+      if (fallbackMember?.account_type) {
+        window.localStorage.setItem('myindianstartup_account_type', fallbackMember.account_type);
+      }
+      setMember(fallbackMember);
       setAdminRole(null);
-      return null;
+      return fallbackMember;
     }
   }, []);
 

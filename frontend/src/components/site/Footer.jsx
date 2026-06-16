@@ -40,7 +40,7 @@ const Footer = () => {
         {showContactCta && (
           <div className="mb-8 grid gap-7 overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(37,99,235,0.32),rgba(15,23,42,0.74)_58%,rgba(249,115,22,0.22))] p-7 shadow-[0_28px_90px_rgba(0,0,0,0.28)] backdrop-blur-xl md:p-9 lg:grid-cols-[1fr_0.9fr] lg:items-end">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.28em] text-blue-100">Need help deciding?</div>
+              <div className="text-xs font-extrabold uppercase tracking-[0.2em] text-blue-100">Need help deciding?</div>
               <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-[-0.045em] text-white md:text-5xl">
                 Ready to build connections online?
               </h2>

@@ -108,7 +108,7 @@ const JoinUs = () => {
 
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-extrabold uppercase tracking-[0.2em] text-slate-600 shadow-sm">
               <span className="h-2 w-2 rounded-full bg-gradient-to-r from-orange-500 to-blue-600" />
               Contact Us
             </div>

@@ -4,12 +4,15 @@ import {
   BarChart3,
   CheckCircle2,
   Clock3,
+  Eye,
   Image,
   Loader2,
+  MessageSquareText,
   ShieldCheck,
   TrendingUp,
   Upload,
   Video,
+  X,
   Zap
 } from 'lucide-react';
 import { API_URL, apiRequest } from '@/lib/apiClient';
@@ -35,6 +38,13 @@ const accountThemes = {
   }
 };
 
+const isSubscriptionError = (error) => (
+  error?.status === 402
+  || error?.code === 'SUBSCRIPTION_REQUIRED'
+  || error?.payload?.code === 'SUBSCRIPTION_REQUIRED'
+  || error?.redirectTo === '/pricing'
+);
+
 const formatRemaining = (seconds = 0) => {
   if (!seconds || seconds <= 0) return 'Ready now';
   const hours = Math.floor(seconds / 3600);
@@ -51,6 +61,66 @@ const shortDate = (value) => {
     hour: '2-digit',
     minute: '2-digit'
   }).format(new Date(value));
+};
+
+const PostArchiveModal = ({ post, onClose }) => {
+  if (!post) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 px-4 py-8 backdrop-blur-sm">
+      <div className="mx-auto max-w-5xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_90px_rgba(15,23,42,0.3)]">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Post preview</div>
+            <div className="mt-1 text-sm font-bold text-slate-600">{shortDate(post.publishedAt)}</div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200"
+            aria-label="Close post preview"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_360px]">
+          <div className="bg-slate-950">
+            {post.mediaType === 'video' ? (
+              <video src={post.mediaUrl} controls className="h-full min-h-[340px] w-full bg-black object-contain" />
+            ) : (
+              <img src={post.mediaUrl} alt={post.caption} className="h-full min-h-[340px] w-full bg-black object-contain" />
+            )}
+          </div>
+          <div className="p-6">
+            <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">
+              {post.mediaType}
+            </div>
+            <h3 className="mt-4 text-2xl font-black tracking-[-0.03em] text-slate-950">{post.caption}</h3>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              {[
+                [Eye, post.views, 'Views'],
+                [Zap, post.saves || 0, 'Saves'],
+                [MessageSquareText, post.inquiries, 'Inquiries']
+              ].map(([Icon, value, label]) => (
+                <div key={label} className="rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4">
+                  <Icon className="h-4 w-4 text-slate-500" />
+                  <div className="mt-3 text-2xl font-black text-slate-950">{value}</div>
+                  <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 rounded-[1.4rem] border border-slate-200 bg-white p-4">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Published</div>
+              <div className="mt-2 text-sm font-bold text-slate-800">{shortDate(post.publishedAt)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const GateModal = ({ gate, onClose }) => {
@@ -97,6 +167,7 @@ const PostVerse = () => {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [gate, setGate] = useState(null);
+  const [selectedArchivePost, setSelectedArchivePost] = useState(null);
 
   const canPost = Boolean(eligibility?.allowed);
 
@@ -121,6 +192,10 @@ const PostVerse = () => {
       setEligibility(data.eligibility);
       setCooldownSeconds(data.eligibility?.cooldown?.secondsRemaining || 0);
     } catch (requestError) {
+      if (isSubscriptionError(requestError)) {
+        navigate('/pricing', { replace: true, state: { from: '/post-verse' } });
+        return;
+      }
       setError(requestError.message || 'Could not load PostVerse data.');
     } finally {
       setLoading(false);
@@ -137,6 +212,12 @@ const PostVerse = () => {
   useEffect(() => {
     loadOverview();
   }, [token]);
+
+  useEffect(() => {
+    if (eligibility && eligibility.subscription && !eligibility.subscription.active) {
+      navigate('/pricing', { replace: true, state: { from: '/post-verse' } });
+    }
+  }, [eligibility, navigate]);
 
   useEffect(() => {
     if (!cooldownSeconds) return undefined;
@@ -174,7 +255,7 @@ const PostVerse = () => {
         title: 'Complete your profile first',
         message: `Your profile is ${state.profile.completion}% complete. Reach at least ${state.profile.required}% to publish in PostVerse.`,
         detail: state.profile.missingFields?.length ? `Missing: ${state.profile.missingFields.slice(0, 4).join(', ')}` : '',
-        actionLabel: 'Open ProfileVerse',
+        actionLabel: 'Complete account setup',
         redirectTo: '/profile-verse'
       };
     }
@@ -209,6 +290,10 @@ const PostVerse = () => {
       }
       fileInputRef.current?.click();
     } catch (requestError) {
+      if (isSubscriptionError(requestError)) {
+        navigate('/pricing', { replace: true, state: { from: '/post-verse' } });
+        return;
+      }
       setError(requestError.message || 'Could not verify posting access.');
     }
   };
@@ -297,6 +382,7 @@ const PostVerse = () => {
   return (
     <div className="bg-[#f8fbff] text-slate-950">
       <GateModal gate={gate} onClose={closeGate} />
+      <PostArchiveModal post={selectedArchivePost} onClose={() => setSelectedArchivePost(null)} />
       <section className="relative overflow-hidden pt-28 pb-16 md:pt-32 md:pb-20">
         <div className="absolute inset-x-0 top-0 h-[700px] bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.05),transparent_34%),radial-gradient(circle_at_top_right,rgba(148,163,184,0.12),transparent_30%)] pointer-events-none" />
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
@@ -362,7 +448,7 @@ const PostVerse = () => {
 
               <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-700">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-extrabold uppercase tracking-[0.2em] text-slate-700">
                     <Zap className="h-3.5 w-3.5" />
                     {theme.title}
                   </div>
@@ -448,26 +534,47 @@ const PostVerse = () => {
 
               <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
                 <div className={`text-[11px] font-black uppercase tracking-[0.3em] ${theme.accentText}`}>Past data</div>
-                <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-slate-950">Previous posts and response history.</h2>
-                <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-slate-200">
-                  <div className="grid grid-cols-[1.2fr_0.7fr_0.6fr_0.6fr_0.7fr] gap-3 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                    <span>Caption</span>
-                    <span>Type</span>
-                    <span>Views</span>
-                    <span>Inquiries</span>
-                    <span>Date</span>
-                  </div>
-                  {(overview?.history || []).length ? overview.history.map((post) => (
-                    <div key={post.id} className="grid grid-cols-[1.2fr_0.7fr_0.6fr_0.6fr_0.7fr] gap-3 border-t border-slate-100 px-4 py-4 text-sm font-semibold text-slate-700">
-                      <span className="truncate font-black text-slate-950">{post.caption}</span>
-                      <span className="capitalize">{post.mediaType}</span>
-                      <span>{post.views}</span>
-                      <span>{post.inquiries}</span>
-                      <span>{shortDate(post.publishedAt)}</span>
+                <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-slate-950">Your post archive.</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                  Open any published post to review the uploaded image or video, caption, views, saves, and inquiries from your PostVerse history.
+                </p>
+                <div className="mt-6">
+                  {(overview?.history || []).length ? (
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                      {overview.history.map((post) => (
+                        <button
+                          key={post.id}
+                          type="button"
+                          onClick={() => setSelectedArchivePost(post)}
+                          className="group overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,23,42,0.1)]"
+                        >
+                          <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
+                            {post.mediaType === 'video' ? (
+                              <video src={post.mediaUrl} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" muted />
+                            ) : (
+                              <img src={post.mediaUrl} alt={post.caption} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 via-slate-950/35 to-transparent p-4 text-white">
+                              <div className="flex items-center justify-between gap-3 text-[11px] font-black uppercase tracking-[0.16em] text-white/80">
+                                <span>{post.mediaType}</span>
+                                <span>{shortDate(post.publishedAt)}</span>
+                              </div>
+                              <div className="mt-3 line-clamp-2 text-base font-black leading-6">{post.caption}</div>
+                            </div>
+                            <div className="absolute inset-0 flex items-end bg-slate-950/0 p-4 opacity-0 transition group-hover:bg-slate-950/10 group-hover:opacity-100">
+                              <div className="flex w-full items-center justify-between rounded-2xl bg-white/92 px-4 py-3 text-xs font-black text-slate-800 backdrop-blur">
+                                <span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> {post.views}</span>
+                                <span className="inline-flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> {post.saves || 0}</span>
+                                <span className="inline-flex items-center gap-1.5"><MessageSquareText className="h-3.5 w-3.5" /> {post.inquiries}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  )) : (
-                    <div className="border-t border-slate-100 px-4 py-8 text-center text-sm font-semibold text-slate-500">
-                      No published posts yet. Your first approved post will appear here.
+                  ) : (
+                    <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-4 py-12 text-center text-sm font-semibold text-slate-500">
+                      No published posts yet. Your first approved post will appear here with a visual preview.
                     </div>
                   )}
                 </div>

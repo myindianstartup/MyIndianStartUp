@@ -304,12 +304,7 @@ const BusinessVerse = () => {
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
           <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-orange-600">
-                <span className="h-2 w-2 rounded-full bg-orange-500" />
-                BusinessVerse
-              </div>
-
-              <h1 className="mt-6 max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
+              <h1 className="max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
                 Grow Your Business Through <span className="text-orange-500">Visibility</span> &amp; Collaboration
               </h1>
 
@@ -347,8 +342,7 @@ const BusinessVerse = () => {
       <section className="border-t border-slate-100 bg-white py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Why join BusinessVerse?</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Everything your business needs in one platform.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Everything your business needs in one platform.</h2>
           </div>
 
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -369,8 +363,7 @@ const BusinessVerse = () => {
       <section className="bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Industries we serve</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Built for industries across India.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Built for industries across India.</h2>
           </div>
 
           <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -394,8 +387,7 @@ const BusinessVerse = () => {
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Business profile preview</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Create a professional profile buyers can trust.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Create a professional profile buyers can trust.</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
               Your profile becomes a public business card with the details people need before they contact you.
             </p>
@@ -472,8 +464,7 @@ const BusinessVerse = () => {
           </div>
 
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Daily marketing system</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Promote your business every day.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Promote your business every day.</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
               Share one image or one video every 24 hours. The system is designed for equal visibility, no spam, and no feed domination.
             </p>
@@ -492,8 +483,7 @@ const BusinessVerse = () => {
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Build valuable connections</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Connect directly with the people your business needs.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Connect directly with the people your business needs.</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
               Find creators, influencers, agencies, freelancers, professionals, and other businesses without middlemen.
             </p>
@@ -516,8 +506,7 @@ const BusinessVerse = () => {
       <section className="bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Why businesses love MyIndianStartup</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">A cleaner way to grow.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">A cleaner way to grow.</h2>
           </div>
 
           <div className="mt-10 overflow-x-auto overflow-y-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -550,8 +539,7 @@ const BusinessVerse = () => {
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Success opportunities</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Use BusinessVerse for real growth work.</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Use BusinessVerse for real growth work.</h2>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -568,8 +556,7 @@ const BusinessVerse = () => {
       <section className="bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-8 px-6 md:px-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Pricing</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">BusinessVerse Membership</h2>
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">BusinessVerse Membership</h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
               One annual membership for profile visibility, daily marketing, discovery, and direct collaboration.
             </p>
@@ -602,8 +589,7 @@ const BusinessVerse = () => {
           </div>
 
           <div className="rounded-2xl bg-[linear-gradient(135deg,#0f172a,#11264f)] p-7 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)] md:p-9">
-            <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-100">Ready to grow your business?</div>
-            <h3 className="mt-3 text-3xl font-black tracking-[-0.04em]">Join businesses across India building visibility.</h3>
+            <h3 className="text-3xl font-black tracking-[-0.04em]">Join businesses across India building visibility.</h3>
             <p className="mt-4 text-sm leading-7 text-blue-50/85">
               Create new opportunities, build partnerships, and make your business easier to discover.
             </p>

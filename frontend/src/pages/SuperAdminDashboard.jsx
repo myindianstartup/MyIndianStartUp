@@ -42,7 +42,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-import { apiRequest } from '@/lib/apiClient';
+import { API_URL, apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 const tabs = ['Overview', 'Traffic', 'Business Users', 'Creator Users', 'Subscriptions', 'Coupons', 'Verse Analytics', 'Reports', 'Audit'];
@@ -189,7 +189,7 @@ const UserTable = ({ title, users, loading, onSelect }) => (
   </div>
 );
 
-const UserDetailPanel = ({ detail, onClose, onUpdateUser }) => {
+const UserDetailPanel = ({ detail, onClose, onUpdateUser, onQuickStatusChange }) => {
   if (!detail) return null;
   const analytics = detail.activityAnalytics || {};
   const profile = detail.profile || {};
@@ -198,6 +198,7 @@ const UserDetailPanel = ({ detail, onClose, onUpdateUser }) => {
   const [formData, setFormData] = React.useState({});
   const [saving, setSaving] = React.useState(false);
   const [editError, setEditError] = React.useState('');
+  const [actionLoading, setActionLoading] = React.useState('');
 
   const startEditing = () => {
     setFormData({
@@ -259,6 +260,18 @@ const UserDetailPanel = ({ detail, onClose, onUpdateUser }) => {
     }
   };
 
+  const runQuickAction = async (status) => {
+    setActionLoading(status);
+    setEditError('');
+    try {
+      await onQuickStatusChange(detail.user.id, status);
+    } catch (err) {
+      setEditError(err.message || 'Failed to update account status.');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
   const profileFields = detail.user.accountType === 'creator'
     ? [
         ['Full name', profile.full_name],
@@ -296,6 +309,46 @@ const UserDetailPanel = ({ detail, onClose, onUpdateUser }) => {
           <StatCard label="Likes" value={formatNumber(analytics.totalLikes)} icon={Activity} tone="orange" />
           <StatCard label="Reach" value={formatNumber(analytics.totalReach)} icon={Globe2} tone="emerald" />
           <StatCard label="Engagement" value={`${analytics.engagementRate || 0}%`} icon={TrendingUp} />
+        </div>
+
+        <div className="mt-6 rounded-[1.5rem] border border-rose-100 bg-rose-50/60 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500">Superadmin controls</div>
+              <h3 className="mt-2 text-lg font-black text-slate-950">Account access actions</h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                Use these controls to suspend, deactivate, or restore a member account. Hard delete stays disabled here to protect billing, post, and audit history.
+              </p>
+            </div>
+            <StatusPill value={detail.user.accountStatus} />
+          </div>
+          {editError && <div className="mt-4 rounded-2xl border border-rose-100 bg-white px-4 py-3 text-sm font-bold text-rose-600">{editError}</div>}
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => runQuickAction('active')}
+              disabled={actionLoading === 'active' || detail.user.accountStatus === 'active'}
+              className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
+            >
+              {actionLoading === 'active' ? 'Saving...' : 'Reactivate account'}
+            </button>
+            <button
+              type="button"
+              onClick={() => runQuickAction('suspended')}
+              disabled={actionLoading === 'suspended' || detail.user.accountStatus === 'suspended'}
+              className="rounded-full border border-amber-200 bg-white px-4 py-2 text-xs font-black text-amber-700 hover:bg-amber-50 disabled:opacity-60"
+            >
+              {actionLoading === 'suspended' ? 'Saving...' : 'Suspend account'}
+            </button>
+            <button
+              type="button"
+              onClick={() => runQuickAction('deactivated')}
+              disabled={actionLoading === 'deactivated' || detail.user.accountStatus === 'deactivated'}
+              className="rounded-full border border-rose-200 bg-white px-4 py-2 text-xs font-black text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+            >
+              {actionLoading === 'deactivated' ? 'Saving...' : 'Deactivate account'}
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
@@ -603,7 +656,7 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     if (!token) return undefined;
-    const source = new EventSource(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/superadmin/realtime?access_token=${encodeURIComponent(token)}`, { withCredentials: false });
+    const source = new EventSource(`${API_URL}/api/admin/superadmin/realtime?access_token=${encodeURIComponent(token)}`, { withCredentials: false });
     source.addEventListener('snapshot', (event) => {
       try {
         setRealtime(JSON.parse(event.data));
@@ -640,6 +693,10 @@ const SuperAdminDashboard = () => {
     } catch (requestError) {
       throw new Error(requestError.message || 'Could not update user.');
     }
+  };
+
+  const quickStatusChange = async (id, accountStatus) => {
+    return updateUser(id, { accountStatus });
   };
 
   const viewCouponUsage = async (coupon) => {
@@ -794,7 +851,7 @@ const SuperAdminDashboard = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40">
           <div className="rounded-2xl bg-white px-5 py-4 text-sm font-black text-slate-600"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading user...</div>
         </div>
-      ) : <UserDetailPanel detail={selectedUser} onClose={() => setSelectedUser(null)} onUpdateUser={updateUser} />}
+      ) : <UserDetailPanel detail={selectedUser} onClose={() => setSelectedUser(null)} onUpdateUser={updateUser} onQuickStatusChange={quickStatusChange} />}
 
       {selectedCouponRedemptions && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/50 px-4 py-8 backdrop-blur-sm flex items-center justify-center">

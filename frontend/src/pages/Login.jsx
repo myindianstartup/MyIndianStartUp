@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Eye, EyeOff, Mail, ShieldCheck } from 'lucide-react';
 import GoogleLogo from '@/components/auth/GoogleLogo';
 import BrandLogo from '@/components/site/BrandLogo';
-import { supabase } from '@/lib/supabaseClient';
+import { getAuthRedirectUrl, supabase } from '@/lib/supabaseClient';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -15,6 +15,7 @@ const Login = () => {
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const googleTheme = googleAccountType === 'business'
     ? {
         label: 'BusinessVerse',
@@ -48,7 +49,7 @@ const Login = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/post-verse`
+        redirectTo: getAuthRedirectUrl('/post-verse')
       }
     });
 
@@ -92,7 +93,7 @@ const Login = () => {
       window.localStorage.setItem('myindianstartup_login_email', email);
     }
 
-    await refreshMember(data.session);
+    const currentMember = await refreshMember(data.session);
 
     try {
       const roleData = await apiRequest('/api/admin/me', { token: data.session.access_token });
@@ -108,7 +109,9 @@ const Login = () => {
       // Non-admin users continue to their dashboard.
     }
 
-    navigate(location.state?.from || '/post-verse', { replace: true });
+    const requestedPath = location.state?.from || '';
+    const hasActiveMembership = ['active', 'trialing', 'paid'].includes(String(currentMember?.subscription_status || '').toLowerCase());
+    navigate(hasActiveMembership ? requestedPath || '/post-verse' : '/pricing', { replace: true });
     setLoading(false);
   };
 
@@ -164,7 +167,7 @@ const Login = () => {
                 Sign in to build trusted partnerships faster.
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 lg:text-base">
-                Access PostVerse, SearchVerse, ProfileVerse, Messages, and your BusinessVerse or CreatorVerse workspace.
+                Access PostVerse, SearchVerse, VerseFeed, and your BusinessVerse or CreatorVerse workspace.
               </p>
             </div>
 
@@ -186,7 +189,7 @@ const Login = () => {
         </section>
 
         <section className="auth-login-panel rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_90px_rgba(15,23,42,0.12)] md:p-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-700">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.2em] text-slate-700">
             <BadgeCheck className="h-3.5 w-3.5" />
             Member login
           </div>
@@ -213,13 +216,23 @@ const Login = () => {
 
             <label className="grid gap-2">
               <span className="text-sm font-bold text-slate-800">Password</span>
-              <input
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                required
-                className="rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-100"
-              />
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:border-slate-500 focus-within:ring-2 focus-within:ring-slate-100">
+                <input
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  required
+                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white hover:text-slate-700"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </label>
 
             {formError && (

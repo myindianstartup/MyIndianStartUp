@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { env } from './config/env.js';
+import { env, frontendOrigins } from './config/env.js';
 import { healthRouter } from './routes/health.js';
 import { mediaRouter } from './routes/media.js';
 import { membersRouter } from './routes/members.js';
@@ -16,10 +16,22 @@ import { adminRouter } from './routes/admin.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { requestMonitoring } from './middleware/requestMonitoring.js';
 
-const app = express();
+export const app = express();
+
+const corsOptions = {
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin || frontendOrigins.includes(origin.replace(/\/+$/, ''))) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`));
+  }
+};
 
 app.use(helmet());
-app.use(cors({ origin: env.FRONTEND_ORIGIN, credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(requestMonitoring);
@@ -38,6 +50,10 @@ app.use('/api/analytics', analyticsRouter);
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(env.PORT, () => {
-  console.log(`MyIndianStartup backend running on port ${env.PORT}`);
-});
+if (process.env.VERCEL !== '1') {
+  app.listen(env.PORT, () => {
+    console.log(`MyIndianStartup backend running on port ${env.PORT}`);
+  });
+}
+
+export default app;

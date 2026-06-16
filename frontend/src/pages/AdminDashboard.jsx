@@ -57,10 +57,100 @@ const StatCard = ({ label, value, icon: Icon, tone = 'slate' }) => {
   );
 };
 
+const AdminMemberDetailModal = ({ detail, onClose }) => {
+  if (!detail) return null;
+
+  const profile = detail.profile || {};
+  const analytics = detail.activityAnalytics || {};
+  const profileFields = detail.user.accountType === 'creator'
+    ? [
+        ['Full name', profile.full_name || detail.user.userName],
+        ['Skills', Array.isArray(profile.skills) && profile.skills.length ? profile.skills.join(', ') : 'Not added'],
+        ['Portfolio', profile.portfolio_url || 'Not added'],
+        ['City / State', [profile.city, profile.state].filter(Boolean).join(', ') || 'Not added'],
+        ['Email', profile.contact_details?.email || detail.user.email],
+        ['Mobile', profile.contact_details?.mobile || detail.user.mobileNumber || 'Not added']
+      ]
+    : [
+        ['Business name', profile.business_name || detail.user.userName],
+        ['Industry', profile.industry || 'Not added'],
+        ['Website', profile.website || 'Not added'],
+        ['City / State', [profile.city, profile.state].filter(Boolean).join(', ') || 'Not added'],
+        ['Email', profile.contact_details?.email || detail.user.email],
+        ['Mobile', profile.contact_details?.mobile || detail.user.mobileNumber || 'Not added']
+      ];
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/50 px-4 py-8 backdrop-blur-sm">
+      <div className="mx-auto max-w-5xl rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_90px_rgba(15,23,42,0.25)]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Read-only member data</div>
+            <h2 className="mt-2 text-3xl font-black tracking-[-0.03em] text-slate-900">{detail.user.userName}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">{detail.user.email} · {detail.user.accountType}</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-200">
+            Close
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-4">
+          <StatCard label="Posts" value={formatNumber(analytics.totalPosts)} icon={BarChart3} tone="blue" />
+          <StatCard label="Likes" value={formatNumber(analytics.totalLikes)} icon={CheckCircle2} tone="orange" />
+          <StatCard label="Reach" value={formatNumber(analytics.totalReach)} icon={Users} tone="emerald" />
+          <StatCard label="Engagement" value={`${analytics.engagementRate || 0}%`} icon={Eye} tone="slate" />
+        </div>
+
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-black text-slate-900">User profile data</h3>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {profileFields.map(([label, value]) => (
+                <div key={label} className="rounded-2xl bg-slate-50 p-4">
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{label}</div>
+                  <div className="mt-2 text-sm font-bold leading-6 text-slate-800">{value || 'Not added'}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-lg font-black text-slate-900">Account summary</h3>
+              <div className="mt-4 grid gap-3">
+                {[
+                  ['Subscription', detail.user.subscriptionStatus],
+                  ['Account status', detail.user.accountStatus],
+                  ['Online status', detail.user.onlineStatus],
+                  ['Joined', shortDate(detail.user.registrationDate)],
+                  ['Last active', shortDate(detail.user.lastActiveDate)]
+                ].map(([label, value]) => (
+                  <div key={label} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                    <span className="text-sm font-bold text-slate-600">{label}</span>
+                    <span className="text-sm font-black text-slate-900">{value || 'Unknown'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-lg font-black text-slate-900">Admin permissions</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                This panel is view-only for admins. Member editing, account removal, deactivation, and billing controls remain restricted to superadmin access.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminDashboard = () => {
   const { token, signOut } = useAuth();
   const [overview, setOverview] = useState(null);
   const [members, setMembers] = useState([]);
+  const [selectedMember, setSelectedMember] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -87,6 +177,17 @@ const AdminDashboard = () => {
     return () => window.clearInterval(interval);
   }, [token]);
 
+  const openMember = async (id) => {
+    setSelectedMember({ loading: true });
+    try {
+      const detail = await apiRequest(`/api/admin/members/${id}`, { token });
+      setSelectedMember(detail);
+    } catch (requestError) {
+      setError(requestError.message || 'Could not load member details.');
+      setSelectedMember(null);
+    }
+  };
+
   const stats = overview?.stats || {};
   const recentMembers = useMemo(() => members.slice(0, 12), [members]);
 
@@ -101,6 +202,13 @@ const AdminDashboard = () => {
 
   return (
     <main className="min-h-screen bg-[#f8fbff] px-6 py-8 text-slate-950 md:px-10">
+      {selectedMember?.loading ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40">
+          <div className="rounded-2xl bg-white px-5 py-4 text-sm font-black text-slate-600"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading member...</div>
+        </div>
+      ) : (
+        <AdminMemberDetailModal detail={selectedMember} onClose={() => setSelectedMember(null)} />
+      )}
       <div className="mx-auto max-w-7xl">
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -187,6 +295,7 @@ const AdminDashboard = () => {
                       <th className="p-3">Account</th>
                       <th className="p-3">Last active</th>
                       <th className="p-3">Joined</th>
+                      <th className="p-3">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -199,10 +308,20 @@ const AdminDashboard = () => {
                         <td className="p-3"><StatusPill value={member.account_status || 'active'} /></td>
                         <td className="p-3">{shortDate(member.last_active_at)}</td>
                         <td className="p-3">{shortDate(member.created_at)}</td>
+                        <td className="p-3">
+                          <button
+                            type="button"
+                            onClick={() => openMember(member.id)}
+                            className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white hover:bg-slate-700"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View data
+                          </button>
+                        </td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan="7" className="p-10 text-center text-sm font-bold text-slate-500">No members found.</td>
+                        <td colSpan="8" className="p-10 text-center text-sm font-bold text-slate-500">No members found.</td>
                       </tr>
                     )}
                   </tbody>

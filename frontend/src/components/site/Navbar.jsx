@@ -1,18 +1,40 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Menu, Search, UserRound, X } from 'lucide-react';
+import { LayoutDashboard, Loader2, LogOut, Menu, Search, X } from 'lucide-react';
 import BrandLogo from '@/components/site/BrandLogo';
 import LoginPromptModal from '@/components/site/LoginPromptModal';
+import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+
+const initialsFrom = (value = 'MI') => String(value)
+  .split(/[.\s@_-]+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0]?.toUpperCase())
+  .join('') || 'MI';
+
+const VersePill = ({ type }) => (
+  <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] ${
+    type === 'business' ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'
+  }`}>
+    {type === 'business' ? 'BusinessVerse' : 'CreatorVerse'}
+  </span>
+);
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user, member, adminRole, signOut } = useAuth();
+  const { isAuthenticated, user, member, adminRole, signOut, token } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchPromptOpen, setSearchPromptOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchError, setSearchError] = useState('');
+  const searchRef = useRef(null);
 
   const dashboardPath = adminRole === 'superadmin'
     ? '/superadmin'
@@ -26,6 +48,17 @@ const Navbar = () => {
   }, [user?.email]);
 
   const avatarUrl = member?.profile_image_url || '';
+  const activeSubscription = ['active', 'trialing', 'paid'].includes(String(member?.subscription_status || '').toLowerCase());
+  const canUseLiveSearch = isAuthenticated && !isAdminUser && activeSubscription;
+
+  const runSearchNavigation = (value = searchValue) => {
+    const trimmed = value.trim();
+    const searchParams = new URLSearchParams();
+    if (trimmed) searchParams.set('q', trimmed);
+    navigate(`/search-verse${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
+    setSearchOpen(false);
+    setMobileMenuOpen(false);
+  };
 
   const handleSearchClick = (event) => {
     event.preventDefault();
@@ -34,8 +67,12 @@ const Navbar = () => {
       navigate(dashboardPath);
       return;
     }
+    if (canUseLiveSearch) {
+      runSearchNavigation();
+      return;
+    }
     if (isAuthenticated) {
-      navigate('/search-verse');
+      navigate('/pricing');
       return;
     }
     setSearchPromptOpen(true);
@@ -60,29 +97,75 @@ const Navbar = () => {
   useEffect(() => {
     setProfileMenuOpen(false);
     setMobileMenuOpen(false);
+    setSearchOpen(false);
   }, [location.pathname]);
 
-  const accountType = member?.account_type?.toLowerCase();
+  useEffect(() => {
+    if (!canUseLiveSearch) {
+      setSearchOpen(false);
+      setSearchResults([]);
+      setSearchError('');
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError('');
+      try {
+        const params = new URLSearchParams({
+          type: 'all',
+          q: searchValue.trim(),
+          limit: '6'
+        });
+        const data = await apiRequest(`/api/search?${params.toString()}`, { token });
+        setSearchResults(data.results || []);
+      } catch (requestError) {
+        setSearchResults([]);
+        setSearchError(requestError.message || 'Could not search right now.');
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 180);
+
+    return () => window.clearTimeout(timer);
+  }, [canUseLiveSearch, searchValue, token]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!searchRef.current?.contains(event.target)) {
+        setSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const storedAccountType = typeof window !== 'undefined'
+    ? window.localStorage.getItem('myindianstartup_account_type')
+    : '';
+  const accountType = String(
+    member?.account_type
+    || user?.user_metadata?.account_type
+    || storedAccountType
+    || ''
+  ).toLowerCase();
 
   const navItems = [
     { path: '/', label: 'Home', testid: 'nav-link-home' },
-    // Not logged in → show both. Business user → only BusinessVerse. Creator user → only CreatorVerse.
     ...(isAdminUser
       ? [{ path: dashboardPath, label: 'Dashboard', testid: 'nav-link-dashboard' }]
       : !isAuthenticated
-      ? [
-          { path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' },
-          { path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' },
-        ]
-      : accountType === 'business'
-        ? [{ path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' }]
-        : accountType === 'creator'
-          ? [{ path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' }]
-          : [
-              { path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' },
-              { path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' },
-            ]),
-    ...(isAuthenticated && !isAdminUser ? [{ path: '/verse-feed', label: 'VerseFeed', testid: 'nav-link-verse-feed' }] : []),
+        ? [
+            { path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' },
+            { path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' }
+          ]
+        : accountType === 'business'
+          ? [{ path: '/business-verse', label: 'BusinessVerse', testid: 'nav-link-business' }]
+          : accountType === 'creator'
+            ? [{ path: '/creator-verse', label: 'CreatorVerse', testid: 'nav-link-creator' }]
+            : []),
+    ...(isAuthenticated && !isAdminUser && activeSubscription ? [{ path: '/verse-feed', label: 'VerseFeed', testid: 'nav-link-verse-feed' }] : []),
     { path: '/pricing', label: 'Pricing', testid: 'nav-link-pricing' },
     { path: '/contact', label: 'Contact Us', testid: 'nav-link-contact' }
   ];
@@ -117,16 +200,6 @@ const Navbar = () => {
             <LayoutDashboard className="h-4 w-4" />
             Open Dashboard
           </button>
-          {!isAdminUser && (
-            <button
-              type="button"
-              onClick={() => navigate('/profile-verse')}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-            >
-              <UserRound className="h-4 w-4" />
-              Profile
-            </button>
-          )}
           <button
             type="button"
             onClick={handleSignOut}
@@ -143,10 +216,10 @@ const Navbar = () => {
   return (
     <>
       <nav
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+        className={`fixed top-0 z-50 w-full transition-all duration-300 ${
           scrolled
-            ? 'bg-white/95 backdrop-blur-xl border-b border-slate-200/70 shadow-sm py-3'
-            : 'bg-white/95 backdrop-blur-md border-b border-transparent py-4'
+            ? 'border-b border-slate-200/70 bg-white/95 py-3 shadow-sm backdrop-blur-xl'
+            : 'border-b border-transparent bg-white/95 py-4 backdrop-blur-md'
         }`}
       >
         <div className="mx-auto flex max-w-[1540px] items-center justify-between gap-5 px-5 sm:px-6 lg:px-10 xl:px-12">
@@ -159,15 +232,96 @@ const Navbar = () => {
             <BrandLogo />
           </Link>
 
-          <button
-            type="button"
-            onClick={handleSearchClick}
-            className="hidden min-w-[300px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-slate-200 bg-slate-50/70 px-5 py-3 text-base text-slate-500 shadow-[0_3px_10px_rgba(15,23,42,0.06)] transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-slate-700 lg:flex"
-            data-testid="nav-search"
-          >
-            {isAdminUser ? <LayoutDashboard className="h-5 w-5 shrink-0 text-slate-400" /> : <Search className="h-5 w-5 shrink-0 text-slate-400" />}
-            <span className="truncate">{isAdminUser ? 'Open admin dashboard' : 'Search creators, businesses, industries...'}</span>
-          </button>
+          {isAdminUser ? (
+            <button
+              type="button"
+              onClick={handleSearchClick}
+              className="hidden min-w-[300px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-slate-200 bg-slate-50/70 px-5 py-3 text-base text-slate-500 shadow-[0_3px_10px_rgba(15,23,42,0.06)] transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-slate-700 lg:flex"
+              data-testid="nav-search"
+            >
+              <LayoutDashboard className="h-5 w-5 shrink-0 text-slate-400" />
+              <span className="truncate">Open admin dashboard</span>
+            </button>
+          ) : canUseLiveSearch ? (
+            <div ref={searchRef} className="relative hidden min-w-[320px] max-w-[460px] flex-1 lg:block">
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  runSearchNavigation();
+                }}
+                className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50/80 px-5 py-3 text-base text-slate-700 shadow-[0_3px_10px_rgba(15,23,42,0.06)] transition-all duration-200 focus-within:border-blue-300 focus-within:bg-white"
+              >
+                <Search className="h-5 w-5 shrink-0 text-slate-400" />
+                <input
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
+                  onFocus={() => setSearchOpen(true)}
+                  placeholder="Search creators, businesses, industries..."
+                  className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+                  data-testid="nav-search"
+                />
+                {searchLoading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
+              </form>
+
+              {searchOpen && (
+                <div className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-50 overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.16)]">
+                  <div className="border-b border-slate-100 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                    {searchValue.trim() ? 'Matching profiles' : 'Suggested profiles'}
+                  </div>
+                  {searchError ? (
+                    <div className="px-4 py-4 text-sm font-bold text-rose-600">{searchError}</div>
+                  ) : searchResults.length ? (
+                    <div className="max-h-[420px] overflow-y-auto py-2">
+                      {searchResults.map((result) => (
+                        <button
+                          key={result.id}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => {
+                            const params = new URLSearchParams();
+                            if (searchValue.trim()) params.set('q', searchValue.trim());
+                            params.set('profile', result.id);
+                            if (result.accountType) params.set('type', 'all');
+                            navigate(`/search-verse?${params.toString()}`);
+                            setSearchOpen(false);
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                        >
+                          <div className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl font-black ${result.accountType === 'business' ? 'bg-orange-500 text-white' : 'bg-blue-600 text-white'}`}>
+                            {result.avatarUrl ? (
+                              <img src={result.avatarUrl} alt={result.displayName || 'Profile'} className="h-full w-full object-cover" />
+                            ) : (
+                              result.initials || initialsFrom(result.displayName)
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-black text-slate-950">{result.displayName}</div>
+                            <div className="mt-0.5 truncate text-xs font-semibold text-slate-500">{result.headline || 'Profile'}</div>
+                            <div className="mt-1 truncate text-xs text-slate-400">{result.location || 'Location not shared'}</div>
+                          </div>
+                          <VersePill type={result.accountType} />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-6 text-sm font-bold text-slate-500">
+                      {searchValue.trim() ? 'No matching profile found.' : 'Start typing to search profiles.'}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSearchClick}
+              className="hidden min-w-[300px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-slate-200 bg-slate-50/70 px-5 py-3 text-base text-slate-500 shadow-[0_3px_10px_rgba(15,23,42,0.06)] transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-slate-700 lg:flex"
+              data-testid="nav-search"
+            >
+              <Search className="h-5 w-5 shrink-0 text-slate-400" />
+              <span className="truncate">{isAuthenticated ? 'Activate membership to use search' : 'Search creators, businesses, industries...'}</span>
+            </button>
+          )}
 
           <div className="hidden items-center gap-1 xl:flex">
             {navItems.map((item) => (
@@ -215,20 +369,20 @@ const Navbar = () => {
             data-testid="mobile-menu-open"
             aria-label="Open menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="h-6 w-6" />
           </button>
         </div>
       </nav>
 
       <div
-        className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 transition-opacity duration-300 md:hidden ${
-          mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+          mobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
         onClick={() => setMobileMenuOpen(false)}
       />
 
       <div
-        className={`fixed top-0 right-0 w-[300px] h-full bg-white z-50 p-8 flex flex-col gap-8 shadow-2xl transition-all duration-300 ease-in-out transform md:hidden ${
+        className={`fixed top-0 right-0 z-50 flex h-full w-[300px] transform flex-col gap-8 bg-white p-8 shadow-2xl transition-all duration-300 ease-in-out md:hidden ${
           mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -242,12 +396,12 @@ const Navbar = () => {
             <BrandLogo markClassName="h-10 w-10" textClassName="text-lg text-slate-950" />
           </Link>
           <button
-            className="text-slate-900 hover:text-blue-600 transition-colors"
+            className="text-slate-900 transition-colors hover:text-blue-600"
             onClick={() => setMobileMenuOpen(false)}
             data-testid="mobile-menu-close"
             aria-label="Close menu"
           >
-            <X className="w-6 h-6" />
+            <X className="h-6 w-6" />
           </button>
         </div>
 
@@ -257,7 +411,7 @@ const Navbar = () => {
           className="flex w-full items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
         >
           {isAdminUser ? <LayoutDashboard className="h-5 w-5 text-slate-400" /> : <Search className="h-5 w-5 text-slate-400" />}
-          <span>{isAdminUser ? 'Open admin dashboard' : 'Search creators, businesses...'}</span>
+          <span>{isAdminUser ? 'Open admin dashboard' : canUseLiveSearch ? 'Open SearchVerse' : 'Search creators, businesses...'}</span>
         </button>
 
         {isAuthenticated && (
@@ -281,7 +435,7 @@ const Navbar = () => {
           </div>
         )}
 
-        <div className="flex flex-col gap-6 mt-8">
+        <div className="mt-8 flex flex-col gap-6">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -302,7 +456,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={handleSignOut}
-              className="border-2 border-rose-100 bg-rose-50 text-rose-600 font-semibold rounded-full px-6 py-3 text-center transition-colors text-sm"
+              className="rounded-full border-2 border-rose-100 bg-rose-50 px-6 py-3 text-center text-sm font-semibold text-rose-600 transition-colors"
             >
               Logout
             </button>
@@ -311,14 +465,14 @@ const Navbar = () => {
               <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="border-2 border-slate-200 text-slate-900 font-semibold rounded-full px-6 py-3 hover:border-slate-900 text-center transition-colors text-sm"
+                className="rounded-full border-2 border-slate-200 px-6 py-3 text-center text-sm font-semibold text-slate-900 transition-colors hover:border-slate-900"
               >
                 Login
               </Link>
               <Link
                 to="/signup"
                 onClick={() => setMobileMenuOpen(false)}
-                className="bg-blue-600 text-white font-semibold rounded-full px-6 py-3 hover:bg-blue-700 text-center transition-colors text-sm shadow-[0_4px_14px_0_rgba(37,99,235,0.25)]"
+                className="rounded-full bg-blue-600 px-6 py-3 text-center text-sm font-semibold text-white shadow-[0_4px_14px_0_rgba(37,99,235,0.25)] transition-colors hover:bg-blue-700"
               >
                 Join Now
               </Link>

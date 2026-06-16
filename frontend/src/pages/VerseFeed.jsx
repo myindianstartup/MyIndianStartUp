@@ -1,12 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   BriefcaseBusiness,
   Camera,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
   Heart,
   Loader2,
   MessageCircle,
@@ -18,30 +15,62 @@ import {
   Sparkles,
   UserCheck,
   UserPlus,
-  Users,
-  Zap
+  Users
 } from 'lucide-react';
-import { API_URL, apiRequest } from '@/lib/apiClient';
+import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
-const GateModal = ({ onClose }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
-    <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-        <Zap className="h-6 w-6" />
+const MembershipRequiredNotice = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
+      <div className="inline-flex rounded-full bg-orange-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-orange-600">
+        Membership required
       </div>
-      <h3 className="mt-5 text-2xl font-black tracking-[-0.03em] text-slate-900">Membership required</h3>
-      <p className="mt-3 text-sm leading-6 text-slate-600">Please purchase a plan to access this feature.</p>
+      <h2 className="mt-4 text-2xl font-black tracking-[-0.03em] text-slate-950 sm:text-3xl">
+        Purchase a membership plan to open VerseFeed.
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
+        VerseFeed is available only for active BusinessVerse and CreatorVerse members. Complete your yearly membership to view posts, connect with members, and publish daily visibility updates.
+      </p>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={() => navigate('/pricing')}
+          className="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-black text-white shadow-[0_12px_28px_rgba(37,99,235,0.25)] transition hover:bg-blue-700"
+        >
+          View Membership Plans
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const FeedUnavailableNotice = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="rounded-[1.75rem] border border-amber-100 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
+      <div className="inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-amber-700">
+        Feed temporarily unavailable
+      </div>
+      <h2 className="mt-4 text-2xl font-black tracking-[-0.03em] text-slate-950 sm:text-3xl">
+        VerseFeed is not connected right now.
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
+        We could not reach the production backend for VerseFeed. Please check that the deployed frontend has the correct API URL, then refresh the page.
+      </p>
       <button
         type="button"
-        onClick={onClose}
-        className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-slate-800 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-900"
+        onClick={() => navigate('/pricing')}
+        className="mt-6 inline-flex items-center justify-center rounded-full bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800"
       >
-        Go to Pricing
+        Review Membership
       </button>
     </div>
-  </div>
-);
+  );
+};
 
 const VerseBadge = ({ type }) => (
   <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${
@@ -75,47 +104,6 @@ const timeAgo = (value) => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
-const storyTimeLeft = (value) => {
-  if (!value) return '';
-  const diff = new Date(value).getTime() - Date.now();
-  if (diff <= 0) return 'Expired';
-  const hours = Math.floor(diff / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  if (hours >= 1) return `${hours}h ${minutes}m left`;
-  return `${Math.max(1, minutes)}m left`;
-};
-
-const showcaseStories = [
-  { id: 'story-kavya', name: 'Kavya Studio', type: 'creator', image: '/assets/auth-characters.png', viewed: false },
-  { id: 'story-gujarat', name: 'Gujarat Foods', type: 'business', image: '/assets/india-coverage-map.png', viewed: false },
-  { id: 'story-reelcraft', name: 'ReelCraft', type: 'creator', image: '/assets/auth-characters.png', viewed: true },
-  { id: 'story-urban', name: 'Urban Spices', type: 'business', image: '/assets/india-coverage-map.png', viewed: true },
-  { id: 'story-brand', name: 'Brand Shoots', type: 'creator', image: '/assets/auth-characters.png', viewed: false },
-  { id: 'story-d2c', name: 'D2C Leads', type: 'business', image: '/assets/india-coverage-map.png', viewed: true }
-];
-
-const storyStickerOptions = ['Launch', 'Hiring', 'Collab', 'Offer', 'New', 'Open'];
-
-const cleanMention = (value = '') => value.replace(/^@+/, '').replace(/[^a-zA-Z0-9_.]/g, '').slice(0, 32);
-
-const cleanCompanyTag = (value = '') => String(value || '').replace(/\s+/g, ' ').trim().slice(0, 40);
-
-const storyMetadataOverlays = (metadata = {}) => ({
-  sticker: String(metadata.sticker || '').trim(),
-  mention: cleanMention(metadata.mention || ''),
-  companyTag: cleanCompanyTag(metadata.companyTag || '')
-});
-
-const uniqueByKey = (items, keyFn) => {
-  const seen = new Set();
-  return items.filter((item) => {
-    const key = keyFn(item);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-};
-
 const showcasePosts = [
   {
     id: 'showcase-business-launch',
@@ -125,7 +113,7 @@ const showcasePosts = [
     authorCategory: 'Festive retail packaging launch',
     accountType: 'business',
     caption: 'Launching our festive snack boxes for retailers and cafe partners across Gujarat. Open for creator collaborations, product shoots, and local distribution leads.',
-    mediaUrl: '/assets/india-coverage-map.png',
+    mediaUrl: '/assets/auth-characters.png',
     mediaType: 'image',
     publishedAt: new Date(Date.now() - 38 * 60 * 1000).toISOString(),
     metrics: { views: 1240, likes: 186, comments: 24, shares: 18 }
@@ -196,311 +184,6 @@ const mediaGradient = (post) => {
   if (post.mediaType === 'video') return 'from-blue-100 to-indigo-50';
   if (post.accountType === 'creator') return 'from-violet-100 to-purple-50';
   return 'from-orange-100 to-amber-50';
-};
-
-const StoryViewer = ({ story, storyCount = 0, currentIndex = 0, onClose, onNavigate }) => {
-  if (!story) return null;
-  const overlays = storyMetadataOverlays(story.metadata);
-  const canNavigate = storyCount > 1;
-  const canGoPrevious = currentIndex > 0;
-  const canGoNext = currentIndex < storyCount - 1;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm">
-      {canNavigate && (
-        <button
-          type="button"
-          onClick={() => canGoPrevious && onNavigate?.(currentIndex - 1)}
-          disabled={!canGoPrevious}
-          className="absolute left-4 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white backdrop-blur transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
-          aria-label="Previous story"
-        >
-          <ChevronLeft className="h-7 w-7" />
-        </button>
-      )}
-      <div className="relative flex h-full max-h-[760px] w-full max-w-sm flex-col overflow-hidden rounded-[2rem] bg-slate-950 shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
-        <div className="absolute inset-x-4 top-4 z-10 h-1 rounded-full bg-white/25">
-          <div className="h-full w-full rounded-full bg-white" />
-        </div>
-        {canNavigate && (
-          <div className="absolute left-1/2 top-7 z-20 -translate-x-1/2 rounded-full bg-black/35 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur">
-            {currentIndex + 1} / {storyCount}
-          </div>
-        )}
-        {story.expiresAt && (
-          <div className="absolute left-4 right-4 top-20 z-20 flex justify-center">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur">
-              <Clock className="h-3.5 w-3.5" />
-              {storyTimeLeft(story.expiresAt)}
-            </div>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-7 z-20 rounded-full bg-black/40 px-3 py-1.5 text-xs font-black text-white backdrop-blur transition hover:bg-black/60"
-        >
-          Close
-        </button>
-        <div className="absolute left-4 top-7 z-20 flex items-center gap-3">
-          <div className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-xs font-black text-white ${story.type === 'creator' ? 'bg-blue-600' : 'bg-orange-500'}`}>
-            {story.image ? <img src={story.image} alt={story.name} className="h-full w-full object-cover" /> : initialsFrom(story.name)}
-          </div>
-          <div>
-            <div className="text-sm font-black text-white">{story.name}</div>
-            <div className="text-[11px] font-bold text-white/60">{timeAgo(story.createdAt)}</div>
-          </div>
-        </div>
-        <div className="grid flex-1 place-items-center bg-black">
-          {story.mediaType === 'video' ? (
-            <video src={story.mediaUrl || story.image} controls autoPlay className="h-full w-full object-contain" />
-          ) : (
-            <img src={story.mediaUrl || story.image} alt={story.name} className="h-full w-full object-contain" />
-          )}
-        </div>
-        {overlays.sticker && (
-          <div className="absolute right-6 top-24 rounded-2xl bg-white/90 px-4 py-2 text-sm font-black text-slate-950 shadow-2xl backdrop-blur">
-            {overlays.sticker}
-          </div>
-        )}
-        {overlays.companyTag && (
-          <div className="absolute left-6 top-24 max-w-[80%] rounded-2xl bg-blue-600/90 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur">
-            {overlays.companyTag}
-          </div>
-        )}
-        {overlays.mention && (
-          <div className="absolute left-6 bottom-28 max-w-[80%] rounded-2xl bg-white/15 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur">
-            @{overlays.mention}
-          </div>
-        )}
-        {story.caption && (
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-5 pt-20 text-sm font-semibold leading-6 text-white">
-            {story.caption}
-          </div>
-        )}
-        {canNavigate && (
-          <div className="absolute inset-x-0 bottom-4 z-20 flex justify-between px-4 sm:hidden">
-            <button
-              type="button"
-              onClick={() => canGoPrevious && onNavigate?.(currentIndex - 1)}
-              disabled={!canGoPrevious}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur disabled:opacity-30"
-              aria-label="Previous story"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <button
-              type="button"
-              onClick={() => canGoNext && onNavigate?.(currentIndex + 1)}
-              disabled={!canGoNext}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur disabled:opacity-30"
-              aria-label="Next story"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-          </div>
-        )}
-      </div>
-      {canNavigate && (
-        <button
-          type="button"
-          onClick={() => canGoNext && onNavigate?.(currentIndex + 1)}
-          disabled={!canGoNext}
-          className="absolute right-4 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white backdrop-blur transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
-          aria-label="Next story"
-        >
-          <ChevronRight className="h-7 w-7" />
-        </button>
-      )}
-    </div>
-  );
-};
-
-const StoryEditor = ({
-  draft,
-  uploading,
-  error,
-  mentionOptions = [],
-  companyOptions = [],
-  onPickMedia,
-  onDraftChange,
-  onClose,
-  onShare
-}) => {
-  if (!draft) return null;
-  const overlays = storyMetadataOverlays(draft);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/80 px-3 py-4 backdrop-blur-sm">
-      <div className="grid h-[calc(100vh-2rem)] w-full max-w-4xl grid-rows-[minmax(220px,38vh)_minmax(0,1fr)] overflow-hidden overscroll-contain rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)] lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-none">
-        <div className="relative grid min-h-0 place-items-center bg-slate-950 lg:min-h-[560px]">
-          {draft.previewUrl ? (
-            draft.mediaType === 'video' ? (
-              <video src={draft.previewUrl} controls className="h-full max-h-[86vh] w-full object-contain" />
-            ) : (
-              <img src={draft.previewUrl} alt="Story preview" className="h-full max-h-[86vh] w-full object-contain" />
-            )
-          ) : (
-            <button
-              type="button"
-              onClick={onPickMedia}
-              className="mx-8 flex max-w-xs flex-col items-center rounded-[2rem] border border-dashed border-white/25 bg-white/10 px-8 py-10 text-center text-white transition hover:bg-white/15"
-            >
-              <Camera className="h-10 w-10" />
-              <span className="mt-4 text-lg font-black">Choose photo or video</span>
-              <span className="mt-2 text-sm font-semibold text-white/60">Pick media, preview it, add caption, then share.</span>
-            </button>
-          )}
-          {draft.previewUrl && draft.caption && (
-            <div className="absolute inset-x-6 bottom-8 rounded-3xl bg-black/40 px-5 py-3 text-center text-lg font-black leading-7 text-white shadow-2xl backdrop-blur">
-              {draft.caption}
-            </div>
-          )}
-          {overlays.sticker && (
-            <div className="absolute right-8 top-24 rounded-2xl bg-white/90 px-4 py-2 text-sm font-black text-slate-950 shadow-2xl backdrop-blur">
-              {overlays.sticker}
-            </div>
-          )}
-          {overlays.companyTag && (
-            <div className="absolute left-8 top-24 max-w-[70%] rounded-2xl bg-blue-600/90 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur">
-              {overlays.companyTag}
-            </div>
-          )}
-          {overlays.mention && (
-            <div className="absolute left-8 bottom-24 max-w-[70%] rounded-2xl bg-white/15 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur">
-              @{overlays.mention}
-            </div>
-          )}
-        </div>
-
-        <div className="flex min-h-0 flex-col overflow-y-auto overscroll-contain bg-white">
-          <div className="p-6 pb-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.28em] text-blue-600">Story Editor</div>
-          <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950">Create your story</h3>
-          <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-            Preview your image or video, add a short caption, then share it for 24 hours.
-          </p>
-
-          <label className="mt-6 grid gap-2">
-            <span className="text-sm font-black text-slate-800">Caption / overlay text</span>
-            <textarea
-              value={draft.caption}
-              onChange={(event) => onDraftChange({ caption: event.target.value })}
-              maxLength={250}
-              rows={5}
-              placeholder="Write something for your story..."
-              className="resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
-            />
-            <span className="text-right text-[11px] font-bold text-slate-400">{draft.caption.length}/250</span>
-          </label>
-
-          <div className="mt-4">
-            <div className="text-sm font-black text-slate-800">Sticker</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {storyStickerOptions.map((sticker) => (
-                <button
-                  key={sticker}
-                  type="button"
-                  onClick={() => onDraftChange({ sticker: draft.sticker === sticker ? '' : sticker })}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-black transition ${
-                    draft.sticker === sticker
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50'
-                  }`}
-                >
-                  {sticker}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3">
-            <label className="grid gap-2">
-              <span className="text-sm font-black text-slate-800">Mention someone</span>
-              <input
-                value={draft.mention ? `@${cleanMention(draft.mention)}` : ''}
-                onChange={(event) => onDraftChange({ mention: cleanMention(event.target.value) })}
-                placeholder="@creator or @business"
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
-              />
-              {mentionOptions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {mentionOptions.slice(0, 5).map((option) => (
-                    <button
-                      key={option.handle}
-                      type="button"
-                      onClick={() => onDraftChange({ mention: option.handle })}
-                      className={`rounded-full border px-3 py-1.5 text-[11px] font-black transition ${
-                        cleanMention(draft.mention) === option.handle
-                          ? 'border-blue-600 bg-blue-600 text-white'
-                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50'
-                      }`}
-                    >
-                      @{option.handle}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-black text-slate-800">Company tag</span>
-              <input
-                value={draft.companyTag}
-                onChange={(event) => onDraftChange({ companyTag: cleanCompanyTag(event.target.value) })}
-                placeholder="Tag company or brand"
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
-              />
-              {companyOptions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {companyOptions.slice(0, 5).map((option) => (
-                    <button
-                      key={option.name}
-                      type="button"
-                      onClick={() => onDraftChange({ companyTag: option.name })}
-                      className={`rounded-full border px-3 py-1.5 text-[11px] font-black transition ${
-                        cleanCompanyTag(draft.companyTag) === option.name
-                          ? 'border-blue-600 bg-blue-600 text-white'
-                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50'
-                      }`}
-                    >
-                      {option.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </label>
-          </div>
-
-          {error && (
-            <div className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">
-              {error}
-            </div>
-          )}
-          </div>
-
-          <div className="sticky bottom-0 mt-auto flex gap-3 border-t border-slate-100 bg-white/95 p-6 pt-4 shadow-[0_-12px_28px_rgba(15,23,42,0.06)] backdrop-blur">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={uploading}
-              className="inline-flex flex-1 items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={onShare}
-              disabled={uploading || !draft.file}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-[0_12px_28px_rgba(37,99,235,0.25)] transition hover:bg-blue-700 disabled:opacity-60"
-            >
-              {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Share Story
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 const PostCard = ({ post, token, onMetrics, onFollow }) => {
@@ -821,19 +504,12 @@ const PostCard = ({ post, token, onMetrics, onFollow }) => {
 const VerseFeed = () => {
   const { member, token } = useAuth();
   const navigate = useNavigate();
-  const storyInputRef = useRef(null);
   const [posts, setPosts] = useState([]);
-  const [stories, setStories] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [connections, setConnections] = useState({ stats: { following: 0, followers: 0 }, following: [], followers: [] });
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [storyUploading, setStoryUploading] = useState(false);
-  const [storyDraft, setStoryDraft] = useState(null);
-  const [storyError, setStoryError] = useState('');
-  const [activeStory, setActiveStory] = useState(null);
-  const [gateOpen, setGateOpen] = useState(false);
   const [connectionNotice, setConnectionNotice] = useState('');
   const [error, setError] = useState('');
 
@@ -842,35 +518,19 @@ const VerseFeed = () => {
     { key: 'business', label: 'BusinessVerse' },
     { key: 'creator', label: 'CreatorVerse' }
   ];
+  const activeSubscription = ['active', 'trialing', 'paid'].includes(String(member?.subscription_status || '').toLowerCase());
   const hasLivePosts = posts.length > 0;
-  const visibleStories = stories.length ? stories : showcaseStories;
   const visibleRecommendations = recommendations.length ? recommendations : showcaseRecommendations;
   const visibleFollowing = connections.following || [];
-  const activeStoryIndex = activeStory ? visibleStories.findIndex((story) => story.id === activeStory.id) : -1;
-  const storyMentionOptions = useMemo(() => uniqueByKey([
-    ...visibleRecommendations.map((item) => ({
-      name: item.authorName,
-      handle: cleanMention(handleFrom(item.authorName)),
-      type: item.accountType
-    })),
-    ...(hasLivePosts ? posts : showcasePosts).map((post) => ({
-      name: post.authorName,
-      handle: cleanMention(handleFrom(post.authorName)),
-      type: post.accountType
-    }))
-  ], (item) => item.handle), [hasLivePosts, posts, visibleRecommendations]);
-  const storyCompanyOptions = useMemo(() => uniqueByKey([
-    ...visibleRecommendations
-      .filter((item) => item.accountType === 'business')
-      .map((item) => ({ name: cleanCompanyTag(item.authorName) })),
-    ...(hasLivePosts ? posts : showcasePosts)
-      .filter((post) => post.accountType === 'business')
-      .map((post) => ({ name: cleanCompanyTag(post.authorName) }))
-  ], (item) => item.name.toLowerCase()), [hasLivePosts, posts, visibleRecommendations]);
 
   useEffect(() => {
     const loadFeed = async () => {
       if (!token) return;
+      if (!activeSubscription) {
+        setLoading(false);
+        setError('');
+        return;
+      }
 
       setLoading(true);
       setError('');
@@ -887,14 +547,19 @@ const VerseFeed = () => {
           following: connectionData.following || [],
           followers: connectionData.followers || []
         });
-        apiRequest('/api/posts/stories', { token })
-          .then((storyData) => setStories(storyData.stories || []))
-          .catch(() => setStories([]));
       } catch (requestError) {
-        if (requestError.message === 'Please purchase a plan to access this feature.') {
-          setGateOpen(true);
+        if (
+          requestError.status === 402
+          || requestError.code === 'SUBSCRIPTION_REQUIRED'
+          || requestError.payload?.code === 'SUBSCRIPTION_REQUIRED'
+          || requestError.redirectTo === '/pricing'
+        ) {
+          navigate('/pricing', { replace: true, state: { from: '/verse-feed' } });
         } else {
-          setError(requestError.message || 'Could not load VerseFeed.');
+          const friendlyError = requestError.status === 404 || requestError.code === 'API_URL_MISSING'
+            ? 'FEED_UNAVAILABLE'
+            : requestError.message || 'Could not load VerseFeed.';
+          setError(friendlyError);
         }
       } finally {
         setLoading(false);
@@ -902,24 +567,7 @@ const VerseFeed = () => {
     };
 
     loadFeed();
-  }, [token]);
-
-  useEffect(() => () => {
-    if (storyDraft?.previewUrl) URL.revokeObjectURL(storyDraft.previewUrl);
-  }, [storyDraft?.previewUrl]);
-
-  useEffect(() => {
-    if (!storyDraft && !activeStory) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    const previousPaddingRight = document.body.style.paddingRight;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = 'hidden';
-    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.paddingRight = previousPaddingRight;
-    };
-  }, [activeStory, storyDraft]);
+  }, [activeSubscription, navigate, token]);
 
   const filteredPosts = useMemo(() => {
     let nextPosts = hasLivePosts ? posts : showcasePosts;
@@ -941,11 +589,6 @@ const VerseFeed = () => {
     setPosts((current) => current.map((post) => (
       post.id === postId ? { ...post, metrics: { ...post.metrics, ...metrics } } : post
     )));
-  };
-
-  const closeGate = () => {
-    setGateOpen(false);
-    navigate('/pricing');
   };
 
   const updateFollowState = (userId, following) => {
@@ -989,135 +632,22 @@ const VerseFeed = () => {
       loadConnections().catch(() => {});
     } catch (error) {
       updateFollowState(userId, currentlyFollowing);
+      if (error.status === 402 || error.code === 'SUBSCRIPTION_REQUIRED') {
+        navigate('/pricing', { replace: true, state: { from: '/verse-feed' } });
+        return;
+      }
       setConnectionNotice(error.message || 'Could not update connection status.');
     }
   };
 
-  const handleStoryFileSelect = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      window.alert('Please choose an image or video story.');
-      return;
-    }
-
-    if (storyDraft?.previewUrl) URL.revokeObjectURL(storyDraft.previewUrl);
-    setStoryError('');
-    setStoryDraft((current) => ({
-      ...(current || {}),
-      file,
-      previewUrl: URL.createObjectURL(file),
-      mediaType: file.type.startsWith('video/') ? 'video' : 'image',
-      caption: current?.caption || '',
-      sticker: current?.sticker || '',
-      mention: current?.mention || '',
-      companyTag: current?.companyTag || ''
-    }));
-  };
-
-  const closeStoryEditor = () => {
-    if (storyDraft?.previewUrl) URL.revokeObjectURL(storyDraft.previewUrl);
-    setStoryError('');
-    setStoryDraft(null);
-  };
-
-  const shareStoryDraft = async () => {
-    if (!storyDraft?.file) {
-      setStoryError('Choose a photo or video before sharing your story.');
-      return;
-    }
-    if (!token) return;
-
-    setStoryError('');
-    setStoryUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('accountType', member?.account_type === 'creator' ? 'creator' : 'business');
-      formData.append('caption', storyDraft.caption.trim());
-      formData.append('metadata', JSON.stringify({
-        sticker: storyDraft.sticker || '',
-        mention: cleanMention(storyDraft.mention || ''),
-        companyTag: cleanCompanyTag(storyDraft.companyTag || '')
-      }));
-      formData.append('file', storyDraft.file);
-
-      const response = await fetch(`${API_URL}/api/posts/stories`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Story upload failed.');
-
-      const storyData = await apiRequest('/api/posts/stories', { token });
-      setStories(storyData.stories || []);
-      closeStoryEditor();
-    } catch (uploadError) {
-      setStoryError(uploadError.message || 'Story upload failed. Please try again.');
-    } finally {
-      setStoryUploading(false);
-    }
-  };
-
-  const markStoryViewed = async (story) => {
-    if (!story?.id || story.id.startsWith('story-')) return;
-
-    setStories((current) => current.map((item) => (
-      item.id === story.id ? { ...item, viewed: true } : item
-    )));
-
-    try {
-      await apiRequest(`/api/posts/stories/${story.id}/view`, { method: 'POST', token });
-    } catch {
-      // Viewing a story should never interrupt feed browsing.
-    }
-  };
-
-  const openStory = async (story) => {
-    setActiveStory(story);
-    markStoryViewed(story);
-  };
-
-  const navigateStory = (nextIndex) => {
-    const nextStory = visibleStories[nextIndex];
-    if (!nextStory) return;
-
-    setActiveStory(nextStory);
-    markStoryViewed(nextStory);
-  };
-
   return (
     <div className="min-h-screen bg-[#f4f6fb] pt-24 pb-16">
-      {gateOpen && <GateModal onClose={closeGate} />}
-      <StoryViewer
-        story={activeStory}
-        storyCount={visibleStories.length}
-        currentIndex={activeStoryIndex >= 0 ? activeStoryIndex : 0}
-        onClose={() => setActiveStory(null)}
-        onNavigate={navigateStory}
-      />
-      <StoryEditor
-        draft={storyDraft}
-        uploading={storyUploading}
-        error={storyError}
-        mentionOptions={storyMentionOptions}
-        companyOptions={storyCompanyOptions}
-        onPickMedia={() => storyInputRef.current?.click()}
-        onDraftChange={(changes) => {
-          setStoryError('');
-          setStoryDraft((current) => current ? { ...current, ...changes } : current);
-        }}
-        onClose={closeStoryEditor}
-        onShare={shareStoryDraft}
-      />
       <div className="mx-auto max-w-[82rem] px-4 sm:px-6 lg:px-8">
         <div className="mb-6 border-b border-slate-200/70 bg-[#f4f6fb] py-5">
           <div className="mx-auto max-w-[82rem]">
             <div className="flex items-center gap-2">
               <Sparkles size={18} className="text-blue-600" />
-              <span className="text-[11px] font-black uppercase tracking-[0.28em] text-blue-600">VerseFeed</span>
+              <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-blue-600">VerseFeed</span>
             </div>
             <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-4xl">
               What's happening in the Verse
@@ -1130,75 +660,56 @@ const VerseFeed = () => {
 
         <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_330px] xl:grid-cols-[minmax(0,1fr)_350px]">
           <div className="min-w-0 space-y-5">
-            <div className="rounded-[1.5rem] border border-slate-200/80 bg-white px-4 py-4 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
-              <div className="flex items-center gap-1 overflow-x-auto py-2">
-                {member && (
-                  <button type="button" onClick={() => {
-                    setStoryError('');
-                    setStoryDraft({ file: null, previewUrl: '', mediaType: 'image', caption: '', sticker: '', mention: '', companyTag: '' });
-                  }} className="flex shrink-0 flex-col items-center gap-1.5 px-3">
-                    <div className="relative flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-blue-300 bg-blue-50 text-blue-600 transition hover:bg-blue-100">
-                      {storyUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <span className="text-xl font-black">+</span>}
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-500">Your Story</span>
-                  </button>
-                )}
-                <input ref={storyInputRef} type="file" accept="image/*,video/*" className="sr-only" onChange={handleStoryFileSelect} />
+            {activeSubscription && (
+              <>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+                    {filters.map((filter) => (
+                      <button
+                        key={filter.key}
+                        type="button"
+                        onClick={() => setActiveFilter(filter.key)}
+                        className={`rounded-xl px-4 py-2 text-xs font-black transition-all ${
+                          activeFilter === filter.key ? 'bg-blue-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {filter.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="relative flex-1 sm:max-w-xs">
+                    <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search posts, creators, businesses..."
+                      className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-100 placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
-                {visibleStories.map((story) => (
-                  <button key={story.id} type="button" onClick={() => openStory(story)} className="flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3">
-                    <div className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-full text-sm font-black text-white transition-transform hover:scale-105 ${
-                      story.viewed ? 'ring-2 ring-slate-200 ring-offset-2' : story.type === 'creator' ? 'ring-2 ring-blue-500 ring-offset-2' : 'ring-2 ring-orange-500 ring-offset-2'
-                    }`}>
-                      <img src={story.image} alt={story.name} className="h-full w-full object-cover" />
-                    </div>
-                    <span className="w-16 truncate text-center text-[10px] font-bold text-slate-500">{story.name}</span>
-                    {story.expiresAt && <span className="text-[9px] font-black text-slate-400">{storyTimeLeft(story.expiresAt)}</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
-                {filters.map((filter) => (
-                  <button
-                    key={filter.key}
-                    type="button"
-                    onClick={() => setActiveFilter(filter.key)}
-                    className={`rounded-xl px-4 py-2 text-xs font-black transition-all ${
-                      activeFilter === filter.key ? 'bg-blue-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-              <div className="relative flex-1 sm:max-w-xs">
-                <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search posts, creators, businesses..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-100 placeholder:text-slate-400"
-                />
-              </div>
-            </div>
-
-            {!hasLivePosts && !loading && !error && (
+            {activeSubscription && !hasLivePosts && !loading && !error && (
               <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
                 Showcase posts are visible until members publish live posts.
               </div>
             )}
 
-            {loading ? (
+            {!activeSubscription ? (
+              <MembershipRequiredNotice />
+            ) : loading ? (
               <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-8 text-sm font-bold text-slate-500">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Loading VerseFeed...
               </div>
             ) : error ? (
-              <div className="rounded-3xl border border-rose-100 bg-rose-50 p-8 text-sm font-semibold text-rose-600">{error}</div>
+              error === 'FEED_UNAVAILABLE' ? <FeedUnavailableNotice /> : (
+                <div className="rounded-[1.75rem] border border-rose-100 bg-white p-6 text-sm font-semibold leading-6 text-rose-700 shadow-sm sm:p-8">
+                  {error}
+                </div>
+              )
             ) : filteredPosts.length ? (
               <div className="space-y-5">
                 {filteredPosts.map((post) => (
@@ -1221,15 +732,7 @@ const VerseFeed = () => {
           </div>
 
           <aside className="hidden lg:block">
-            <div className="fixed right-8 top-28 w-[330px] space-y-4 xl:w-[350px] 2xl:right-[calc((100vw-82rem)/2+2rem)]">
-            <div className="rounded-[1.5rem] border border-blue-100 bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-[0_8px_24px_rgba(37,99,235,0.25)]">
-              <div className="text-[10px] font-black uppercase tracking-widest text-blue-200">Daily Rule</div>
-              <h3 className="mt-2 text-lg font-black leading-snug">1 post every 24 hours</h3>
-              <p className="mt-2 text-xs font-semibold leading-6 text-blue-100">
-                No spam. No feed domination. Every business and creator gets equal visibility.
-              </p>
-            </div>
-
+            <div className="sticky top-28 w-[330px] space-y-4 xl:w-[350px]">
             <div className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-500">

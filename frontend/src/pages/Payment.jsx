@@ -1,10 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Building2, Check, CreditCard, Loader2, ShieldCheck, Sparkles, Tag, UserRound } from 'lucide-react';
+import { ArrowRight, Building2, CalendarDays, Check, CreditCard, Loader2, ShieldCheck, Sparkles, Tag, UserRound } from 'lucide-react';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 const formatCurrency = (value) => `Rs ${new Intl.NumberFormat('en-IN').format(value || 0)}`;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const formatDate = (value) => {
+  if (!value) return 'Not available';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Not available';
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(parsed);
+};
 
 const emptyBilling = {
   fullName: '',
@@ -15,7 +28,7 @@ const emptyBilling = {
 };
 
 const Payment = () => {
-  const { token, member, isAuthenticated } = useAuth();
+  const { token, member, user, isAuthenticated, refreshMember, session } = useAuth();
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState('');
@@ -51,9 +64,29 @@ const Payment = () => {
     setMessage('');
   }, [selectedPlanId]);
 
+  useEffect(() => {
+    const fallbackName = user?.email ? user.email.split('@')[0] : '';
+    const nextDefaults = {
+      fullName: member?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || fallbackName,
+      email: member?.email || user?.email || '',
+      phone: member?.mobile_number || user?.user_metadata?.mobile_number || '',
+      gstNumber: '',
+      address: ''
+    };
+
+    setBillingInfo((current) => ({
+      fullName: current.fullName || nextDefaults.fullName || '',
+      email: current.email || nextDefaults.email || '',
+      phone: current.phone || nextDefaults.phone || '',
+      gstNumber: current.gstNumber || '',
+      address: current.address || ''
+    }));
+  }, [member?.email, member?.full_name, member?.mobile_number, user?.email, user?.user_metadata]);
+
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
   const finalAmount = quote?.finalAmountInr ?? selectedPlan?.amount_inr ?? 0;
   const discount = quote?.discountAmountInr ?? 0;
+  const hasActiveMembership = ['active', 'trialing', 'paid'].includes(String(member?.subscription_status || '').toLowerCase());
   const isFullDiscountCoupon = Boolean(
     quote?.valid
     && quote?.coupon
@@ -62,12 +95,53 @@ const Payment = () => {
     && Number(finalAmount) === 0
   );
 
+  const normalizedBillingInfo = useMemo(() => ({
+    fullName: billingInfo.fullName.trim(),
+    email: billingInfo.email.trim().toLowerCase(),
+    phone: billingInfo.phone.trim(),
+    gstNumber: billingInfo.gstNumber.trim(),
+    address: billingInfo.address.trim()
+  }), [billingInfo]);
+
+  const buildCheckoutBillingInfo = () => {
+    const payload = {};
+
+    if (normalizedBillingInfo.fullName) payload.fullName = normalizedBillingInfo.fullName;
+    if (normalizedBillingInfo.email) payload.email = normalizedBillingInfo.email;
+    if (normalizedBillingInfo.phone) payload.phone = normalizedBillingInfo.phone;
+    if (normalizedBillingInfo.gstNumber) payload.gstNumber = normalizedBillingInfo.gstNumber;
+    if (normalizedBillingInfo.address) payload.address = normalizedBillingInfo.address;
+
+    return payload;
+  };
+
+  const validateBillingInfo = () => {
+    if (normalizedBillingInfo.fullName && normalizedBillingInfo.fullName.length < 2) {
+      return 'Please enter a valid billing name.';
+    }
+
+    if (normalizedBillingInfo.email && !emailPattern.test(normalizedBillingInfo.email)) {
+      return 'Please enter a valid billing email address.';
+    }
+
+    if (isFullDiscountCoupon) {
+      if (normalizedBillingInfo.fullName.length < 2) {
+        return 'Please add your billing name before activating membership.';
+      }
+      if (!emailPattern.test(normalizedBillingInfo.email)) {
+        return 'Please add a valid billing email before activating membership.';
+      }
+    }
+
+    return '';
+  };
+
   const applyCoupon = async () => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
-    if (!selectedPlanId) return;
+    if (!selectedPlanId || hasActiveMembership) return;
 
     setCheckingCoupon(true);
     setError('');
@@ -99,6 +173,17 @@ const Payment = () => {
       return;
     }
     if (!selectedPlanId) return;
+    if (hasActiveMembership) {
+      navigate('/post-verse');
+      return;
+    }
+
+    const billingValidationError = validateBillingInfo();
+    if (billingValidationError) {
+      setError(billingValidationError);
+      setMessage('');
+      return;
+    }
 
     setCreatingOrder(true);
     setError('');
@@ -110,18 +195,26 @@ const Payment = () => {
         body: {
           planId: selectedPlanId,
           couponCode: couponCode.trim() || null,
-          billingInfo
+          billingInfo: buildCheckoutBillingInfo()
         }
       });
 
       setQuote(data.quote);
       if (data.freeCheckout && data.razorpay?.skipped) {
         setMessage('100% coupon applied. Razorpay skipped and your 1-year membership is active from today.');
+        if (session) {
+          await refreshMember(session);
+        }
+        navigate('/post-verse', { replace: true });
         return;
       }
       setMessage(`Razorpay order prepared: ${data.razorpay.providerOrderId}. Payment gateway keys can be connected without changing this flow.`);
     } catch (requestError) {
-      setError(requestError.message || 'Could not create checkout order.');
+      if ((requestError.message || '').includes('billingInfo')) {
+        setError('Please complete your billing name and email before continuing.');
+      } else {
+        setError(requestError.message || 'Could not create checkout order.');
+      }
     } finally {
       setCreatingOrder(false);
     }
@@ -134,24 +227,34 @@ const Payment = () => {
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
           <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 shadow-sm">
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-extrabold uppercase tracking-[0.2em] text-slate-600 shadow-sm">
                 <span className="h-2 w-2 rounded-full bg-gradient-to-r from-orange-500 to-blue-600" />
                 Pricing
               </div>
               <h1 className="mt-5 text-4xl font-black leading-[1.02] tracking-[-0.04em] text-slate-950 sm:text-5xl md:text-6xl">
-                Simple Pricing. Trusted Platform.
+                {hasActiveMembership ? 'Membership Active And Ready.' : 'Simple Pricing. Trusted Platform.'}
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
-                One annual membership, secure billing under 8TechBurp, no commission, no lead charges, and no hidden costs.
+                {hasActiveMembership
+                  ? 'Your account is already activated. Use your workspace, post updates, and explore connections without returning to checkout.'
+                  : 'One annual membership, secure billing under 8TechBurp, no commission, no lead charges, and no hidden costs.'}
               </p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                {[
-                  ['No commission', 'Keep direct deal value'],
-                  ['No lead charges', 'Connect without buying leads'],
-                  ['Coupon ready', 'Backend validated discounts'],
-                  ['Razorpay ready', 'Order, invoice, transaction tables']
-                ].map(([title, copy]) => (
+                {hasActiveMembership
+                  ? [
+                      ['Membership active', 'Your annual access is already enabled'],
+                      ['No duplicate payment', 'This page now stops repeat purchase confusion'],
+                      ['Workspace ready', 'Open your dashboard and continue posting'],
+                      ['Verse access', 'Use your connected platform areas directly']
+                    ]
+                  : [
+                      ['No commission', 'Keep direct deal value'],
+                      ['No lead charges', 'Connect without buying leads'],
+                      ['Coupon ready', 'Backend validated discounts'],
+                      ['Razorpay ready', 'Order, invoice, transaction tables']
+                    ]
+                .map(([title, copy]) => (
                   <div key={title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <Check className="h-5 w-5 text-emerald-600" />
                     <div className="mt-3 text-sm font-black text-slate-900">{title}</div>
@@ -163,12 +266,16 @@ const Payment = () => {
 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.1)] md:p-8">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
-                  <CreditCard className="h-6 w-6" />
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl text-white ${hasActiveMembership ? 'bg-emerald-600' : 'bg-slate-900'}`}>
+                  {hasActiveMembership ? <ShieldCheck className="h-6 w-6" /> : <CreditCard className="h-6 w-6" />}
                 </div>
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Membership Checkout</div>
-                  <h2 className="text-2xl font-black tracking-[-0.03em] text-slate-950">Select plan and apply coupon.</h2>
+                  <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                    {hasActiveMembership ? 'Membership Active' : 'Membership Checkout'}
+                  </div>
+                  <h2 className="text-2xl font-black tracking-[-0.03em] text-slate-950">
+                    {hasActiveMembership ? 'Your plan is already active.' : 'Select plan and apply coupon.'}
+                  </h2>
                 </div>
               </div>
 
@@ -177,6 +284,63 @@ const Payment = () => {
                   <Loader2 className="h-5 w-5 animate-spin" />
                   Loading live plans...
                 </div>
+              ) : hasActiveMembership ? (
+                <>
+                  <div className="mt-7 rounded-[1.6rem] border border-emerald-100 bg-emerald-50 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-black uppercase tracking-[0.22em] text-emerald-700">Membership confirmed</div>
+                        <h3 className="mt-2 text-3xl font-black tracking-[-0.03em] text-slate-950">Annual plan is active.</h3>
+                        <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600">
+                          Your account already has an active membership, so there is nothing else to purchase here.
+                        </p>
+                      </div>
+                      <div className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-700">
+                        Active
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-emerald-100 bg-white p-4">
+                        <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Account type</div>
+                        <div className="mt-2 text-lg font-black text-slate-950 capitalize">{member?.account_type || 'Member'}</div>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-100 bg-white p-4">
+                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                          <CalendarDays className="h-4 w-4" />
+                          Started
+                        </div>
+                        <div className="mt-2 text-lg font-black text-slate-950">{formatDate(member?.subscription_started_at)}</div>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-100 bg-white p-4">
+                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                          <CalendarDays className="h-4 w-4" />
+                          Valid till
+                        </div>
+                        <div className="mt-2 text-lg font-black text-slate-950">{formatDate(member?.subscription_expires_at)}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/post-verse')}
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-[0_12px_30px_rgba(37,99,235,0.22)] hover:bg-blue-700"
+                    >
+                      Open Workspace
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/verse-feed')}
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-4 text-sm font-black text-slate-900 hover:bg-slate-50"
+                    >
+                      Go to VerseFeed
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </>
               ) : (
                 <>
                   <div className="mt-7 grid gap-4">
@@ -276,7 +440,7 @@ const Payment = () => {
                       <span>Discount</span>
                       <span>- {formatCurrency(discount)}</span>
                     </div>
-                    <div className="mt-4 border-t border-slate-200 pt-4 flex justify-between">
+                    <div className="mt-4 flex justify-between border-t border-slate-200 pt-4">
                       <span className="text-lg font-black text-slate-900">Final price</span>
                       <span className="text-3xl font-black text-slate-950">{formatCurrency(finalAmount)}</span>
                     </div>
@@ -304,15 +468,28 @@ const Payment = () => {
           <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
             <Sparkles className="mx-auto h-6 w-6 text-blue-600" />
             <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-slate-950">
-              One Membership. One Price. Direct Connections.
+              {hasActiveMembership ? 'Your membership is live and ready.' : 'One Membership. One Price. Direct Connections.'}
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-              Rs 999/Year · No Commission · No Lead Charges · No Success Fees
+              {hasActiveMembership
+                ? 'You can now publish, connect, and use the platform without returning to the checkout flow.'
+                : 'Rs 999/Year · No Commission · No Lead Charges · No Success Fees'}
             </p>
-            <Link to="/signup" className="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-black text-white">
-              Create account first
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            {hasActiveMembership ? (
+              <button
+                type="button"
+                onClick={() => navigate('/post-verse')}
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-black text-white"
+              >
+                Open dashboard
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <Link to="/signup" className="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-black text-white">
+                Create account first
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
           </div>
         </div>
       </section>

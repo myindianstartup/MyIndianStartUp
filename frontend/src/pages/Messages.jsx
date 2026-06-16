@@ -296,7 +296,7 @@ const Messages = () => {
                 <div className="border-b border-slate-200 p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-500">Inbox</div>
+                      <div className="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-500">Inbox</div>
                       <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950">Direct messages</h1>
                     </div>
                     <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-sm font-black text-white">

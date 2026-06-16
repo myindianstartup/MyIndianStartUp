@@ -17,7 +17,6 @@ const SignIn = () => {
   return (
     <AuthShell
       accent="emerald"
-      eyebrow="Sign In"
       title="Welcome back. Sign in with Gmail."
       description="A clean sign-in screen for returning businesses, creators, freelancers, and professionals."
       actionLabel="Sign in with Gmail"
@@ -31,7 +30,7 @@ const SignIn = () => {
       ]}
       features={[
         { title: 'Fast return', copy: 'Members can jump back into the ecosystem without redoing their profile.' },
-        { title: 'Platform continuity', copy: 'Preserve access to PostVerse, SearchVerse, ProfileVerse, and Messages.' },
+        { title: 'Platform continuity', copy: 'Preserve access to PostVerse, SearchVerse, and VerseFeed.' },
         { title: 'Simple flow', copy: 'The page keeps the sign-in journey focused on Google-based access.' }
       ]}
       notes={[

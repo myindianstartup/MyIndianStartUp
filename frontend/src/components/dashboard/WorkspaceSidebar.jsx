@@ -1,13 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageCircle, Newspaper, Settings, UserRound, Zap } from 'lucide-react';
+import { LayoutDashboard, Settings, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const workspaceItems = [
-  { label: 'PostVerse', to: '/post-verse', icon: Zap },
-  { label: 'VerseFeed', to: '/verse-feed', icon: Newspaper },
-  { label: 'Messages', to: '/messages', icon: MessageCircle },
-  { label: 'Profile', to: '/profile-verse', icon: UserRound },
+  { label: 'PostVerse', to: '/post-verse', icon: Zap, requiresActiveSubscription: true },
   { label: 'Settings', to: '/settings', icon: Settings }
 ];
 
@@ -15,6 +12,7 @@ const WorkspaceSidebar = () => {
   const location = useLocation();
   const { member } = useAuth();
   const isCreator = member?.account_type === 'creator';
+  const activeSubscription = ['active', 'trialing', 'paid'].includes(String(member?.subscription_status || '').toLowerCase());
   const title = isCreator ? 'Creator Dashboard' : 'Business Dashboard';
   const subtitle = isCreator ? 'CreatorVerse activated' : 'BusinessVerse activated';
 
@@ -40,21 +38,26 @@ const WorkspaceSidebar = () => {
       </div>
 
       <nav className="mt-4 grid gap-2">
-        {workspaceItems.map(({ label, to, icon: Icon }) => {
+        {workspaceItems.map(({ label, to, icon: Icon, requiresActiveSubscription }) => {
+          const locked = requiresActiveSubscription && !activeSubscription;
+          const target = locked ? '/pricing' : to;
           const active = location.pathname === to || (label === 'PostVerse' && location.pathname === '/dashboard');
 
           return (
             <Link
               key={label}
-              to={to}
+              to={target}
               className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
                 active
                   ? 'border border-slate-200 bg-slate-100 text-slate-800 shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                  : locked
+                    ? 'text-slate-400 hover:bg-orange-50 hover:text-orange-700'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
               }`}
             >
               <Icon className="h-4 w-4" />
               <span>{label}</span>
+              {locked && <span className="ml-auto text-[10px] font-black uppercase tracking-[0.16em]">Plan</span>}
             </Link>
           );
         })}

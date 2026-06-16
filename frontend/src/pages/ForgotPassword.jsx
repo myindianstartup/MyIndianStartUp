@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Mail, ShieldCheck } from 'lucide-react';
 import BrandLogo from '@/components/site/BrandLogo';
-import { supabase } from '@/lib/supabaseClient';
+import { getAuthRedirectUrl, supabase } from '@/lib/supabaseClient';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -24,7 +24,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: getAuthRedirectUrl('/reset-password'),
     });
 
     setLoading(false);
@@ -61,7 +61,7 @@ const ForgotPassword = () => {
         </section>
 
         <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_90px_rgba(15,23,42,0.12)] md:p-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-700">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.2em] text-slate-700">
             <ShieldCheck className="h-3.5 w-3.5" />
             Secure Reset
           </div>

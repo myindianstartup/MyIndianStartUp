@@ -8,8 +8,7 @@ const modules = [
   ['Payment', '/pricing', 'Annual Rs 999 membership and billing info.'],
   ['PostVerse', '/post-verse', 'Daily visibility feed and default dashboard.'],
   ['SearchVerse', '/search-verse', 'Discovery engine for businesses and creators.'],
-  ['ProfileVerse', '/profile-verse', 'Business and creator profile layers.'],
-  ['Messages', '/messages', 'Direct collaboration conversations.'],
+  ['VerseFeed', '/verse-feed', 'Member feed for daily visibility and discovery.'],
   ['Settings', '/settings', 'Account and platform controls.']
 ];
 
@@ -19,7 +18,7 @@ const Platform = () => (
       <div className="absolute inset-x-0 top-0 h-[640px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.08),transparent_32%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.07),transparent_28%)] pointer-events-none" />
       <div className="relative mx-auto max-w-7xl px-6 md:px-12">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-blue-700">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.2em] text-blue-700">
             <LayoutGrid className="h-3.5 w-3.5" />
             Platform structure
           </div>
@@ -27,7 +26,7 @@ const Platform = () => (
             The docs describe one ecosystem, not separate products.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
-            This page maps the core site modules the document asks for: Homepage, Join Us, Payment, PostVerse, SearchVerse, ProfileVerse, Messages, and Settings.
+            This page maps the core site modules the document asks for: Homepage, Join Us, Payment, PostVerse, SearchVerse, VerseFeed, and Settings.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to="/join" className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.22)] transition-transform hover:scale-[1.02] hover:bg-blue-700">

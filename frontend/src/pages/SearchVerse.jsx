@@ -1,38 +1,343 @@
-import React from 'react';
-import DocPageShell from '@/components/site/DocPageShell';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Globe2,
+  Loader2,
+  Mail,
+  MapPin,
+  Search,
+  Sparkles,
+} from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { apiRequest } from '@/lib/apiClient';
+import { useAuth } from '@/contexts/AuthContext';
 
-const SearchVerse = () => (
-  <DocPageShell
-    accent="emerald"
-    eyebrow="Discovery Engine"
-    title="SearchVerse helps users find the right businesses and creators."
-    description="The docs describe search as a core module for discovering businesses, creators, freelancers, and professionals across India."
-    primaryAction={{ to: '/join', label: 'Create a profile first' }}
-    secondaryAction={{ to: '/platform', label: 'See ecosystem structure' }}
-    stats={[
-      { value: 'PAN', label: 'India coverage' },
-      { value: '2', label: 'Search targets' },
-      { value: '1', label: 'Login prompt' }
-    ]}
-    previewTitle="Search scope"
-    previewDescription="SearchVerse covers discovery for businesses and creators, and the docs note a login or registration prompt if users try to search without access."
-    previewItems={[
-      'Search businesses',
-      'Search creators',
-      'Prompt unauthenticated users to join'
-    ]}
-    featureTitle="SearchVerse features"
-    featureDescription="The search experience sits at the center of discovery and matching."
-    features={[
-      { title: 'Business discovery', copy: 'Find companies, products, and service providers across India.' },
-      { title: 'Creator discovery', copy: 'Find creators, influencers, freelancers, and specialists.' },
-      { title: 'Login gate', copy: 'If users search without login or registration, the docs say a popup should appear.' },
-      { title: 'Filterable results', copy: 'The search module should support category-level discovery and matching.' },
-      { title: 'Direct collaboration', copy: 'Search results should lead into direct conversations, not intermediary lead sales.' },
-      { title: 'Cross-category support', copy: 'The docs place discovery across both business and creator workflows.' }
-    ]}
-    footerNote="SearchVerse is the discovery layer that connects the platform's profile, feed, and direct collaboration flows."
-  />
+const initialsFrom = (value = 'MI') => String(value)
+  .split(/[.\s@_-]+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0]?.toUpperCase())
+  .join('') || 'MI';
+
+const typeStyles = {
+  all: {
+    pill: 'border-slate-200 bg-white text-slate-700',
+    active: 'border-slate-900 bg-slate-900 text-white'
+  },
+  business: {
+    pill: 'border-orange-200 bg-white text-orange-700',
+    active: 'border-orange-500 bg-orange-500 text-white'
+  },
+  creator: {
+    pill: 'border-blue-200 bg-white text-blue-700',
+    active: 'border-blue-600 bg-blue-600 text-white'
+  }
+};
+
+const ProfileAvatar = ({ result, size = 'md' }) => {
+  const isBusiness = result?.accountType === 'business';
+  const sizeClass = size === 'lg' ? 'h-20 w-20 text-2xl rounded-[1.5rem]' : 'h-14 w-14 text-base rounded-2xl';
+  const tone = isBusiness ? 'bg-orange-500 text-white' : 'bg-blue-600 text-white';
+
+  return (
+    <div className={`flex shrink-0 items-center justify-center overflow-hidden font-black ${sizeClass} ${tone}`}>
+      {result?.avatarUrl ? (
+        <img src={result.avatarUrl} alt={result.displayName || 'Profile'} className="h-full w-full object-cover" />
+      ) : (
+        result?.initials || initialsFrom(result?.displayName)
+      )}
+    </div>
+  );
+};
+
+const VersePill = ({ type }) => {
+  const isBusiness = type === 'business';
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${isBusiness ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'}`}>
+      {isBusiness ? 'BusinessVerse' : 'CreatorVerse'}
+    </span>
+  );
+};
+
+const EmptyState = ({ query }) => (
+  <div className="flex min-h-[320px] items-center justify-center">
+    <div className="max-w-md text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+        <Search className="h-6 w-6" />
+      </div>
+      <h2 className="mt-5 text-2xl font-black tracking-[-0.03em] text-slate-950">No profiles found</h2>
+      <p className="mt-3 text-sm font-semibold leading-6 text-slate-500">
+        {query
+          ? `We could not find a profile matching "${query}". Try another name, skill, city, industry, or a simpler spelling.`
+          : 'Start typing to search businesses and creators across the platform.'}
+      </p>
+    </div>
+  </div>
 );
+
+const SearchVerse = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { token } = useAuth();
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const initialQuery = params.get('q') || '';
+  const initialType = ['all', 'business', 'creator'].includes(params.get('type')) ? params.get('type') : 'all';
+  const initialProfile = params.get('profile') || '';
+
+  const [query, setQuery] = useState(initialQuery);
+  const [type, setType] = useState(initialType);
+  const [results, setResults] = useState([]);
+  const [selectedId, setSelectedId] = useState(initialProfile);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setQuery(initialQuery);
+    setType(initialType);
+    setSelectedId(initialProfile);
+  }, [initialProfile, initialQuery, initialType]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams();
+    if (query.trim()) nextParams.set('q', query.trim());
+    if (type !== 'all') nextParams.set('type', type);
+    if (selectedId) nextParams.set('profile', selectedId);
+    const nextSearch = nextParams.toString();
+    const currentSearch = location.search.replace(/^\?/, '');
+    if (nextSearch !== currentSearch) {
+      navigate(`/search-verse${nextSearch ? `?${nextSearch}` : ''}`, { replace: true });
+    }
+  }, [location.search, navigate, query, selectedId, type]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const searchParams = new URLSearchParams();
+        searchParams.set('type', type);
+        searchParams.set('q', query.trim());
+        searchParams.set('limit', '18');
+        const data = await apiRequest(`/api/search?${searchParams.toString()}`, { token });
+        const nextResults = data.results || [];
+        setResults(nextResults);
+        setSelectedId((current) => {
+          if (current && nextResults.some((result) => result.id === current)) return current;
+          return nextResults[0]?.id || '';
+        });
+      } catch (requestError) {
+        setError(requestError.message || 'Could not search profiles right now.');
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 220);
+
+    return () => window.clearTimeout(timer);
+  }, [query, token, type]);
+
+  const selectedResult = useMemo(
+    () => results.find((result) => result.id === selectedId) || results[0] || null,
+    [results, selectedId]
+  );
+
+  const resultLabel = query.trim() ? `Results for "${query.trim()}"` : 'Suggested profiles';
+
+  return (
+    <div className="bg-[#f8fafc] text-slate-950">
+      <section className="pt-24 pb-10 md:pt-28">
+        <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-10 xl:px-12">
+          <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-28 lg:h-[calc(100vh-8.5rem)] lg:overflow-hidden">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+                  <Search className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">SearchVerse</div>
+                  <h1 className="text-2xl font-black tracking-[-0.03em] text-slate-950">Find profiles fast</h1>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Search className="h-5 w-5 text-slate-400" />
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search name, city, skill, business, industry..."
+                    className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {[
+                  ['all', 'All'],
+                  ['business', 'BusinessVerse'],
+                  ['creator', 'CreatorVerse']
+                ].map(([key, label]) => {
+                  const tone = typeStyles[key];
+                  const active = type === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setType(key)}
+                      className={`rounded-full border px-4 py-2 text-sm font-black transition-colors ${active ? tone.active : tone.pill}`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 flex items-center justify-between">
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{resultLabel}</div>
+                <div className="text-xs font-bold text-slate-500">{results.length} shown</div>
+              </div>
+
+              <div className="mt-4 lg:max-h-[calc(100%-13rem)] lg:overflow-y-auto lg:pr-1">
+                {loading ? (
+                  <div className="flex min-h-[240px] items-center justify-center">
+                    <div className="flex items-center gap-3 text-sm font-bold text-slate-500">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Searching profiles...
+                    </div>
+                  </div>
+                ) : results.length ? (
+                  <div className="space-y-2">
+                    {results.map((result) => {
+                      const active = selectedResult?.id === result.id;
+                      return (
+                        <button
+                          key={result.id}
+                          type="button"
+                          onClick={() => setSelectedId(result.id)}
+                          className={`flex w-full items-center gap-3 rounded-[1.4rem] border px-3 py-3 text-left transition-colors ${
+                            active ? 'border-slate-900 bg-slate-950 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'
+                          }`}
+                        >
+                          <ProfileAvatar result={result} />
+                          <div className="min-w-0 flex-1">
+                            <div className={`truncate text-sm font-black ${active ? 'text-white' : 'text-slate-950'}`}>{result.displayName}</div>
+                            <div className={`mt-0.5 truncate text-xs font-semibold ${active ? 'text-slate-300' : 'text-slate-500'}`}>{result.headline || 'Profile'}</div>
+                            <div className={`mt-1 truncate text-xs ${active ? 'text-slate-400' : 'text-slate-400'}`}>{result.location || 'Location not added yet'}</div>
+                          </div>
+                          <VersePill type={result.accountType} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState query={query.trim()} />
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+              {error ? (
+                <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">
+                  {error}
+                </div>
+              ) : selectedResult ? (
+                <div className="flex h-full flex-col">
+                  <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                    <div className="flex items-start gap-4">
+                      <ProfileAvatar result={selectedResult} size="lg" />
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-3xl font-black tracking-[-0.03em] text-slate-950">{selectedResult.displayName}</h2>
+                          <VersePill type={selectedResult.accountType} />
+                        </div>
+                        <p className="mt-2 text-base font-bold text-slate-600">{selectedResult.headline || 'Profile overview'}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {(selectedResult.tags || []).slice(0, 6).map((tag) => (
+                            <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-slate-600">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-right">
+                      <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Availability</div>
+                      <div className={`mt-2 text-sm font-black ${selectedResult.online ? 'text-emerald-600' : 'text-slate-700'}`}>
+                        {selectedResult.online ? 'Online now' : 'Available on platform'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="rounded-[1.6rem] border border-slate-200 bg-[#fbfbfd] p-5">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                        <MapPin className="h-4 w-4" />
+                        Location
+                      </div>
+                      <div className="mt-3 text-sm font-bold leading-6 text-slate-900">
+                        {selectedResult.location || 'Location not shared yet'}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.6rem] border border-slate-200 bg-[#fbfbfd] p-5">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                        <Mail className="h-4 w-4" />
+                        Contact
+                      </div>
+                      <div className="mt-3 break-all text-sm font-bold leading-6 text-slate-900">
+                        {selectedResult.email || 'Email not shared'}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.6rem] border border-slate-200 bg-[#fbfbfd] p-5">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                        <Globe2 className="h-4 w-4" />
+                        Website
+                      </div>
+                      <div className="mt-3 break-all text-sm font-bold leading-6 text-slate-900">
+                        {selectedResult.website || 'Website not shared'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 rounded-[1.8rem] border border-slate-200 bg-[#fbfbfd] p-6">
+                    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                      <Sparkles className="h-4 w-4" />
+                      Profile summary
+                    </div>
+                    <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-slate-700">
+                      {selectedResult.about || 'This profile has not added a detailed summary yet. SearchVerse still shows their name, role, and discovery details so users can find the right profile quickly.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/verse-feed')}
+                      className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800"
+                    >
+                      Open VerseFeed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/profile-verse')}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900 hover:bg-slate-50"
+                    >
+                      Open My Profile
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState query={query.trim()} />
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
 
 export default SearchVerse;

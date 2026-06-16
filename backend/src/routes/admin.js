@@ -303,6 +303,112 @@ const shapeAdminMember = (member, profilesByType, assetsById) => {
   };
 };
 
+const buildAdminUserDetail = async (userId) => {
+  const { data: member, error: memberError } = await supabaseAdmin
+    .schema('core')
+    .from('members')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (memberError) throw memberError;
+  if (!member) return null;
+
+  const profilesByType = await getMemberProfiles([userId]);
+  const assetsById = await getProfileImages(profilesByType);
+
+  const postsResult = await safeQuery(
+    supabaseAdmin.schema('postverse').from('posts').select('id, caption, media_type, status, created_at, published_at').eq('author_id', userId).order('created_at', { ascending: false }),
+    { data: [] }
+  );
+
+  let metricsResult = await safeQuery(
+    supabaseAdmin.schema('postverse').from('posts').select('id, created_at, post_metrics(views, likes, comments, shares, saves, inquiries, reach, impressions)').eq('author_id', userId),
+    { data: null }
+  );
+
+  if (metricsResult.data === null) {
+    metricsResult = await safeQuery(
+      supabaseAdmin.schema('postverse').from('posts').select('id, created_at, post_metrics(views, saves, inquiries)').eq('author_id', userId),
+      { data: [] }
+    );
+  }
+
+  const trafficResult = await safeQuery(
+    supabaseAdmin.schema('admin').from('traffic_events').select('route, duration_seconds, created_at').eq('user_id', userId).order('created_at', { ascending: true }).limit(1000),
+    { data: [] }
+  );
+
+  const posts = postsResult.data || [];
+  const metrics = metricsResult.data || [];
+  const traffic = trafficResult.data || [];
+
+  const totals = (metrics || []).reduce((sum, post) => {
+    const row = Array.isArray(post.post_metrics) ? post.post_metrics[0] || {} : post.post_metrics || {};
+    return {
+      likes: sum.likes + (row.likes || 0),
+      comments: sum.comments + (row.comments || 0),
+      shares: sum.shares + (row.shares || 0),
+      reach: sum.reach + (row.reach || 0),
+      impressions: sum.impressions + (row.impressions || 0),
+      views: sum.views + (row.views || 0)
+    };
+  }, { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, views: 0 });
+
+  const engagementBase = totals.impressions || totals.reach || totals.views;
+
+  return {
+    user: shapeAdminMember(member, profilesByType, assetsById),
+    profile: member.account_type === 'creator' ? profilesByType.creator[userId] : profilesByType.business[userId],
+    activityAnalytics: {
+      totalPosts: posts.length,
+      totalFollowers: 0,
+      totalFollowing: 0,
+      totalLikes: totals.likes,
+      totalComments: totals.comments,
+      totalShares: totals.shares,
+      totalReach: totals.reach,
+      totalImpressions: totals.impressions,
+      engagementRate: percent(totals.likes + totals.comments + totals.shares, engagementBase)
+    },
+    growthAnalytics: {
+      dailyGrowth: groupByDay(posts),
+      weeklyGrowth: groupByDay(posts),
+      monthlyGrowth: groupByDay(posts),
+      historicalPerformance: groupByDay(metrics, 'created_at', (post) => {
+        const row = Array.isArray(post.post_metrics) ? post.post_metrics[0] || {} : post.post_metrics || {};
+        return (row.views || 0) + (row.impressions || 0);
+      })
+    },
+    subscriptionAnalytics: {
+      currentPlan: member.subscription_status === 'active' ? 'Annual Membership Rs 999' : 'No active plan',
+      previousPlans: [],
+      subscriptionHistory: [{
+        status: member.subscription_status,
+        startedAt: member.subscription_started_at,
+        expiresAt: member.subscription_expires_at
+      }],
+      paymentHistory: member.subscription_status === 'active' ? [{
+        amount: MEMBERSHIP_PRICE,
+        currency: 'INR',
+        status: 'active',
+        paidAt: member.subscription_started_at
+      }] : []
+    },
+    posts,
+    traffic: {
+      totalEvents: traffic?.length || 0,
+      averageDurationSeconds: traffic?.length
+        ? Math.round((traffic || []).reduce((sum, event) => sum + (event.duration_seconds || 0), 0) / traffic.length)
+        : 0,
+      routeBreakdown: Object.entries((traffic || []).reduce((map, event) => {
+        map[event.route] = (map[event.route] || 0) + 1;
+        return map;
+      }, {})).map(([route, count]) => ({ route, count }))
+    }
+  };
+};
+
 const logAudit = async ({ actorId, actorRole, action, entityType, entityId, metadata = {}, ipAddress = null }) => {
   const { error } = await supabaseAdmin
     .schema('admin')
@@ -584,15 +690,8 @@ adminRouter.get('/superadmin/users', requireAuth, requireAdminRole('superadmin')
 adminRouter.get('/superadmin/users/:id', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
     const userId = req.params.id;
-    const { data: member, error: memberError } = await supabaseAdmin
-      .schema('core')
-      .from('members')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (memberError) throw memberError;
-    if (!member) return res.status(404).json({ error: 'User not found' });
+    const detail = await buildAdminUserDetail(userId);
+    if (!detail) return res.status(404).json({ error: 'User not found' });
 
     await logAudit({
       actorId: req.user.id,
@@ -600,103 +699,11 @@ adminRouter.get('/superadmin/users/:id', requireAuth, requireAdminRole('superadm
       action: 'superadmin.user.deep_access.viewed',
       entityType: 'core.members',
       entityId: userId,
-      metadata: { accountType: member.account_type, email: member.email },
+      metadata: { accountType: detail.user.accountType, email: detail.user.email },
       ipAddress: req.ip?.replace('::ffff:', '') || null
     });
 
-    const profilesByType = await getMemberProfiles([userId]);
-    const assetsById = await getProfileImages(profilesByType);
-
-    const postsResult = await safeQuery(
-      supabaseAdmin.schema('postverse').from('posts').select('id, caption, media_type, status, created_at, published_at').eq('author_id', userId).order('created_at', { ascending: false }),
-      { data: [] }
-    );
-
-    let metricsResult = await safeQuery(
-      supabaseAdmin.schema('postverse').from('posts').select('id, created_at, post_metrics(views, likes, comments, shares, saves, inquiries, reach, impressions)').eq('author_id', userId),
-      { data: null }
-    );
-
-    if (metricsResult.data === null) {
-      metricsResult = await safeQuery(
-        supabaseAdmin.schema('postverse').from('posts').select('id, created_at, post_metrics(views, saves, inquiries)').eq('author_id', userId),
-        { data: [] }
-      );
-    }
-
-    const trafficResult = await safeQuery(
-      supabaseAdmin.schema('admin').from('traffic_events').select('route, duration_seconds, created_at').eq('user_id', userId).order('created_at', { ascending: true }).limit(1000),
-      { data: [] }
-    );
-
-    const posts = postsResult.data || [];
-    const metrics = metricsResult.data || [];
-    const traffic = trafficResult.data || [];
-
-    const totals = (metrics || []).reduce((sum, post) => {
-      const row = Array.isArray(post.post_metrics) ? post.post_metrics[0] || {} : post.post_metrics || {};
-      return {
-        likes: sum.likes + (row.likes || 0),
-        comments: sum.comments + (row.comments || 0),
-        shares: sum.shares + (row.shares || 0),
-        reach: sum.reach + (row.reach || 0),
-        impressions: sum.impressions + (row.impressions || 0),
-        views: sum.views + (row.views || 0)
-      };
-    }, { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, views: 0 });
-
-    const engagementBase = totals.impressions || totals.reach || totals.views;
-
-    res.json({
-      user: shapeAdminMember(member, profilesByType, assetsById),
-      profile: member.account_type === 'creator' ? profilesByType.creator[userId] : profilesByType.business[userId],
-      activityAnalytics: {
-        totalPosts: posts.length,
-        totalFollowers: 0,
-        totalFollowing: 0,
-        totalLikes: totals.likes,
-        totalComments: totals.comments,
-        totalShares: totals.shares,
-        totalReach: totals.reach,
-        totalImpressions: totals.impressions,
-        engagementRate: percent(totals.likes + totals.comments + totals.shares, engagementBase)
-      },
-      growthAnalytics: {
-        dailyGrowth: groupByDay(posts),
-        weeklyGrowth: groupByDay(posts),
-        monthlyGrowth: groupByDay(posts),
-        historicalPerformance: groupByDay(metrics, 'created_at', (post) => {
-          const row = Array.isArray(post.post_metrics) ? post.post_metrics[0] || {} : post.post_metrics || {};
-          return (row.views || 0) + (row.impressions || 0);
-        })
-      },
-      subscriptionAnalytics: {
-        currentPlan: member.subscription_status === 'active' ? 'Annual Membership Rs 999' : 'No active plan',
-        previousPlans: [],
-        subscriptionHistory: [{
-          status: member.subscription_status,
-          startedAt: member.subscription_started_at,
-          expiresAt: member.subscription_expires_at
-        }],
-        paymentHistory: member.subscription_status === 'active' ? [{
-          amount: MEMBERSHIP_PRICE,
-          currency: 'INR',
-          status: 'active',
-          paidAt: member.subscription_started_at
-        }] : []
-      },
-      posts: posts || [],
-      traffic: {
-        totalEvents: traffic?.length || 0,
-        averageDurationSeconds: traffic?.length
-          ? Math.round((traffic || []).reduce((sum, event) => sum + (event.duration_seconds || 0), 0) / traffic.length)
-          : 0,
-        routeBreakdown: Object.entries((traffic || []).reduce((map, event) => {
-          map[event.route] = (map[event.route] || 0) + 1;
-          return map;
-        }, {})).map(([route, count]) => ({ route, count }))
-      }
-    });
+    res.json(detail);
   } catch (error) {
     next(error);
   }
@@ -1354,6 +1361,27 @@ adminRouter.get('/members', requireAuth, requireAdminRole('admin'), async (req, 
     if (error) throw error;
 
     res.json({ members: data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get('/members/:id', requireAuth, requireAdminRole('admin'), async (req, res, next) => {
+  try {
+    const detail = await buildAdminUserDetail(req.params.id);
+    if (!detail) return res.status(404).json({ error: 'User not found' });
+
+    await logAudit({
+      actorId: req.user.id,
+      actorRole: req.adminRole,
+      action: 'admin.user.readonly_viewed',
+      entityType: 'core.members',
+      entityId: req.params.id,
+      metadata: { accountType: detail.user.accountType, email: detail.user.email },
+      ipAddress: req.ip?.replace('::ffff:', '') || null
+    });
+
+    res.json(detail);
   } catch (error) {
     next(error);
   }

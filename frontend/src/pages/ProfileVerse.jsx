@@ -332,7 +332,7 @@ const ProfileVerse = () => {
             <div className="grid gap-8 xl:grid-cols-[0.82fr_1.18fr] xl:items-start">
             <aside className="xl:sticky xl:top-28">
               <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
-                <div className={`inline-flex items-center gap-2 rounded-full border ${theme.border} ${theme.soft} px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] ${theme.accent}`}>
+                <div className={`inline-flex items-center gap-2 rounded-full border ${theme.border} ${theme.soft} px-3 py-1 text-xs font-extrabold uppercase tracking-[0.2em] ${theme.accent}`}>
                   <Sparkles className="h-3.5 w-3.5" />
                   {theme.label}
                 </div>
