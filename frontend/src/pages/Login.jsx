@@ -16,6 +16,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
   const googleTheme = googleAccountType === 'business'
     ? {
         label: 'BusinessVerse',
@@ -46,10 +47,12 @@ const Login = () => {
       window.localStorage.setItem('myindianstartup_pending_account_type', googleAccountType);
     }
 
+    // Redirect to root '/' so GoDaddy/any host serves index.html,
+    // then React + Supabase detectSessionInUrl handles the token and navigates internally.
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: getAuthRedirectUrl('/post-verse')
+        redirectTo: getAuthRedirectUrl('/')
       }
     });
 
