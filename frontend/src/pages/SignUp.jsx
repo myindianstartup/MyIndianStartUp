@@ -178,7 +178,9 @@ const SignUp = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: getAuthRedirectUrl('/pricing')
+        // Redirect to root '/' so GoDaddy/Vercel serves index.html,
+        // then React + Supabase detectSessionInUrl handles the token and navigates to /pricing.
+        redirectTo: getAuthRedirectUrl('/')
       }
     });
 
@@ -316,7 +318,7 @@ const SignUp = () => {
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-bold text-slate-800">Mobile Number</span>
+              <span className="text-sm font-bold text-slate-800">Mobile Number <span className="text-rose-500">*</span></span>
               <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
                 <Phone className="h-5 w-5 text-slate-400" />
                 <input

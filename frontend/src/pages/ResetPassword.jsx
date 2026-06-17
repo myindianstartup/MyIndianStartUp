@@ -28,8 +28,12 @@ const ResetPassword = () => {
     event.preventDefault();
     setError('');
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      setError('Password must include at least one letter and one number.');
       return;
     }
 
@@ -76,7 +80,7 @@ const ResetPassword = () => {
                 Create a new password.
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 lg:text-base">
-                Make sure it's at least 6 characters long. A strong password helps keep your workspace secure.
+                Make sure it's at least 8 characters long and includes a letter and a number. A strong password helps keep your workspace secure.
               </p>
             </div>
           </div>
@@ -111,7 +115,7 @@ const ResetPassword = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    placeholder="Min 8 chars, include a number"
                     required
                     className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
                   />

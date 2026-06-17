@@ -79,6 +79,10 @@ const Login = () => {
       setFormError('Please enter your password.');
       return;
     }
+    if (password.length < 8) {
+      setFormError('Password must be at least 8 characters. If you recently reset your password, please use the new one.');
+      return;
+    }
 
     setLoading(true);
 

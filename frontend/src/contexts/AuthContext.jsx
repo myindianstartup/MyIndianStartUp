@@ -82,12 +82,14 @@ export const AuthProvider = ({ children }) => {
         const fallbackName = authUser?.email ? authUser.email.split('@')[0] : 'MyIndianStartup Member';
         const fullName = metadata.full_name || metadata.name || fallbackName;
 
+        // BUG-05 Fix: also pass mobileNumber from Google metadata if available
         const created = await apiRequest('/api/members/me', {
           method: 'PUT',
           token: activeSession.access_token,
           body: {
             fullName,
-            accountType: pendingAccountType
+            accountType: pendingAccountType,
+            mobileNumber: metadata.mobile_number || metadata.phone || null
           }
         });
 
