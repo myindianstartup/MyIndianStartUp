@@ -116,20 +116,39 @@ const Payment = () => {
   };
 
   const validateBillingInfo = () => {
-    if (normalizedBillingInfo.fullName && normalizedBillingInfo.fullName.length < 2) {
-      return 'Please enter a valid billing name.';
+    if (!normalizedBillingInfo.fullName) {
+      return 'Billing name is required.';
+    }
+    if (normalizedBillingInfo.fullName.length < 2) {
+      return 'Please enter a valid billing name (at least 2 characters).';
     }
 
-    if (normalizedBillingInfo.email && !emailPattern.test(normalizedBillingInfo.email)) {
+    if (!normalizedBillingInfo.email) {
+      return 'Billing email is required.';
+    }
+    if (!emailPattern.test(normalizedBillingInfo.email)) {
       return 'Please enter a valid billing email address.';
     }
 
-    if (isFullDiscountCoupon) {
-      if (normalizedBillingInfo.fullName.length < 2) {
-        return 'Please add your billing name before activating membership.';
-      }
-      if (!emailPattern.test(normalizedBillingInfo.email)) {
-        return 'Please add a valid billing email before activating membership.';
+    if (!normalizedBillingInfo.phone) {
+      return 'Phone number is required.';
+    }
+    const cleanPhone = normalizedBillingInfo.phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      return 'Please enter a valid 10-digit phone number.';
+    }
+
+    if (!normalizedBillingInfo.address) {
+      return 'Billing address is required.';
+    }
+    if (normalizedBillingInfo.address.length < 5) {
+      return 'Please enter a complete billing address (at least 5 characters).';
+    }
+
+    if (normalizedBillingInfo.gstNumber) {
+      const cleanGst = normalizedBillingInfo.gstNumber.replace(/\s/g, '');
+      if (cleanGst.length !== 15 || !/^[a-zA-Z0-9]{15}$/.test(cleanGst)) {
+        return 'Please enter a valid 15-character GST number, or leave it empty.';
       }
     }
 
@@ -378,15 +397,24 @@ const Payment = () => {
                     })}
                   </div>
 
-                  <div className="mt-6 grid gap-4 md:grid-cols-2">
+                   <div className="mt-6 grid gap-4 md:grid-cols-2">
                     {[
-                      ['fullName', 'Billing name'],
-                      ['email', 'Billing email'],
-                      ['phone', 'Phone'],
-                      ['gstNumber', 'GST number']
+                      ['fullName', 'Billing name *'],
+                      ['email', 'Billing email *'],
+                      ['phone', 'Phone *'],
+                      ['gstNumber', 'GST number (Optional)']
                     ].map(([key, label]) => (
                       <label key={key} className="grid gap-2">
-                        <span className="text-sm font-bold text-slate-700">{label}</span>
+                        <span className="text-sm font-bold text-slate-700">
+                          {label.endsWith('*') ? (
+                            <>
+                              {label.slice(0, -2)}{' '}
+                              <span className="text-rose-500 font-black">*</span>
+                            </>
+                          ) : (
+                            label
+                          )}
+                        </span>
                         <input
                           value={billingInfo[key]}
                           onChange={(event) => setBillingInfo((current) => ({ ...current, [key]: event.target.value }))}
@@ -397,13 +425,16 @@ const Payment = () => {
                   </div>
 
                   <label className="mt-4 grid gap-2">
-                    <span className="text-sm font-bold text-slate-700">Billing address</span>
+                    <span className="text-sm font-bold text-slate-700">
+                      Billing address <span className="text-rose-500 font-black">*</span>
+                    </span>
                     <textarea
                       value={billingInfo.address}
                       onChange={(event) => setBillingInfo((current) => ({ ...current, address: event.target.value }))}
                       rows={3}
                       className="resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-slate-400"
                     />
+
                   </label>
 
                   <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
