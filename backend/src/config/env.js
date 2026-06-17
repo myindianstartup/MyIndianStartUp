@@ -8,10 +8,10 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
   FRONTEND_ORIGIN: z.string().default('http://localhost:3000,http://localhost:3001'),
 
-  // Supabase — required for core functionality
+  // Supabase — URL and anon key required; service role key optional (needed for admin ops)
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional().default(''),
 
   // Cloudflare R2 — optional; media upload will return 503 if not configured
   R2_ACCOUNT_ID: z.string().optional().default(''),
@@ -28,6 +28,14 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
+
+// Warn on startup about missing optional but important vars
+if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn('[WARN] SUPABASE_SERVICE_ROLE_KEY is not set — admin routes and server-side DB writes will fail.');
+}
+if (!env.R2_ACCESS_KEY_ID) {
+  console.warn('[WARN] R2 credentials are not set — media upload endpoints will return 503.');
+}
 
 export const frontendOrigins = env.FRONTEND_ORIGIN
   .split(',')
