@@ -47,8 +47,19 @@ app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/analytics', analyticsRouter);
 
+// Root route — friendly status for browser visits
+app.get('/', (_req, res) => {
+  res.json({
+    name: 'MyIndianStartup API',
+    status: 'online',
+    version: '0.1.0',
+    health: '/health'
+  });
+});
+
 app.use(notFound);
 app.use(errorHandler);
+
 
 if (process.env.VERCEL !== '1') {
   app.listen(env.PORT, () => {
