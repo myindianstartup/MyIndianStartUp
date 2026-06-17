@@ -59,40 +59,61 @@ const SignUp = () => {
     const confirmPassword = String(formData.get('confirmPassword') || '');
     const acceptedTerms = formData.get('terms') === 'on';
 
-    if (fullName.length < 2) {
+    if (!fullName) {
       setFormError('Please enter your full name.');
       return;
     }
+    if (fullName.length < 2) {
+      setFormError('Full name must be at least 2 characters.');
+      return;
+    }
 
+    if (!email) {
+      setFormError('Please enter your email address.');
+      return;
+    }
     if (!emailPattern.test(email)) {
       setFormError('Please enter a valid email address.');
       return;
     }
 
-    if (mobileNumber && !phonePattern.test(mobileNumber)) {
-      setFormError('Please enter a valid mobile number.');
+    if (!mobileNumber) {
+      setFormError('Please enter your mobile number.');
+      return;
+    }
+    const cleanPhone = mobileNumber.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      setFormError('Please enter a valid 10-digit mobile number.');
       return;
     }
 
+    if (!password) {
+      setFormError('Please create a password.');
+      return;
+    }
     if (password.length < 8) {
       setFormError('Password must be at least 8 characters.');
       return;
     }
-
     if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
       setFormError('Password must include at least one letter and one number.');
       return;
     }
 
+    if (!confirmPassword) {
+      setFormError('Please confirm your password.');
+      return;
+    }
     if (password !== confirmPassword) {
-      setFormError('Confirm password does not match.');
+      setFormError('Passwords do not match. Please verify.');
       return;
     }
 
     if (!acceptedTerms) {
-      setFormError('Please agree to the Terms & Conditions and Privacy Policy.');
+      setFormError('You must agree to the Terms & Conditions and Privacy Policy.');
       return;
     }
+
 
     setLoading(true);
 

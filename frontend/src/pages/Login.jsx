@@ -86,7 +86,11 @@ const Login = () => {
 
     if (error || !data.session) {
       setLoading(false);
-      setFormError(error?.message || 'Login failed. Please check your details.');
+      let errorMsg = error?.message || 'Login failed. Please check your details.';
+      if (errorMsg.toLowerCase().includes('invalid login credentials') || errorMsg.toLowerCase().includes('invalid credentials')) {
+        errorMsg = 'No account found with this email, or the password you entered is incorrect. Please verify your credentials or click "Create account first".';
+      }
+      setFormError(errorMsg);
       return;
     }
 
