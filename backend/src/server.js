@@ -14,6 +14,7 @@ import { subscriptionsRouter } from './routes/subscriptions.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { adminRouter } from './routes/admin.js';
 import { analyticsRouter } from './routes/analytics.js';
+import { contactRouter } from './routes/contact.js';
 import { requestMonitoring } from './middleware/requestMonitoring.js';
 
 export const app = express();
@@ -46,6 +47,7 @@ app.use('/api/search', searchRouter);
 app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/contact', contactRouter);
 
 // Root route — friendly status for browser visits
 app.get('/', (_req, res) => {

@@ -11,6 +11,7 @@ import BusinessVerse from "@/pages/BusinessVerse";
 import CreatorVerse from "@/pages/CreatorVerse";
 import Payment from "@/pages/Payment";
 import JoinUs from "@/pages/JoinUs";
+import Contact from "@/pages/Contact";
 import Platform from "@/pages/Platform";
 import PostVerse from "@/pages/PostVerse";
 import SearchVerse from "@/pages/SearchVerse";
@@ -82,7 +83,7 @@ function App() {
           <Route path="/creator-verse" element={<MemberMarketingRoute accountType="creator"><Layout><CreatorVerse /></Layout></MemberMarketingRoute>} />
           <Route path="/pricing" element={<Layout><Payment /></Layout>} />
           <Route path="/payment" element={<Layout><Payment /></Layout>} />
-          <Route path="/contact" element={<Layout><JoinUs /></Layout>} />
+          <Route path="/contact" element={<Layout><Contact /></Layout>} />
           <Route path="/join" element={<Layout><JoinUs /></Layout>} />
           <Route path="/platform" element={<Layout><Platform /></Layout>} />
           <Route path="/post-verse" element={<ProtectedRoute memberOnly requiresActiveSubscription><Layout><PostVerse /></Layout></ProtectedRoute>} />
