@@ -35,6 +35,9 @@ contactRouter.post('/', async (req, res, next) => {
       host: smtpHost,
       port: smtpPort,
       secure: smtpPort === 465, // true for 465, false for other ports
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
       auth: {
         user: smtpUser,
         pass: smtpPass
@@ -79,7 +82,15 @@ ${payload.message}`,
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: error.errors[0]?.message || 'Invalid input parameters.' });
     } else {
-      next(error);
+      console.error('[contact] Email dispatch failed:', {
+        code: error.code,
+        command: error.command,
+        responseCode: error.responseCode,
+        message: error.message
+      });
+      res.status(502).json({
+        error: 'We could not send your message right now. Please email team@myindianstartup.com directly or try again in a few minutes.'
+      });
     }
   }
 });
