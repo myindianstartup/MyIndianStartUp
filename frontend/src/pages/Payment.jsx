@@ -40,6 +40,7 @@ const Payment = () => {
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [activatingDemo, setActivatingDemo] = useState(false);
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -239,6 +240,29 @@ const Payment = () => {
     }
   };
 
+  const activateDemoSubscription = async () => {
+    setActivatingDemo(true);
+    setError('');
+    setMessage('');
+    try {
+      await apiRequest('/api/subscriptions/activate-demo', {
+        method: 'POST',
+        token
+      });
+      setMessage('Demo subscription activated successfully! Redirecting...');
+      if (session) {
+        await refreshMember(session);
+      }
+      setTimeout(() => {
+        navigate('/post-verse', { replace: true });
+      }, 1500);
+    } catch (requestError) {
+      setError(requestError.message || 'Could not activate demo subscription.');
+    } finally {
+      setActivatingDemo(false);
+    }
+  };
+
   return (
     <div className="bg-white text-slate-950">
       <section className="relative overflow-hidden pt-24 pb-16 md:pt-28">
@@ -378,6 +402,23 @@ const Payment = () => {
                             Create account
                           </a>
                         </div>
+                      </div>
+                    )}
+                    {isAuthenticated && (
+                      <div className="rounded-[1.4rem] border border-blue-100 bg-blue-50 px-5 py-4 shadow-sm">
+                        <div className="text-sm font-black text-blue-900">Demo Testing Helper</div>
+                        <p className="mt-1 text-xs font-semibold text-blue-700">
+                          Bypass payment locally. Activate a free 1-year demo subscription instantly to test all platform features.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={activateDemoSubscription}
+                          disabled={activatingDemo}
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-xs font-black text-white hover:bg-blue-700 disabled:opacity-60"
+                        >
+                          {activatingDemo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+                          Activate Demo Subscription
+                        </button>
                       </div>
                     )}
                     {plans.map((plan) => {

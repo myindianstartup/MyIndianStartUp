@@ -332,7 +332,7 @@ const Login = () => {
               <div>
                 <div className="text-sm font-black text-slate-950">Secure account flow</div>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Signup creates your member account. Login then opens your daily visibility feed, profile, search, and messages.
+                  Signup creates your member account. Login then opens your daily visibility feed, profile, and search.
                 </p>
               </div>
             </div>
