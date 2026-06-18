@@ -163,6 +163,8 @@ const PostVerse = () => {
   const [selectedType, setSelectedType] = useState('image');
   const [filePreview, setFilePreview] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadStartTime, setLoadStartTime] = useState(null);
+  const [slowLoad, setSlowLoad] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -185,6 +187,8 @@ const PostVerse = () => {
     if (!token) return;
 
     setLoading(true);
+    setSlowLoad(false);
+    setLoadStartTime(Date.now());
     setError('');
     try {
       const data = await apiRequest('/api/posts/overview', { token });
@@ -212,6 +216,16 @@ const PostVerse = () => {
   useEffect(() => {
     loadOverview();
   }, [token]);
+
+  // UX-04: Show slow-load warning after 8 seconds
+  useEffect(() => {
+    if (!loading) {
+      setSlowLoad(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setSlowLoad(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [loading]);
 
   useEffect(() => {
     if (eligibility && eligibility.subscription && !eligibility.subscription.active) {
@@ -306,6 +320,13 @@ const PostVerse = () => {
     const expectedPrefix = selectedType === 'video' ? 'video/' : 'image/';
     if (!file.type.startsWith(expectedPrefix)) {
       setError(selectedType === 'video' ? 'Please choose a video file.' : 'Please choose an image file.');
+      return;
+    }
+
+    // BUG-10: Validate file size before accepting
+    const maxSizeMB = selectedType === 'video' ? 50 : 10;
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      setError(`File too large. Maximum size is ${maxSizeMB}MB for ${selectedType}s. Your file is ${Math.round(file.size / (1024 * 1024))}MB.`);
       return;
     }
 
@@ -406,9 +427,16 @@ const PostVerse = () => {
                 </div>
 
                 {loading ? (
-                  <div className="mt-8 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm font-bold text-slate-500">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Loading PostVerse data...
+                  <div className="mt-8 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <div className="flex items-center gap-3 text-sm font-bold text-slate-500">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Loading PostVerse data...
+                    </div>
+                    {slowLoad && (
+                      <p className="ml-8 text-xs font-semibold text-amber-600">
+                        This is taking longer than usual — the server may be waking up. Please wait a moment...
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -502,10 +530,17 @@ const PostVerse = () => {
                   )}
 
                   <label className="mt-5 grid gap-2">
-                    <span className="text-sm font-bold text-slate-800">Caption</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-800">Caption</span>
+                      {/* BUG-09: Live character counter */}
+                      <span className={`text-xs font-bold ${caption.length > 450 ? 'text-rose-500' : 'text-slate-400'}`}>
+                        {caption.length}/500
+                      </span>
+                    </div>
                     <textarea
                       rows={4}
                       value={caption}
+                      maxLength={500}
                       onChange={(event) => setCaption(event.target.value)}
                       placeholder="Share what you are building, selling, creating, or looking for today..."
                       className={`resize-none rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 ${theme.accentRing}`}

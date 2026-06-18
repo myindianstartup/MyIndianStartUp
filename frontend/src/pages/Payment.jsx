@@ -363,6 +363,23 @@ const Payment = () => {
               ) : (
                 <>
                   <div className="mt-7 grid gap-4">
+                    {/* BUG-08 / UX-01: Show login prompt for guests so they aren't confused */}
+                    {!isAuthenticated && (
+                      <div className="rounded-[1.4rem] border border-blue-100 bg-blue-50 px-5 py-4">
+                        <div className="text-sm font-black text-blue-900">Login required to continue</div>
+                        <p className="mt-1 text-xs font-semibold text-blue-700">
+                          You need an account to complete payment. Please login or create a free account first.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <a href="/login" className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-xs font-black text-white hover:bg-blue-700">
+                            Login
+                          </a>
+                          <a href="/signup" className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white px-4 py-2 text-xs font-black text-blue-700 hover:bg-blue-50">
+                            Create account
+                          </a>
+                        </div>
+                      </div>
+                    )}
                     {plans.map((plan) => {
                       const isCreator = plan.account_type === 'creator';
                       const selected = selectedPlanId === plan.id;

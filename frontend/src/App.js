@@ -18,6 +18,7 @@ import VerseFeed from "@/pages/VerseFeed";
 import ProfileVerse from "@/pages/ProfileVerse";
 import MemberProfile from "@/pages/MemberProfile";
 import Settings from "@/pages/Settings";
+import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import SignIn from "@/pages/SignIn";
 import SignUp from "@/pages/SignUp";
@@ -98,6 +99,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
           <Route path="/superadmin" element={<ProtectedRoute superAdminOnly><SuperAdminDashboard /></ProtectedRoute>} />
+          <Route path="*" element={<Layout><NotFound /></Layout>} />
         </Routes>
         </AuthProvider>
       </BrowserRouter>
