@@ -1,11 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Settings, UserRound, Zap } from 'lucide-react';
+import { LayoutDashboard, Settings, UserRound } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const workspaceItems = [
   { label: 'Profile', to: '/profile-verse', icon: UserRound },
-  { label: 'PostVerse', to: '/post-verse', icon: Zap, requiresActiveSubscription: true },
   { label: 'Settings', to: '/settings', icon: Settings }
 ];
 
@@ -42,7 +41,7 @@ const WorkspaceSidebar = () => {
         {workspaceItems.map(({ label, to, icon: Icon, requiresActiveSubscription }) => {
           const locked = requiresActiveSubscription && !activeSubscription;
           const target = locked ? '/pricing' : to;
-          const active = location.pathname === to || (label === 'PostVerse' && location.pathname === '/dashboard');
+          const active = location.pathname === to;
 
           return (
             <Link

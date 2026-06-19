@@ -204,6 +204,22 @@ create table if not exists postverse.post_shares (
   created_at timestamptz not null default now()
 );
 
+create table if not exists postverse.post_reports (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references postverse.posts(id) on delete cascade,
+  reporter_id uuid not null references auth.users(id) on delete cascade,
+  reason text not null,
+  details text,
+  status text not null default 'open',
+  admin_response text,
+  reviewed_by uuid references auth.users(id) on delete set null,
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(post_id, reporter_id),
+  check (status in ('open', 'reviewing', 'resolved', 'dismissed'))
+);
+
 create table if not exists postverse.user_follows (
   id uuid primary key default gen_random_uuid(),
   follower_id uuid not null references auth.users(id) on delete cascade,
@@ -448,6 +464,8 @@ create index if not exists posts_author_status_published_idx on postverse.posts(
 create index if not exists post_comments_post_created_idx on postverse.post_comments(post_id, created_at desc);
 create index if not exists post_reactions_post_created_idx on postverse.post_reactions(post_id, created_at desc);
 create index if not exists post_shares_post_created_idx on postverse.post_shares(post_id, created_at desc);
+create index if not exists post_reports_status_created_idx on postverse.post_reports(status, created_at desc);
+create index if not exists post_reports_post_idx on postverse.post_reports(post_id);
 create index if not exists user_follows_follower_idx on postverse.user_follows(follower_id, created_at desc);
 create index if not exists user_follows_following_idx on postverse.user_follows(following_id, created_at desc);
 create index if not exists stories_active_created_idx on postverse.stories(status, expires_at, created_at desc);
@@ -546,6 +564,7 @@ alter table postverse.post_metrics enable row level security;
 alter table postverse.post_comments enable row level security;
 alter table postverse.post_reactions enable row level security;
 alter table postverse.post_shares enable row level security;
+alter table postverse.post_reports enable row level security;
 alter table postverse.user_follows enable row level security;
 alter table postverse.stories enable row level security;
 alter table postverse.story_views enable row level security;
@@ -578,6 +597,7 @@ drop policy if exists "post comments owner write" on postverse.post_comments;
 drop policy if exists "post reactions public read" on postverse.post_reactions;
 drop policy if exists "post reactions owner write" on postverse.post_reactions;
 drop policy if exists "post shares owner write" on postverse.post_shares;
+drop policy if exists "post reports reporter read write" on postverse.post_reports;
 drop policy if exists "user follows public read" on postverse.user_follows;
 drop policy if exists "user follows owner write" on postverse.user_follows;
 drop policy if exists "stories public read active" on postverse.stories;
@@ -631,6 +651,9 @@ create policy "post reactions owner write" on postverse.post_reactions
 
 create policy "post shares owner write" on postverse.post_shares
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "post reports reporter read write" on postverse.post_reports
+  for all using (auth.uid() = reporter_id) with check (auth.uid() = reporter_id);
 
 create policy "user follows public read" on postverse.user_follows
   for select using (true);

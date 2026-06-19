@@ -7,7 +7,6 @@ import {
   Eye,
   Image,
   Loader2,
-  MessageSquareText,
   ShieldCheck,
   TrendingUp,
   Upload,
@@ -101,8 +100,7 @@ const PostArchiveModal = ({ post, onClose }) => {
             <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
               {[
                 [Eye, post.views, 'Views'],
-                [Zap, post.saves || 0, 'Saves'],
-                [MessageSquareText, post.inquiries, 'Inquiries']
+                [Zap, post.saves || 0, 'Saves']
               ].map(([Icon, value, label]) => (
                 <div key={label} className="rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4">
                   <Icon className="h-4 w-4 text-slate-500" />
@@ -178,7 +176,6 @@ const PostVerse = () => {
     return [
       [data.postsPublished ?? 0, 'Posts published'],
       [data.totalViews ?? 0, 'Views'],
-      [data.totalInquiries ?? 0, 'Inquiries'],
       [`${data.profileCompletion ?? eligibility?.profile?.completion ?? 0}%`, 'Profile strength']
     ];
   }, [eligibility?.profile?.completion, overview?.analytics]);
@@ -417,7 +414,7 @@ const PostVerse = () => {
                     <div className={`text-[11px] font-black uppercase tracking-[0.3em] ${theme.accentText}`}>Analytics first</div>
                     <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-slate-800">Your visibility progress.</h2>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                      Track profile readiness, daily posting access, and response history from one connected PostVerse workspace.
+                      Track profile readiness, daily posting access, and post history from one connected PostVerse workspace.
                     </p>
                   </div>
                   <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
@@ -571,7 +568,7 @@ const PostVerse = () => {
                 <div className={`text-[11px] font-black uppercase tracking-[0.3em] ${theme.accentText}`}>Past data</div>
                 <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-slate-950">Your post archive.</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                  Open any published post to review the uploaded image or video, caption, views, saves, and inquiries from your PostVerse history.
+                  Open any published post to review the uploaded image or video, caption, views, and saves from your PostVerse history.
                 </p>
                 <div className="mt-6">
                   {(overview?.history || []).length ? (
@@ -600,7 +597,6 @@ const PostVerse = () => {
                               <div className="flex w-full items-center justify-between rounded-2xl bg-white/92 px-4 py-3 text-xs font-black text-slate-800 backdrop-blur">
                                 <span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> {post.views}</span>
                                 <span className="inline-flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> {post.saves || 0}</span>
-                                <span className="inline-flex items-center gap-1.5"><MessageSquareText className="h-3.5 w-3.5" /> {post.inquiries}</span>
                               </div>
                             </div>
                           </div>

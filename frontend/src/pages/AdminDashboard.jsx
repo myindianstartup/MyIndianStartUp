@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import PostReportsPanel from '@/components/admin/PostReportsPanel';
 
 const formatNumber = (value) => new Intl.NumberFormat('en-IN').format(value || 0);
 
@@ -150,6 +151,8 @@ const AdminDashboard = () => {
   const { token, signOut } = useAuth();
   const [overview, setOverview] = useState(null);
   const [members, setMembers] = useState([]);
+  const [postReports, setPostReports] = useState([]);
+  const [reportUpdatingId, setReportUpdatingId] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -158,12 +161,14 @@ const AdminDashboard = () => {
     if (!token) return;
     setError('');
     try {
-      const [overviewData, membersData] = await Promise.all([
+      const [overviewData, membersData, reportsData] = await Promise.all([
         apiRequest('/api/admin/overview', { token }),
-        apiRequest('/api/admin/members', { token })
+        apiRequest('/api/admin/members', { token }),
+        apiRequest('/api/admin/post-reports', { token }).catch(() => ({ reports: [] }))
       ]);
       setOverview(overviewData);
       setMembers(membersData.members || []);
+      setPostReports(reportsData.reports || []);
     } catch (requestError) {
       setError(requestError.message || 'Could not load admin dashboard data.');
     } finally {
@@ -185,6 +190,23 @@ const AdminDashboard = () => {
     } catch (requestError) {
       setError(requestError.message || 'Could not load member details.');
       setSelectedMember(null);
+    }
+  };
+
+  const updatePostReport = async (id, payload) => {
+    setReportUpdatingId(id);
+    setError('');
+    try {
+      const response = await apiRequest(`/api/admin/post-reports/${id}`, {
+        method: 'PATCH',
+        token,
+        body: payload
+      });
+      setPostReports(response.reports || []);
+    } catch (requestError) {
+      setError(requestError.message || 'Could not update post report.');
+    } finally {
+      setReportUpdatingId('');
     }
   };
 
@@ -274,6 +296,12 @@ const AdminDashboard = () => {
                 <StatCard key={label} label={label} value={value} icon={Icon} tone={tone} />
               ))}
             </section>
+
+            <PostReportsPanel
+              reports={postReports}
+              onUpdate={updatePostReport}
+              updatingId={reportUpdatingId}
+            />
 
             <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">

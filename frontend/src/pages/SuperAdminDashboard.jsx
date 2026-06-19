@@ -44,6 +44,7 @@ import {
 } from 'recharts';
 import { API_URL, apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import PostReportsPanel from '@/components/admin/PostReportsPanel';
 
 const tabs = ['Overview', 'Traffic', 'Business Users', 'Creator Users', 'Subscriptions', 'Coupons', 'Verse Analytics', 'Reports', 'Audit'];
 const chartColors = ['#2563eb', '#f97316', '#10b981', '#8b5cf6', '#64748b'];
@@ -597,6 +598,8 @@ const SuperAdminDashboard = () => {
   const [billing, setBilling] = useState({ subscriptions: [], orders: [], invoices: [], transactions: [] });
   const [verseAnalytics, setVerseAnalytics] = useState(null);
   const [report, setReport] = useState(null);
+  const [postReports, setPostReports] = useState([]);
+  const [postReportUpdatingId, setPostReportUpdatingId] = useState('');
   const [realtime, setRealtime] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -613,7 +616,7 @@ const SuperAdminDashboard = () => {
     if (!token) return;
     setError('');
     try {
-      const [overviewData, healthData, trafficData, businessData, creatorData, auditData, plansData, couponsData, billingData, verseData, reportData, notificationsData] = await Promise.all([
+      const [overviewData, healthData, trafficData, businessData, creatorData, auditData, plansData, couponsData, billingData, verseData, reportData, notificationsData, postReportsData] = await Promise.all([
         apiRequest('/api/admin/superadmin/overview', { token }),
         apiRequest('/api/admin/health', { token }),
         apiRequest('/api/admin/superadmin/traffic?range=month', { token }),
@@ -625,7 +628,8 @@ const SuperAdminDashboard = () => {
         apiRequest('/api/admin/superadmin/billing', { token }),
         apiRequest('/api/admin/superadmin/versefeed-analytics', { token }),
         apiRequest('/api/admin/superadmin/reports/platform-growth', { token }),
-        apiRequest('/api/admin/superadmin/notifications', { token })
+        apiRequest('/api/admin/superadmin/notifications', { token }),
+        apiRequest('/api/admin/superadmin/post-reports', { token }).catch(() => ({ reports: [] }))
       ]);
 
       setOverview(overviewData);
@@ -640,6 +644,7 @@ const SuperAdminDashboard = () => {
       setVerseAnalytics(verseData);
       setReport(reportData.report);
       setNotifications(notificationsData.notifications || []);
+      setPostReports(postReportsData.reports || []);
     } catch (requestError) {
       setError(requestError.message || 'Could not load superadmin data.');
     } finally {
@@ -692,6 +697,23 @@ const SuperAdminDashboard = () => {
       return response;
     } catch (requestError) {
       throw new Error(requestError.message || 'Could not update user.');
+    }
+  };
+
+  const updatePostReport = async (id, payload) => {
+    setPostReportUpdatingId(id);
+    setError('');
+    try {
+      const response = await apiRequest(`/api/admin/superadmin/post-reports/${id}`, {
+        method: 'PATCH',
+        token,
+        body: payload
+      });
+      setPostReports(response.reports || []);
+    } catch (requestError) {
+      setError(requestError.message || 'Could not update post report.');
+    } finally {
+      setPostReportUpdatingId('');
     }
   };
 
@@ -1445,26 +1467,35 @@ const SuperAdminDashboard = () => {
             )}
 
             {activeTab === 'Reports' && (
-              <div className="mt-8 rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-black text-slate-900">Reports Engine</h2>
-                    <p className="mt-1 text-sm font-semibold text-slate-500">Live report data for user, revenue, subscription, creator, business, engagement, and platform growth.</p>
+              <>
+                <div className="mt-8 rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-black text-slate-900">Reports Engine</h2>
+                      <p className="mt-1 text-sm font-semibold text-slate-500">Live report data for user, revenue, subscription, creator, business, engagement, and platform growth.</p>
+                    </div>
+                    <button type="button" onClick={() => exportCsv(report?.data?.userGrowth || [], 'user-growth-report.csv')} className="rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white">Export CSV</button>
                   </div>
-                  <button type="button" onClick={() => exportCsv(report?.data?.userGrowth || [], 'user-growth-report.csv')} className="rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white">Export CSV</button>
+                  <div className="mt-6 h-80">
+                    <ResponsiveContainer width="100%" height={320} minWidth={0}>
+                      <LineChart data={report?.data?.userGrowth || []}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="date" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-                <div className="mt-6 h-80">
-                  <ResponsiveContainer width="100%" height={320} minWidth={0}>
-                    <LineChart data={report?.data?.userGrowth || []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="date" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+
+                <PostReportsPanel
+                  reports={postReports}
+                  onUpdate={updatePostReport}
+                  updatingId={postReportUpdatingId}
+                  title="Reported posts and videos"
+                />
+              </>
             )}
 
             {activeTab === 'Audit' && (

@@ -1,13 +1,13 @@
 import React from 'react';
 
-const logoSrc = '/assets/myindianstartup-logo.svg';
+const defaultLogoSrc = '/assets/myindianstartup-logo.svg';
 
 const BrandLogo = ({
   markClassName = 'h-11 w-11',
   textClassName = 'text-xl text-slate-950',
-  accentClassName = 'text-blue-600',
   showText = true,
-  dark = false
+  dark = false,
+  logoSrc = defaultLogoSrc
 }) => (
   <>
     <span
@@ -22,7 +22,8 @@ const BrandLogo = ({
     </span>
     {showText && (
       <span className={`font-black tracking-[-0.045em] ${textClassName}`}>
-        MyIndian<span className={accentClassName}>Startup</span>
+        <span className="text-orange-500">MyIndian</span>
+        <span className="text-blue-600">Startup</span>
       </span>
     )}
   </>

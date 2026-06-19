@@ -93,30 +93,6 @@ const notificationItems = [
   }
 ];
 
-const buildSuggestedActions = ({ member, notifications }) => {
-  const enabledCount = Object.values(notifications || {}).filter(Boolean).length;
-  const accountLabel = member?.account_type === 'creator' ? 'creator' : 'business';
-
-  return [
-    {
-      title: 'Keep your profile complete',
-      copy: accountLabel === 'creator'
-        ? 'Update your photo, skills, city, and portfolio so businesses can trust your profile faster.'
-        : 'Update your logo, business category, location, and website so creators can understand your business faster.'
-    },
-    {
-      title: 'Use notification controls smartly',
-      copy: enabledCount
-        ? `${enabledCount} email alerts are active right now. Keep only the updates that help you post, respond, and renew on time.`
-        : 'Turn on the alerts you actually need so the platform can remind you about posting, discovery, and membership updates.'
-    },
-    {
-      title: 'Review membership and security monthly',
-      copy: 'Check your active plan, sign-in email, and session safety regularly so your workspace stays ready for daily use.'
-    }
-  ];
-};
-
 const Toggle = ({ checked, onChange, disabled = false }) => (
   <button
     type="button"
@@ -146,10 +122,6 @@ const Settings = () => {
   const activeSetting = useMemo(
     () => settingTabs.find((tab) => tab.id === activeTab) || settingTabs[0],
     [activeTab]
-  );
-  const suggestedActions = useMemo(
-    () => buildSuggestedActions({ member, notifications: settings.notifications }),
-    [member, settings.notifications]
   );
 
   useEffect(() => {
@@ -219,13 +191,13 @@ const Settings = () => {
 
   return (
     <main className="min-h-screen bg-[#f8fbff] pt-28 text-slate-950">
-      <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-5 md:px-10">
-        <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:items-start">
+      <section className="mx-auto max-w-[1380px] px-4 py-8 pb-14 sm:px-6 lg:px-8">
+        <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)] xl:items-start">
           <div>
             <WorkspaceSidebar />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+          <div className="grid min-w-0 gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
             <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
               <div className="px-2 py-3">
                 <div className="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-500">Control center</div>
@@ -260,7 +232,7 @@ const Settings = () => {
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+            <section className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-600">
@@ -331,19 +303,10 @@ const Settings = () => {
                 </div>
               )}
 
-              <div className="mt-8 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-slate-600">
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  Suggested setup
-                </div>
-                <div className="mt-4 grid gap-4 md:grid-cols-3">
-                  {suggestedActions.map((item) => (
-                    <div key={item.title} className="rounded-[1.4rem] border border-slate-200 bg-white p-4">
-                      <h3 className="text-sm font-black text-slate-800">{item.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{item.copy}</p>
-                    </div>
-                  ))}
-                </div>
+              <div className="mt-8 rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-4">
+                <p className="text-sm font-semibold leading-6 text-slate-600">
+                  Use these settings to control email alerts, privacy, membership, and account security from one place.
+                </p>
               </div>
             </section>
           </div>

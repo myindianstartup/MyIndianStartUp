@@ -12,6 +12,7 @@ import {
   Award, 
   TrendingUp, 
   Star, 
+  StarHalf, 
   Building, 
   FileSpreadsheet, 
   FileCheck 
@@ -126,10 +127,10 @@ const Hero = () => {
                 <Star size={16} fill="currentColor" />
                 <Star size={16} fill="currentColor" />
                 <Star size={16} fill="currentColor" />
-                <Star size={16} fill="currentColor" />
+                <StarHalf size={16} fill="currentColor" />
               </div>
               <span className="text-xs text-slate-500 font-bold tracking-tight">
-                Trustpilot <span className="text-slate-300 mx-1">|</span> 5 Star review on Google Map
+                Trustpilot <span className="text-slate-300 mx-1">|</span> 4.5 Star review on Google Map
               </span>
             </motion.div>
           </motion.div>

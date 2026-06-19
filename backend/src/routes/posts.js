@@ -24,6 +24,15 @@ const commentSchema = z.object({
   body: z.string().trim().min(1).max(500)
 });
 
+const reportSchema = z.object({
+  reason: z.string().trim().min(2).max(120),
+  details: z.string().trim().max(1000).optional().nullable()
+});
+
+const saveSchema = z.object({
+  saved: z.boolean().optional()
+});
+
 const storySchema = z.object({
   caption: z.string().trim().max(250).optional().nullable(),
   accountType: z.enum(['business', 'creator']),
@@ -34,6 +43,7 @@ export const postsRouter = Router();
 
 const fallbackStorageDir = path.resolve(process.cwd(), 'storage');
 const connectionFallbackPath = path.join(fallbackStorageDir, 'connection-fallback.json');
+const saveFallbackPath = path.join(fallbackStorageDir, 'post-save-fallback.json');
 
 const isMissingDatabaseFeature = (error) => {
   const message = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''}`.toLowerCase();
@@ -113,6 +123,64 @@ const setFallbackConnection = async ({ followerId, followingId, following }) => 
 
   await writeConnectionFallback(withoutExisting);
   return following;
+};
+
+const readSaveFallback = async () => {
+  try {
+    const raw = await readFile(saveFallbackPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed.saves) ? parsed.saves : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeSaveFallback = async (saves) => {
+  await mkdir(fallbackStorageDir, { recursive: true });
+  await writeFile(saveFallbackPath, JSON.stringify({ saves }, null, 2));
+};
+
+const fallbackSaveKey = (userId, postId) => `${userId}:${postId}`;
+
+const getFallbackSavedPostSet = async (viewerId, postIds = []) => {
+  const ids = new Set([...new Set(postIds)].filter(Boolean));
+  if (!viewerId || !ids.size) return new Set();
+  const saves = await readSaveFallback();
+  return new Set(saves
+    .filter((row) => row.user_id === viewerId && ids.has(row.post_id))
+    .map((row) => row.post_id));
+};
+
+const getFallbackAllSavedPostIds = async (viewerId) => {
+  if (!viewerId) return [];
+  const saves = await readSaveFallback();
+  return saves
+    .filter((row) => row.user_id === viewerId)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map((row) => row.post_id);
+};
+
+const setFallbackPostSaved = async ({ userId, postId, saved }) => {
+  const saves = await readSaveFallback();
+  const key = fallbackSaveKey(userId, postId);
+  const withoutExisting = saves.filter((row) => fallbackSaveKey(row.user_id, row.post_id) !== key);
+
+  if (saved) {
+    withoutExisting.push({
+      id: key,
+      user_id: userId,
+      post_id: postId,
+      created_at: new Date().toISOString()
+    });
+  }
+
+  await writeSaveFallback(withoutExisting);
+  return saved;
+};
+
+const getFallbackPostSaveCount = async (postId) => {
+  const saves = await readSaveFallback();
+  return saves.filter((row) => row.post_id === postId).length;
 };
 
 const postSelectWithFullMetrics = 'id, author_id, account_type, caption, media_url, media_type, status, created_at, published_at, post_metrics(views, likes, comments, shares, saves, inquiries, reach, impressions)';
@@ -364,6 +432,129 @@ const getLikedPostSet = async (viewerId, postIds = []) => {
   return new Set((data || []).map((row) => row.post_id));
 };
 
+const getSavedPostSet = async (viewerId, postIds = []) => {
+  const ids = [...new Set(postIds)].filter(Boolean);
+  if (!viewerId || !ids.length) return new Set();
+
+  const { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('post_saves')
+    .select('post_id')
+    .eq('user_id', viewerId)
+    .in('post_id', ids);
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return getFallbackSavedPostSet(viewerId, ids);
+    throw error;
+  }
+
+  return new Set((data || []).map((row) => row.post_id));
+};
+
+const getAllSavedPostIds = async (viewerId) => {
+  if (!viewerId) return [];
+
+  const { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('post_saves')
+    .select('post_id, created_at')
+    .eq('user_id', viewerId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return getFallbackAllSavedPostIds(viewerId);
+    throw error;
+  }
+
+  return (data || []).map((row) => row.post_id);
+};
+
+const countPostSaves = async (postId) => {
+  const { count, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('post_saves')
+    .select('*', { count: 'exact', head: true })
+    .eq('post_id', postId);
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return getFallbackPostSaveCount(postId);
+    throw error;
+  }
+
+  return count || 0;
+};
+
+const refreshPostSaveMetric = async (postId) => {
+  const saves = await countPostSaves(postId);
+  await ensurePostMetricRow(postId);
+
+  const { data: currentMetrics, error: metricsError } = await supabaseAdmin
+    .schema('postverse')
+    .from('post_metrics')
+    .select('views, likes, comments, shares, inquiries, reach, impressions')
+    .eq('post_id', postId)
+    .maybeSingle();
+
+  if (metricsError) {
+    if (isMissingDatabaseFeature(metricsError)) return { saves };
+    throw metricsError;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('post_metrics')
+    .upsert({
+      post_id: postId,
+      views: currentMetrics?.views || 0,
+      likes: currentMetrics?.likes || 0,
+      comments: currentMetrics?.comments || 0,
+      shares: currentMetrics?.shares || 0,
+      saves,
+      inquiries: currentMetrics?.inquiries || 0,
+      reach: currentMetrics?.reach || 0,
+      impressions: currentMetrics?.impressions || 0,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'post_id' })
+    .select('*')
+    .single();
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return { saves };
+    throw error;
+  }
+
+  return data;
+};
+
+const setPostSaved = async ({ userId, postId, saved }) => {
+  if (saved) {
+    const { error } = await supabaseAdmin
+      .schema('postverse')
+      .from('post_saves')
+      .upsert({ post_id: postId, user_id: userId }, { onConflict: 'post_id,user_id' });
+
+    if (error) {
+      if (isMissingDatabaseFeature(error)) return setFallbackPostSaved({ userId, postId, saved });
+      throw error;
+    }
+    return true;
+  }
+
+  const { error } = await supabaseAdmin
+    .schema('postverse')
+    .from('post_saves')
+    .delete()
+    .eq('post_id', postId)
+    .eq('user_id', userId);
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) return setFallbackPostSaved({ userId, postId, saved });
+    throw error;
+  }
+
+  return false;
+};
+
 const fetchCommentPreview = async (postIds = []) => {
   const ids = [...new Set(postIds)].filter(Boolean);
   if (!ids.length) return {};
@@ -566,11 +757,27 @@ const shapePost = (post, author, extras = {}) => ({
   },
   viewer: {
     liked: Boolean(extras.liked),
+    saved: Boolean(extras.saved),
     followingAuthor: Boolean(extras.followingAuthor),
     ownPost: Boolean(extras.ownPost)
   },
   commentsPreview: extras.commentsPreview || []
 });
+
+const normalizeFeedSearch = (value = '') => String(value)
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim();
+
+const feedSearchHaystack = (post) => normalizeFeedSearch([
+  post.authorName,
+  post.authorAccountType,
+  post.authorCity,
+  post.authorState,
+  post.authorCategory,
+  post.accountType,
+  post.caption
+].filter(Boolean).join(' '));
 
 const fetchPublishedPosts = async ({ limit = 50, excludeAuthorId = null, viewerId = null, withComments = false } = {}) => {
   const buildQuery = (selectColumns) => {
@@ -605,14 +812,16 @@ const fetchPublishedPosts = async ({ limit = 50, excludeAuthorId = null, viewerI
   }
 
   const authorsById = await getAuthorProfiles(posts.map((post) => post.author_id));
-  const [followingSet, likedSet, commentsByPost] = await Promise.all([
+  const [followingSet, likedSet, savedSet, commentsByPost] = await Promise.all([
     getFollowingSet(viewerId, posts.map((post) => post.author_id)),
     getLikedPostSet(viewerId, posts.map((post) => post.id)),
+    getSavedPostSet(viewerId, posts.map((post) => post.id)),
     withComments ? fetchCommentPreview(posts.map((post) => post.id)) : {}
   ]);
 
   return posts.map((post) => shapePost(post, authorsById[post.author_id], {
     liked: likedSet.has(post.id),
+    saved: savedSet.has(post.id),
     followingAuthor: followingSet.has(post.author_id),
     ownPost: viewerId === post.author_id,
     commentsPreview: commentsByPost[post.id] || []
@@ -695,8 +904,45 @@ postsRouter.get('/overview', requireAuth, async (req, res, next) => {
 postsRouter.get('/feed', requireAuth, async (req, res, next) => {
   try {
     await fetchMemberOrBlockFeed(req.user.id);
-    const posts = await fetchPublishedPosts({ limit: 50, viewerId: req.user.id, withComments: true });
-    res.json({ posts });
+    const searchQuery = normalizeFeedSearch(req.query.q || '');
+    const posts = await fetchPublishedPosts({
+      limit: searchQuery ? 200 : 50,
+      viewerId: req.user.id,
+      withComments: true
+    });
+    const filteredPosts = searchQuery
+      ? posts.filter((post) => feedSearchHaystack(post).includes(searchQuery))
+      : posts;
+    res.json({ posts: filteredPosts.slice(0, 50) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+postsRouter.get('/saved', requireAuth, async (req, res, next) => {
+  try {
+    await fetchMemberOrBlockFeed(req.user.id);
+    const savedIds = await getAllSavedPostIds(req.user.id);
+    if (!savedIds.length) {
+      res.json({ posts: [] });
+      return;
+    }
+
+    const searchQuery = normalizeFeedSearch(req.query.q || '');
+    const savedOrder = new Map(savedIds.map((id, index) => [id, index]));
+    const posts = await fetchPublishedPosts({
+      limit: 200,
+      viewerId: req.user.id,
+      withComments: true
+    });
+    const savedPosts = posts
+      .filter((post) => savedOrder.has(post.id))
+      .sort((a, b) => savedOrder.get(a.id) - savedOrder.get(b.id));
+    const filteredPosts = searchQuery
+      ? savedPosts.filter((post) => feedSearchHaystack(post).includes(searchQuery))
+      : savedPosts;
+
+    res.json({ posts: filteredPosts.slice(0, 50) });
   } catch (error) {
     next(error);
   }
@@ -1162,6 +1408,53 @@ postsRouter.get('/:id/comments', requireAuth, async (req, res, next) => {
   }
 });
 
+postsRouter.post('/:id/report', requireAuth, async (req, res, next) => {
+  try {
+    await fetchMemberOrBlockFeed(req.user.id);
+    const post = await assertPublishedPost(req.params.id);
+    const payload = reportSchema.parse(req.body || {});
+
+    const { data, error } = await supabaseAdmin
+      .schema('postverse')
+      .from('post_reports')
+      .upsert({
+        post_id: post.id,
+        reporter_id: req.user.id,
+        reason: payload.reason,
+        details: payload.details || null,
+        status: 'open',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'post_id,reporter_id' })
+      .select('*')
+      .single();
+
+    if (error) {
+      if (isMissingDatabaseFeature(error)) {
+        const setupError = new Error('Post reporting is not configured yet.');
+        setupError.status = 503;
+        setupError.code = 'POST_REPORTING_NOT_CONFIGURED';
+        throw setupError;
+      }
+      throw error;
+    }
+
+    res.status(201).json({
+      message: 'Thanks. Our team will review this report.',
+      report: {
+        id: data.id,
+        postId: data.post_id,
+        reason: data.reason,
+        details: data.details,
+        status: data.status,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 postsRouter.post('/:id/comments', requireAuth, async (req, res, next) => {
   try {
     await fetchMemberOrBlockFeed(req.user.id);
@@ -1231,6 +1524,29 @@ postsRouter.post('/:id/like', requireAuth, async (req, res, next) => {
 
     const metrics = await recalculatePostMetrics(req.params.id);
     res.json({ liked: !existing, metrics });
+  } catch (error) {
+    next(error);
+  }
+});
+
+postsRouter.post('/:id/save', requireAuth, async (req, res, next) => {
+  try {
+    await fetchMemberOrBlockFeed(req.user.id);
+    await assertPublishedPost(req.params.id);
+
+    const payload = saveSchema.parse(req.body || {});
+    const currentSaved = await getSavedPostSet(req.user.id, [req.params.id]);
+    const nextSaved = typeof payload.saved === 'boolean'
+      ? payload.saved
+      : !currentSaved.has(req.params.id);
+    const saved = await setPostSaved({
+      userId: req.user.id,
+      postId: req.params.id,
+      saved: nextSaved
+    });
+    const metrics = await refreshPostSaveMetric(req.params.id);
+
+    res.json({ saved, metrics });
   } catch (error) {
     next(error);
   }

@@ -17,6 +17,7 @@ import {
   Phone,
   Sparkles,
   Star,
+  StarHalf,
   Target,
   Users,
   Video,
@@ -59,13 +60,14 @@ const profileFields = [
   ['Industry', 'Food & Beverage'],
   ['City & State', 'Ahmedabad, Gujarat'],
   ['Website', 'aurorafoods.in'],
+  ['Contact Number', '+91 98765 43210'],
   ['Social Media', '@aurorafoods'],
   ['About Company', 'Premium packaged food brand serving retailers across India.'],
-  ['Public Rating', '4.9 / 5 from member interactions']
+  ['Public Rating', '4.5 / 5 from member interactions']
 ];
 
 const showcaseBusinessStats = [
-  ['4.9/5', 'average member rating'],
+  ['4.5/5', 'average member rating'],
   ['18K+', 'monthly profile views'],
   ['62%', 'owner profile growth']
 ];
@@ -265,7 +267,7 @@ const BusinessVerse = () => {
   }, [businessProfile?.business_name, isAuthenticated, isBusinessMember]);
 
   const handleHeroCta = () => {
-    navigate(isAuthenticated && isBusinessMember ? '/profile-verse' : '/join');
+    navigate(isAuthenticated && isBusinessMember ? '/profile-verse' : '/signup');
   };
 
   return (
@@ -299,7 +301,6 @@ const BusinessVerse = () => {
 
       <section className="relative overflow-hidden pt-28 pb-16 md:pt-32 md:pb-24">
         <div className="absolute inset-x-0 top-0 h-[680px] bg-[linear-gradient(135deg,rgba(37,99,235,0.08),rgba(249,115,22,0.08)_48%,rgba(248,250,252,0)_82%)] pointer-events-none" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.045)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_72%)] pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
           <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
@@ -324,9 +325,10 @@ const BusinessVerse = () => {
 
               <div className="mt-8 flex items-center gap-3 text-xs font-semibold text-slate-500">
                 <div className="flex items-center gap-0.5 text-yellow-400">
-                  {[...Array(5)].map((_, index) => (
+                  {[...Array(4)].map((_, index) => (
                     <Star key={index} className="h-4 w-4 fill-current" />
                   ))}
+                  <StarHalf className="h-4 w-4 fill-current" />
                 </div>
                 <span>Built for businesses, brands, startups, agencies, and local companies across India.</span>
               </div>
@@ -385,11 +387,11 @@ const BusinessVerse = () => {
       </section>
 
       <section className="bg-white py-16 md:py-20">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div>
-            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Create a professional profile buyers can trust.</h2>
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div className="lg:pt-8">
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Build a profile that builds trust.</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
-              Your profile becomes a public business card with the details people need before they contact you.
+              Showcase your business, services, and achievements in one professional profile that helps others discover and connect with you.
             </p>
           </div>
 
@@ -417,18 +419,31 @@ const BusinessVerse = () => {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3 text-sm font-bold">
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-slate-700">
+              <a
+                href="https://aurorafoods.in"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700"
+              >
                 <Globe2 className="h-4 w-4" />
-                Website
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-orange-600">
+                aurorafoods.in
+              </a>
+              <a
+                href="https://instagram.com/aurorafoods"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-orange-600 transition-colors hover:bg-orange-100"
+              >
                 <LinkIcon className="h-4 w-4" />
-                Social media
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-emerald-700">
+                @aurorafoods
+              </a>
+              <a
+                href="tel:+919876543210"
+                className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-blue-700 transition-colors hover:bg-blue-100"
+              >
                 <Phone className="h-4 w-4" />
-                Public inquiry
-              </span>
+                +91 98765 43210
+              </a>
             </div>
           </div>
         </div>
@@ -438,10 +453,10 @@ const BusinessVerse = () => {
         <div className="mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-2 lg:items-center">
           <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_24px_70px_rgba(15,23,42,0.07)]">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="business-card-hover rounded-xl border border-slate-200 bg-slate-50 p-5">
-                <Image className="h-7 w-7 text-slate-600" />
+              <div className="business-card-hover rounded-xl border border-orange-100 bg-orange-50 p-5">
+                <Image className="h-7 w-7 text-orange-500" />
                 <div className="mt-8 text-4xl font-black text-slate-950">1</div>
-                <div className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-slate-600">Image</div>
+                <div className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-orange-500">Image</div>
               </div>
               <div className="business-card-hover rounded-xl border border-orange-100 bg-orange-50 p-5">
                 <Video className="h-7 w-7 text-orange-500" />
@@ -489,16 +504,21 @@ const BusinessVerse = () => {
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {connectionTypes.map((item, index) => (
-              <div key={item} className="business-card-hover rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
-                  {index % 2 === 0 ? <Users className="h-5 w-5" /> : <HeartHandshake className="h-5 w-5" />}
+          <div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {connectionTypes.map((item, index) => (
+                <div key={item} className="business-card-hover rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
+                    {index % 2 === 0 ? <Users className="h-5 w-5" /> : <HeartHandshake className="h-5 w-5" />}
+                  </div>
+                  <div className="mt-4 text-lg font-black text-slate-950">{item}</div>
                 </div>
-                <div className="mt-4 text-lg font-black text-slate-950">{item}</div>
-                <div className="mt-2 text-sm font-semibold text-slate-500">Direct contact. No middlemen.</div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-orange-200 bg-[linear-gradient(135deg,rgba(255,247,237,0.98),rgba(255,255,255,0.98),rgba(255,237,213,0.92))] px-5 py-4 text-center text-sm font-black text-slate-950 shadow-[0_18px_42px_rgba(249,115,22,0.12)]">
+              Direct Contact. No Middlemen.
+            </div>
           </div>
         </div>
       </section>
@@ -594,7 +614,7 @@ const BusinessVerse = () => {
               Create new opportunities, build partnerships, and make your business easier to discover.
             </p>
             <button
-              onClick={() => navigate('/join')}
+              onClick={handleHeroCta}
               className="mt-8 inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-4 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-orange-600"
             >
               <span>Create BusinessVerse Profile</span>

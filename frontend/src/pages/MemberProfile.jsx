@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BriefcaseBusiness, Globe2, Loader2, Mail, MapPin, Phone, Sparkles, UserCheck, UserPlus, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, ExternalLink, Globe2, Instagram, Linkedin, Loader2, Mail, MapPin, Phone, Sparkles, UserCheck, UserPlus, UserRound } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,14 +13,37 @@ const initialsFrom = (value = 'MI') => String(value)
 
 const compactLocation = (city, state) => [city, state].filter(Boolean).join(', ');
 
-const InfoCard = ({ icon: Icon, label, value }) => (
+const normalizeExternalUrl = (value = '') => {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
+const normalizePhoneHref = (value = '') => {
+  const digits = String(value || '').replace(/[^\d+]/g, '');
+  return digits ? `tel:${digits}` : '';
+};
+
+const InfoCard = ({ icon: Icon, label, value, href, external = false }) => (
   <div className="rounded-[1.5rem] border border-slate-200 bg-[#fbfbfd] p-5">
     <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
       <Icon className="h-4 w-4" />
       {label}
     </div>
     <div className="mt-3 break-words text-sm font-bold leading-6 text-slate-900">
-      {value || 'Not shared yet'}
+      {href && value ? (
+        <a
+          href={href}
+          target={external ? '_blank' : undefined}
+          rel={external ? 'noopener noreferrer' : undefined}
+          className="inline-flex items-center gap-1.5 text-blue-600 underline decoration-blue-200 underline-offset-4 transition hover:text-blue-700 hover:decoration-blue-500"
+        >
+          <span>{value}</span>
+          {external ? <ExternalLink className="h-3.5 w-3.5" /> : null}
+        </a>
+      ) : (
+        value || 'Not shared yet'
+      )}
     </div>
   </div>
 );
@@ -84,6 +107,11 @@ const MemberProfile = () => {
   const imageUrl = isCreator ? profile?.profile_image_url : profile?.logo_url;
   const isOnline = Boolean(profileData?.online);
   const socialLinks = profile?.social_links || {};
+  const websiteUrl = normalizeExternalUrl(website);
+  const instagramUrl = normalizeExternalUrl(socialLinks.instagram);
+  const linkedinUrl = normalizeExternalUrl(socialLinks.linkedin);
+  const phoneHref = normalizePhoneHref(phone);
+  const emailHref = email ? `mailto:${email}` : '';
   const tags = useMemo(() => (
     isCreator
       ? (Array.isArray(profile?.skills) ? profile.skills : [])
@@ -213,16 +241,16 @@ const MemberProfile = () => {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <InfoCard icon={MapPin} label="Location" value={location} />
-                  <InfoCard icon={Globe2} label={isCreator ? 'Portfolio' : 'Website'} value={website} />
-                  <InfoCard icon={Mail} label="Contact email" value={email} />
-                  <InfoCard icon={Phone} label="Contact phone" value={phone} />
+                  <InfoCard icon={Globe2} label={isCreator ? 'Portfolio' : 'Website'} value={website} href={websiteUrl} external />
+                  <InfoCard icon={Mail} label="Contact email" value={email} href={emailHref} />
+                  <InfoCard icon={Phone} label="Contact phone" value={phone} href={phoneHref} />
                 </div>
 
                 <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Social links</div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <InfoCard icon={Globe2} label="Instagram" value={socialLinks.instagram || ''} />
-                    <InfoCard icon={Globe2} label="LinkedIn" value={socialLinks.linkedin || ''} />
+                    <InfoCard icon={Instagram} label="Instagram" value={socialLinks.instagram || ''} href={instagramUrl} external />
+                    <InfoCard icon={Linkedin} label="LinkedIn" value={socialLinks.linkedin || ''} href={linkedinUrl} external />
                   </div>
                 </div>
               </div>

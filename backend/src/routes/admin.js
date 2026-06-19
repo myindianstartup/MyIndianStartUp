@@ -34,6 +34,133 @@ const safeQuery = async (query, fallback) => {
   return result;
 };
 
+const postReportUpdateSchema = z.object({
+  status: z.enum(['open', 'reviewing', 'resolved', 'dismissed']).optional(),
+  adminResponse: z.string().trim().max(1000).optional().nullable()
+});
+
+const mapMember = (member) => member ? {
+  id: member.id,
+  name: member.full_name || member.email || 'Member',
+  email: member.email || '',
+  accountType: member.account_type || 'business'
+} : null;
+
+const listPostReports = async () => {
+  const { data: reports } = await safeQuery(
+    supabaseAdmin
+      .schema('postverse')
+      .from('post_reports')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100),
+    { data: [] }
+  );
+
+  const postIds = [...new Set((reports || []).map((report) => report.post_id).filter(Boolean))];
+  const reporterIds = [...new Set((reports || []).map((report) => report.reporter_id).filter(Boolean))];
+  const reviewerIds = [...new Set((reports || []).map((report) => report.reviewed_by).filter(Boolean))];
+
+  const [{ data: posts }, { data: reporters }] = await Promise.all([
+    postIds.length
+      ? safeQuery(
+          supabaseAdmin
+            .schema('postverse')
+            .from('posts')
+            .select('id, author_id, account_type, caption, media_url, media_type, status, published_at, created_at')
+            .in('id', postIds),
+          { data: [] }
+        )
+      : { data: [] },
+    [...new Set([...reporterIds, ...reviewerIds])].length
+      ? safeQuery(
+          supabaseAdmin
+            .schema('core')
+            .from('members')
+            .select('id, email, full_name, account_type')
+            .in('id', [...new Set([...reporterIds, ...reviewerIds])]),
+          { data: [] }
+        )
+      : { data: [] }
+  ]);
+
+  const authorIds = [...new Set((posts || []).map((post) => post.author_id).filter(Boolean))];
+  const { data: authors } = authorIds.length
+    ? await safeQuery(
+        supabaseAdmin
+          .schema('core')
+          .from('members')
+          .select('id, email, full_name, account_type')
+          .in('id', authorIds),
+        { data: [] }
+      )
+    : { data: [] };
+
+  const postsById = Object.fromEntries((posts || []).map((post) => [post.id, post]));
+  const membersById = Object.fromEntries([...(reporters || []), ...(authors || [])].map((member) => [member.id, member]));
+
+  return (reports || []).map((report) => {
+    const post = postsById[report.post_id] || null;
+    return {
+      id: report.id,
+      postId: report.post_id,
+      reason: report.reason,
+      details: report.details || '',
+      status: report.status,
+      adminResponse: report.admin_response || '',
+      createdAt: report.created_at,
+      updatedAt: report.updated_at,
+      reviewedAt: report.reviewed_at,
+      reporter: mapMember(membersById[report.reporter_id]),
+      reviewer: mapMember(membersById[report.reviewed_by]),
+      post: post ? {
+        id: post.id,
+        authorId: post.author_id,
+        author: mapMember(membersById[post.author_id]),
+        accountType: post.account_type,
+        caption: post.caption,
+        mediaUrl: post.media_url,
+        mediaType: post.media_type,
+        status: post.status,
+        publishedAt: post.published_at || post.created_at
+      } : null
+    };
+  });
+};
+
+const updatePostReport = async (reportId, reviewerId, payload) => {
+  const update = {
+    updated_at: new Date().toISOString()
+  };
+
+  if (payload.status) update.status = payload.status;
+  if (payload.adminResponse !== undefined) update.admin_response = payload.adminResponse || null;
+
+  if (payload.status && ['resolved', 'dismissed'].includes(payload.status)) {
+    update.reviewed_by = reviewerId;
+    update.reviewed_at = new Date().toISOString();
+  }
+
+  const { data, error } = await supabaseAdmin
+    .schema('postverse')
+    .from('post_reports')
+    .update(update)
+    .eq('id', reportId)
+    .select('*')
+    .single();
+
+  if (error) {
+    if (isMissingDatabaseFeature(error)) {
+      const setupError = new Error('Post reporting is not configured yet.');
+      setupError.status = 503;
+      throw setupError;
+    }
+    throw error;
+  }
+
+  return data;
+};
+
 const fallbackPlans = [
   {
     id: '00000000-0000-0000-0000-000000000001',
@@ -1276,6 +1403,26 @@ adminRouter.get('/superadmin/reports/:type', requireAuth, requireAdminRole('supe
   }
 });
 
+adminRouter.get('/superadmin/post-reports', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
+  try {
+    const reports = await listPostReports();
+    res.json({ reports });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch('/superadmin/post-reports/:id', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
+  try {
+    const payload = postReportUpdateSchema.parse(req.body || {});
+    await updatePostReport(req.params.id, req.user.id, payload);
+    const reports = await listPostReports();
+    res.json({ reports });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminRouter.get('/superadmin/realtime', requireAuth, requireAdminRole('superadmin'), async (req, res, next) => {
   try {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -1310,6 +1457,26 @@ adminRouter.get('/superadmin/realtime', requireAuth, requireAdminRole('superadmi
     }, 10000);
 
     req.on('close', () => clearInterval(interval));
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get('/post-reports', requireAuth, requireAdminRole('admin'), async (req, res, next) => {
+  try {
+    const reports = await listPostReports();
+    res.json({ reports });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch('/post-reports/:id', requireAuth, requireAdminRole('admin'), async (req, res, next) => {
+  try {
+    const payload = postReportUpdateSchema.parse(req.body || {});
+    await updatePostReport(req.params.id, req.user.id, payload);
+    const reports = await listPostReports();
+    res.json({ reports });
   } catch (error) {
     next(error);
   }

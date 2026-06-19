@@ -245,7 +245,7 @@ const SignUp = () => {
                   ['01', 'Fill registration form', 'Add your details and select your account type.'],
                   ['02', 'Review details', 'Confirm your BusinessVerse or CreatorVerse setup.'],
                   ['03', 'Membership payment', 'Complete Rs 999 yearly membership securely.'],
-                  ['04', 'Dashboard access', 'After activation, PostVerse opens as your main feed.']
+                  ['04', 'Dashboard access', 'After activation, FeedVerse opens as your main feed.']
                 ].map(([number, title, copy]) => (
                   <div key={number} className="flex items-start gap-3 rounded-[1.15rem] border border-slate-100 bg-[#f8fafc] px-4 py-3">
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-xs font-black shadow-sm transition-colors duration-300 ${leftPanelTheme.stepNumber}`}>
@@ -260,16 +260,16 @@ const SignUp = () => {
               </div>
             </div>
 
-            <div className="mt-5 rounded-[1.35rem] border border-slate-200 bg-white/75 p-4 shadow-[0_14px_45px_rgba(15,23,42,0.06)] backdrop-blur">
-              <div className="grid gap-3 sm:grid-cols-3">
+            <div className="mt-5 rounded-[1.35rem] border border-slate-200 bg-white/85 p-4 shadow-[0_14px_45px_rgba(15,23,42,0.06)] backdrop-blur">
+              <div className="grid items-stretch gap-3 sm:grid-cols-3">
                 {[
-                  ['2 paths', 'Business + creator'],
-                  ['Rs 999', 'Annual access'],
-                  ['365 days', 'Visibility']
-                ].map(([value, label]) => (
-                  <div key={label} className="rounded-2xl border border-slate-100 bg-[#f8fafc] px-4 py-3 text-center">
-                    <div className={`text-xl font-black tracking-tight lg:text-2xl ${label === 'Annual access' ? leftPanelTheme.stat : 'text-slate-800'}`}>{value}</div>
-                    <div className="mt-1 text-xs font-semibold text-slate-600 lg:text-sm">{label}</div>
+                  ['2 paths', 'Business or Creator', 'border-orange-100 bg-orange-50/80 text-orange-600'],
+                  ['Rs 999', 'Annual access', `${accountType === 'business' ? 'border-orange-100 bg-orange-50/80 text-orange-600' : 'border-blue-100 bg-blue-50/80 text-blue-600'}`],
+                  ['365 days', 'Visibility', 'border-blue-100 bg-blue-50/80 text-blue-600']
+                ].map(([value, label, tone]) => (
+                  <div key={label} className={`flex min-h-[92px] flex-col items-center justify-center rounded-2xl border px-4 py-3 text-center ${tone}`}>
+                    <div className="text-2xl font-black tracking-tight lg:text-3xl">{value}</div>
+                    <div className="mt-1 text-sm font-black text-slate-700">{label}</div>
                   </div>
                 ))}
               </div>
@@ -290,7 +290,7 @@ const SignUp = () => {
 
           <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
             <label className="grid gap-2">
-              <span className="text-sm font-bold text-slate-800">Full Name</span>
+              <span className="text-sm font-bold text-slate-800">Full Name <span className="text-rose-500">*</span></span>
               <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
                 <UserRound className="h-5 w-5 text-slate-400" />
                 <input
@@ -304,7 +304,7 @@ const SignUp = () => {
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-bold text-slate-800">Email Address</span>
+              <span className="text-sm font-bold text-slate-800">Email Address <span className="text-rose-500">*</span></span>
               <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
                 <Mail className="h-5 w-5 text-slate-400" />
                 <input
@@ -357,7 +357,7 @@ const SignUp = () => {
             </div>
 
             <label className="grid gap-2">
-              <span className="text-sm font-bold text-slate-800">Password</span>
+              <span className="text-sm font-bold text-slate-800">Password <span className="text-rose-500">*</span></span>
               <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
                 <input
                   name="password"
@@ -378,7 +378,7 @@ const SignUp = () => {
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-bold text-slate-800">Confirm Password</span>
+              <span className="text-sm font-bold text-slate-800">Confirm Password <span className="text-rose-500">*</span></span>
               <div className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:ring-2 ${focusTone}`}>
                 <input
                   name="confirmPassword"

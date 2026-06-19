@@ -98,9 +98,9 @@ const initialsFrom = (value) => (value || 'MI')
   .join('') || 'MI';
 
 const Field = ({ label, icon: Icon, children }) => (
-  <label className="grid gap-2">
+  <label className="grid min-w-0 gap-2">
     <span className="text-sm font-bold text-slate-800">{label}</span>
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
       {Icon && <Icon className="h-5 w-5 shrink-0 text-slate-400" />}
       {children}
     </div>
@@ -322,16 +322,18 @@ const ProfileVerse = () => {
   }
 
   return (
-    <div className="bg-[#f8fbff] pt-28 text-slate-950">
-      <section className="relative overflow-hidden pb-16">
+    <main className="min-h-screen bg-[#f8fbff] pt-28 text-slate-950">
+      <section className="relative overflow-hidden py-8 pb-16">
         <div className="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.10),transparent_32%),radial-gradient(circle_at_top_right,rgba(37,99,235,0.10),transparent_34%)]" />
-        <div className="relative mx-auto max-w-[1500px] px-6 md:px-12">
-          <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:items-start">
-            <WorkspaceSidebar />
+        <div className="relative mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)] xl:items-start">
+            <div>
+              <WorkspaceSidebar />
+            </div>
 
-            <div className="grid gap-8 xl:grid-cols-[0.82fr_1.18fr] xl:items-start">
-            <aside className="xl:sticky xl:top-28">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+            <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(300px,400px)_minmax(0,1fr)] lg:items-start">
+              <aside className="min-w-0 self-start">
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] sm:p-6">
                 <div className={`inline-flex items-center gap-2 rounded-full border ${theme.border} ${theme.soft} px-3 py-1 text-xs font-extrabold uppercase tracking-[0.2em] ${theme.accent}`}>
                   <Sparkles className="h-3.5 w-3.5" />
                   {theme.label}
@@ -397,7 +399,7 @@ const ProfileVerse = () => {
               </div>
             </aside>
 
-            <form onSubmit={handleSave} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] md:p-7">
+              <form onSubmit={handleSave} className="min-w-0 self-start rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] md:p-7">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className={`inline-flex items-center gap-2 rounded-full ${theme.soft} px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] ${theme.accent}`}>
@@ -432,7 +434,7 @@ const ProfileVerse = () => {
                 </div>
               )}
 
-              <div className="mt-7 grid gap-5 md:grid-cols-2">
+              <div className="mt-7 grid gap-y-5 md:grid-cols-2 md:gap-x-8">
                 {isBusiness ? (
                   <>
                     <Field label="Business Name" icon={BriefcaseBusiness}>
@@ -516,7 +518,7 @@ const ProfileVerse = () => {
           </div>
         </div>
       </section>
-    </div>
+    </main>
   );
 };
 

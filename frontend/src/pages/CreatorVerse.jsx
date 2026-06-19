@@ -6,7 +6,6 @@ import {
   BriefcaseBusiness,
   Camera,
   Check,
-  Code2,
   DollarSign,
   FileText,
   HeartHandshake,
@@ -15,6 +14,7 @@ import {
   Mail,
   MapPin,
   Megaphone,
+  MonitorSmartphone,
   Palette,
   PenTool,
   Play,
@@ -22,6 +22,8 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  StarHalf,
+  Smartphone,
   Target,
   UserRound,
   Users,
@@ -34,7 +36,7 @@ import { apiRequest } from '@/lib/apiClient';
 
 const joinFeatures = [
   'Creator Listing',
-  'Professional Profile',
+  '365 Days Promotion',
   'Portfolio Showcase',
   'Daily Visibility',
   'Business Discovery',
@@ -51,8 +53,8 @@ const professionals = [
   { title: 'Videographer', icon: <Video className="h-5 w-5 text-red-500" /> },
   { title: 'Animator', icon: <Zap className="h-5 w-5 text-yellow-600" /> },
   { title: 'Graphic Designer', icon: <Palette className="h-5 w-5 text-pink-600" /> },
-  { title: 'Web Developer', icon: <Code2 className="h-5 w-5 text-blue-600" /> },
-  { title: 'App Developer', icon: <Code2 className="h-5 w-5 text-indigo-600" /> },
+  { title: 'Web Developer', icon: <MonitorSmartphone className="h-5 w-5 text-blue-600" /> },
+  { title: 'App Developer', icon: <Smartphone className="h-5 w-5 text-blue-600" /> },
   { title: 'Digital Marketer', icon: <Megaphone className="h-5 w-5 text-orange-500" /> },
   { title: 'Content Writer', icon: <PenTool className="h-5 w-5 text-slate-700" /> },
   { title: 'Business Development Professional', icon: <BriefcaseBusiness className="h-5 w-5 text-emerald-600" /> },
@@ -74,11 +76,11 @@ const profileIncludes = [
 ];
 
 const workflowSteps = [
-  'Create Creator Profile',
-  'Showcase Skills & Portfolio',
-  'Publish Daily Updates',
-  'Get Discovered By Businesses',
-  'Collaborate Directly'
+  ['Create profile', 'Add your name, city, skills, and public work links.'],
+  ['Showcase work', 'Keep your portfolio and achievements ready for businesses.'],
+  ['Post daily', 'Share one update every 24 hours for fair visibility.'],
+  ['Get discovered', 'Businesses can open your profile and review your work.'],
+  ['Collaborate directly', 'Connect without commission, lead buying, or middlemen.']
 ];
 
 const comparisonRows = [
@@ -101,7 +103,7 @@ const pricingIncludes = [
 ];
 
 const creatorShowcaseStats = [
-  ['4.8/5', 'average creator rating'],
+  ['4.5/5', 'average creator rating'],
   ['12K+', 'monthly portfolio views'],
   ['55%', 'profile growth lift']
 ];
@@ -121,6 +123,12 @@ const safeDomain = (value) => {
   } catch {
     return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
   }
+};
+
+const normalizeExternalUrl = (value) => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) return '';
+  return raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
 };
 
 const compactLocation = (...parts) => parts.filter(Boolean).map((item) => String(item).trim()).filter(Boolean).join(', ');
@@ -236,6 +244,17 @@ const CreatorVerse = () => {
   const [creatorProfile, setCreatorProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const isCreatorMember = member?.account_type === 'creator';
+  const creatorPortfolioUrl = normalizeExternalUrl(creatorProfile?.portfolio_url);
+  const publicInquiryEmail = member?.email || 'team@myindianstartup.com';
+
+  const handlePortfolioClick = () => {
+    if (creatorPortfolioUrl) {
+      window.open(creatorPortfolioUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    navigate('/signup');
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -304,15 +323,13 @@ const CreatorVerse = () => {
       `}</style>
 
       <section className="relative overflow-hidden pt-28 pb-16 md:pt-32 md:pb-24">
-        <div className="absolute inset-x-0 top-0 h-[680px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.09),transparent_34%),radial-gradient(circle_at_top_right,rgba(15,23,42,0.045),transparent_30%)] pointer-events-none" />
-        <div className="absolute left-[-7rem] top-24 h-72 w-72 rounded-full bg-blue-500/5 blur-[100px] pointer-events-none" />
-        <div className="absolute right-[-6rem] top-28 h-72 w-72 rounded-full bg-blue-500/5 blur-[100px] pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-[680px] bg-[linear-gradient(135deg,rgba(37,99,235,0.09),rgba(59,130,246,0.07)_48%,rgba(248,250,252,0)_82%)] pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-6 md:px-12">
           <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-6">
               <h1 className="max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
-                Get discovered by businesses across India.
+                Grow Your Creator Profile Through <span className="text-blue-600">Visibility</span> &amp; Collaboration
               </h1>
 
               <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 md:text-lg">
@@ -331,9 +348,10 @@ const CreatorVerse = () => {
 
               <div className="mt-8 flex items-center gap-3 text-xs font-semibold text-slate-500">
                 <div className="flex items-center gap-0.5 text-yellow-400">
-                  {[...Array(5)].map((_, index) => (
+                  {[...Array(4)].map((_, index) => (
                     <Star key={index} className="h-4 w-4 fill-current" />
                   ))}
+                  <StarHalf className="h-4 w-4 fill-current" />
                 </div>
                 <span>Built for creators, freelancers, designers, developers, marketers, and professionals.</span>
               </div>
@@ -367,7 +385,7 @@ const CreatorVerse = () => {
         </div>
       </section>
 
-      <section className="bg-[#fbfbfd] py-16 md:py-20">
+      <section id="creator-professionals" className="scroll-mt-28 bg-[#fbfbfd] py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="max-w-3xl">
             <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">Join CreatorVerse as a professional.</h2>
@@ -426,18 +444,21 @@ const CreatorVerse = () => {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3 text-sm font-bold">
-              <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-blue-700">
+              <button
+                type="button"
+                onClick={handlePortfolioClick}
+                className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-blue-700 transition-all hover:-translate-y-0.5 hover:bg-blue-100"
+              >
                 <LinkIcon className="h-4 w-4" />
                 Portfolio
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-blue-700">
-                <Sparkles className="h-4 w-4" />
-                Skills
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-emerald-700">
+              </button>
+              <a
+                href={`mailto:${publicInquiryEmail}?subject=CreatorVerse%20public%20inquiry`}
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-emerald-700 transition-all hover:-translate-y-0.5 hover:bg-emerald-100"
+              >
                 <Mail className="h-4 w-4" />
                 Public inquiry
-              </span>
+              </a>
             </div>
           </div>
         </div>
@@ -447,15 +468,15 @@ const CreatorVerse = () => {
         <div className="mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-2 lg:items-center">
           <div className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-[0_24px_70px_rgba(15,23,42,0.07)]">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="creator-card-hover rounded-[26px] border border-blue-100 bg-blue-50 p-5">
+              <div className="creator-card-hover rounded-[26px] border border-blue-200 bg-[linear-gradient(135deg,rgba(239,246,255,0.98),rgba(219,234,254,0.9))] p-5 shadow-[0_16px_38px_rgba(37,99,235,0.08)]">
                 <Image className="h-7 w-7 text-blue-600" />
                 <div className="mt-8 text-4xl font-black text-slate-950">1</div>
                 <div className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-blue-600">Image</div>
               </div>
-              <div className="creator-card-hover rounded-[26px] border border-slate-200 bg-slate-50 p-5">
-                <Video className="h-7 w-7 text-slate-600" />
+              <div className="creator-card-hover rounded-[26px] border border-blue-200 bg-[linear-gradient(135deg,rgba(239,246,255,0.98),rgba(219,234,254,0.9))] p-5 shadow-[0_16px_38px_rgba(37,99,235,0.08)]">
+                <Video className="h-7 w-7 text-blue-600" />
                 <div className="mt-8 text-4xl font-black text-slate-950">1</div>
-                <div className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-slate-600">Video</div>
+                <div className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-blue-600">Video</div>
               </div>
             </div>
 
@@ -477,14 +498,41 @@ const CreatorVerse = () => {
       <section className="bg-white py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <div className="max-w-3xl">
-            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">From profile to direct collaboration.</h2>
+            <div className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-blue-600">
+              Creator journey
+            </div>
+            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">From profile to paid collaboration.</h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+              A simple path that helps creators become discoverable, trusted, and ready for direct business opportunities.
+            </p>
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-5">
-            {workflowSteps.map((step, index) => (
-              <div key={step} className="creator-card-hover rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-3xl font-black tracking-tight text-slate-200">0{index + 1}</div>
-                <h3 className="mt-4 text-base font-black tracking-[-0.03em] text-slate-950">{step}</h3>
+            {workflowSteps.map(([title, copy], index) => (
+              <div
+                key={title}
+                className={`creator-card-hover relative overflow-hidden rounded-[24px] border p-5 shadow-sm ${
+                  index === 2
+                    ? 'border-blue-200 bg-[linear-gradient(135deg,#2563eb,#0f766e)] text-white shadow-[0_22px_55px_rgba(37,99,235,0.18)]'
+                    : 'border-slate-200 bg-white'
+                }`}
+              >
+                {index < workflowSteps.length - 1 && (
+                  <div className="pointer-events-none absolute left-[2.15rem] top-11 hidden h-px w-[calc(100%+1.25rem)] bg-blue-100 md:block" />
+                )}
+                <div
+                  className={`relative z-10 flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-black ${
+                    index === 2 ? 'bg-white text-blue-600' : 'bg-blue-50 text-blue-600'
+                  }`}
+                >
+                  {String(index + 1).padStart(2, '0')}
+                </div>
+                <h3 className={`relative z-10 mt-5 text-lg font-black tracking-[-0.03em] ${index === 2 ? 'text-white' : 'text-slate-950'}`}>
+                  {title}
+                </h3>
+                <p className={`relative z-10 mt-3 text-sm font-semibold leading-6 ${index === 2 ? 'text-blue-50' : 'text-slate-500'}`}>
+                  {copy}
+                </p>
               </div>
             ))}
           </div>
@@ -503,7 +551,7 @@ const CreatorVerse = () => {
                 <tr className="bg-slate-50 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
                   <th className="p-5">Feature</th>
                   <th className="p-5 text-center">Traditional Platforms</th>
-                  <th className="p-5 text-center text-blue-700">CreatorVerse</th>
+                  <th className="p-5 text-center text-blue-700">MyIndianStartup</th>
                 </tr>
               </thead>
               <tbody>

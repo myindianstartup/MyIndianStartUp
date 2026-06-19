@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Loader2, LogOut, Menu, Search, X } from 'lucide-react';
+import { LayoutDashboard, Loader2, LogOut, Menu, Search, UserRound, X } from 'lucide-react';
 import BrandLogo from '@/components/site/BrandLogo';
 import LoginPromptModal from '@/components/site/LoginPromptModal';
 import { apiRequest } from '@/lib/apiClient';
@@ -83,6 +83,12 @@ const Navbar = () => {
     setProfileMenuOpen(false);
     setMobileMenuOpen(false);
     navigate('/');
+  };
+
+  const handleProfile = () => {
+    setProfileMenuOpen(false);
+    setMobileMenuOpen(false);
+    navigate('/profile-verse');
   };
 
   useEffect(() => {
@@ -194,11 +200,11 @@ const Navbar = () => {
           </div>
           <button
             type="button"
-            onClick={() => navigate(dashboardPath)}
+            onClick={handleProfile}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
           >
-            <LayoutDashboard className="h-4 w-4" />
-            Open Dashboard
+            <UserRound className="h-4 w-4" />
+            Profile
           </button>
           <button
             type="button"
@@ -430,10 +436,10 @@ const Navbar = () => {
             </div>
             <button
               type="button"
-              onClick={() => navigate(dashboardPath)}
+              onClick={handleProfile}
               className="mt-3 w-full rounded-full bg-blue-600 px-4 py-2.5 text-sm font-bold text-white"
             >
-              Open Dashboard
+              Profile
             </button>
           </div>
         )}

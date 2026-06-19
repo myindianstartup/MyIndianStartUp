@@ -178,7 +178,7 @@ const Login = () => {
                 Sign in to build trusted partnerships faster.
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 lg:text-base">
-                Access PostVerse, SearchVerse, VerseFeed, and your BusinessVerse or CreatorVerse workspace.
+                Access PostVerse, SearchVerse, FeedVerse, and your BusinessVerse or CreatorVerse workspace.
               </p>
             </div>
 

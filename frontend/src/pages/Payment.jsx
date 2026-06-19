@@ -279,8 +279,21 @@ const Payment = () => {
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
                 {hasActiveMembership
-                  ? 'Your account is already activated. Use your workspace, post updates, and explore connections without returning to checkout.'
-                  : 'One annual membership, secure billing under 8TechBurp, no commission, no lead charges, and no hidden costs.'}
+                  ? 'Your annual membership is already active. Pricing is locked and no duplicate payment is needed.'
+                  : (
+                    <>
+                      One annual membership, secure billing under{' '}
+                      <a
+                        href="https://www.8techburp.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-black text-slate-950 underline decoration-slate-950 decoration-2 underline-offset-4 transition-colors hover:text-slate-700"
+                      >
+                        8TechBurp
+                      </a>
+                      , no commission, no lead charges, and no hidden costs.
+                    </>
+                  )}
               </p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -288,14 +301,14 @@ const Payment = () => {
                   ? [
                       ['Membership active', 'Your annual access is already enabled'],
                       ['No duplicate payment', 'This page now stops repeat purchase confusion'],
-                      ['Workspace ready', 'Open your dashboard and continue posting'],
-                      ['Verse access', 'Use your connected platform areas directly']
+                      ['Annual access', 'Your membership remains active for the plan period'],
+                      ['Pricing locked', 'No extra checkout action is needed']
                     ]
                   : [
                       ['No commission', 'Keep direct deal value'],
                       ['No lead charges', 'Connect without buying leads'],
                       ['Coupon ready', 'Backend validated discounts'],
-                      ['Razorpay ready', 'Order, invoice, transaction tables']
+                      ['Razorpay ready', 'Order and transaction records']
                     ]
                 ).map(([title, copy]) => (
                   <div key={title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -365,45 +378,10 @@ const Payment = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => navigate('/post-verse')}
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-[0_12px_30px_rgba(37,99,235,0.22)] hover:bg-blue-700"
-                    >
-                      Open Workspace
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/verse-feed')}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-4 text-sm font-black text-slate-900 hover:bg-slate-50"
-                    >
-                      Go to VerseFeed
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  </div>
                 </>
               ) : (
                 <>
                   <div className="mt-7 grid gap-4">
-                    {/* BUG-08 / UX-01: Show login prompt for guests so they aren't confused */}
-                    {!isAuthenticated && (
-                      <div className="rounded-[1.4rem] border border-blue-100 bg-blue-50 px-5 py-4">
-                        <div className="text-sm font-black text-blue-900">Login required to continue</div>
-                        <p className="mt-1 text-xs font-semibold text-blue-700">
-                          You need an account to complete payment. Please login or create a free account first.
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <a href="/login" className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-xs font-black text-white hover:bg-blue-700">
-                            Login
-                          </a>
-                          <a href="/signup" className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white px-4 py-2 text-xs font-black text-blue-700 hover:bg-blue-50">
-                            Create account
-                          </a>
-                        </div>
-                      </div>
-                    )}
                     {isAuthenticated && (
                       <div className="rounded-[1.4rem] border border-blue-100 bg-blue-50 px-5 py-4 shadow-sm">
                         <div className="text-sm font-black text-blue-900">Demo Testing Helper</div>

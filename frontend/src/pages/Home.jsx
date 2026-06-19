@@ -40,7 +40,7 @@ const SectionEyebrow = ({ children, accent = 'blue', className = '' }) => {
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>
       <span className={`h-px w-10 bg-gradient-to-r from-transparent ${line}`} />
-      <span className={`text-[12px] font-bold uppercase tracking-[0.28em] ${text}`}>
+      <span className={`text-[13px] font-black uppercase tracking-[0.3em] ${text}`}>
         {children}
       </span>
       <span className={`h-px w-10 bg-gradient-to-l from-transparent ${line}`} />
@@ -50,7 +50,7 @@ const SectionEyebrow = ({ children, accent = 'blue', className = '' }) => {
 
 const SectionHeader = ({ title, description }) => (
   <div className="mx-auto max-w-4xl text-center">
-    <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
+    <h2 className="mx-auto max-w-3xl text-3xl font-semibold leading-[1.38] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
       {title}
     </h2>
     {description && (
@@ -96,8 +96,8 @@ const valueHighlights = [
     description: 'Simple, transparent pricing'
   },
   {
-    icon: <BadgeCheck className="h-5 w-5 text-emerald-600" />,
-    iconWrap: 'bg-emerald-50',
+    icon: <BadgeCheck className="h-5 w-5 text-blue-600" />,
+    iconWrap: 'bg-blue-50',
     title: 'No Commission Charges',
     description: 'Keep 100% of your deals'
   },
@@ -132,10 +132,79 @@ const valueHighlights = [
     description: 'Fair exposure for every member'
   },
   {
-    icon: <Scale className="h-5 w-5 text-emerald-600" />,
-    iconWrap: 'bg-emerald-50',
+    icon: <Scale className="h-5 w-5 text-orange-500" />,
+    iconWrap: 'bg-orange-50',
     title: 'Equal Exposure',
     description: 'No feed domination'
+  }
+];
+
+const connectionPreviewCards = [
+  {
+    role: 'Software Developer',
+    business: 'Tech Business Owner',
+    action: 'Start Collaboration',
+    time: 'Product build + workflow support',
+    avatar: 'SD',
+    accent: 'from-blue-700 via-emerald-600 to-cyan-500',
+    shade: 'bg-blue-600',
+    logoTone: 'bg-orange-500',
+    pattern: 'radial-gradient(circle at 18% 22%, rgba(255,255,255,0.24), transparent 18%), linear-gradient(135deg, rgba(15,23,42,0.12) 0 28%, transparent 28% 100%)'
+  },
+  {
+    role: 'Chef Consultant',
+    business: 'Food Brand Founder',
+    action: 'Plan Menu',
+    time: 'Restaurant and cloud kitchen support',
+    avatar: 'CF',
+    accent: 'from-orange-500 via-rose-500 to-yellow-400',
+    shade: 'bg-orange-500',
+    logoTone: 'bg-blue-600',
+    pattern: 'linear-gradient(160deg, rgba(255,255,255,0.24) 0 18%, transparent 18% 100%), radial-gradient(circle at 80% 20%, rgba(15,23,42,0.18), transparent 22%)'
+  },
+  {
+    role: 'Mechanical Engineer',
+    business: 'Manufacturing Owner',
+    action: 'Solve Design',
+    time: 'Prototype and vendor help',
+    avatar: 'ME',
+    accent: 'from-slate-700 via-blue-700 to-orange-500',
+    shade: 'bg-slate-800',
+    logoTone: 'bg-orange-500',
+    pattern: 'linear-gradient(120deg, rgba(249,115,22,0.34) 0 24%, transparent 24% 100%), linear-gradient(300deg, rgba(37,99,235,0.28) 0 24%, transparent 24% 100%)'
+  },
+  {
+    role: 'Healthcare Marketer',
+    business: 'Clinic Owner',
+    action: 'Grow Trust',
+    time: 'Content and local visibility',
+    avatar: 'HC',
+    accent: 'from-emerald-600 via-blue-600 to-teal-400',
+    shade: 'bg-emerald-600',
+    logoTone: 'bg-blue-600',
+    pattern: 'radial-gradient(circle at 25% 25%, rgba(255,255,255,0.24), transparent 20%), linear-gradient(145deg, transparent 0 45%, rgba(15,23,42,0.24) 45% 100%)'
+  },
+  {
+    role: 'Fashion Photographer',
+    business: 'Lifestyle Brand',
+    action: 'Create Campaign',
+    time: 'Shoot planning + creator content',
+    avatar: 'FP',
+    accent: 'from-fuchsia-600 via-rose-500 to-orange-400',
+    shade: 'bg-fuchsia-600',
+    logoTone: 'bg-orange-500',
+    pattern: 'linear-gradient(135deg, rgba(255,255,255,0.22) 0 32%, transparent 32% 100%), radial-gradient(circle at 74% 18%, rgba(15,23,42,0.22), transparent 20%)'
+  },
+  {
+    role: 'CA & Finance Advisor',
+    business: 'Startup Founder',
+    action: 'Structure Growth',
+    time: 'Compliance and funding readiness',
+    avatar: 'CA',
+    accent: 'from-indigo-700 via-blue-700 to-orange-500',
+    shade: 'bg-indigo-700',
+    logoTone: 'bg-blue-600',
+    pattern: 'linear-gradient(90deg, rgba(255,255,255,0.18) 0 12%, transparent 12% 100%), radial-gradient(circle at 80% 78%, rgba(249,115,22,0.30), transparent 24%)'
   }
 ];
 
@@ -306,6 +375,7 @@ const AnimatedStat = ({ value, suffix = '', compact = false, precision = 0 }) =>
 const Home = () => {
   const navigate = useNavigate();
   const { isAuthenticated, member, adminRole, token } = useAuth();
+  const [activeConnectionIndex, setActiveConnectionIndex] = useState(0);
   const [activeSnapshotTab, setActiveSnapshotTab] = useState('overview');
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [snapshotData, setSnapshotData] = useState({
@@ -314,6 +384,43 @@ const Home = () => {
     connections: null,
     settings: null
   });
+  const [homepageStats, setHomepageStats] = useState({
+    totalMembers: 0,
+    businessProfiles: 0,
+    creatorProfiles: 0,
+    statesActive: 0,
+    publishedPosts: 0,
+    memberPreview: []
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadHomepageStats = async () => {
+      try {
+        const payload = await apiRequest('/api/public/stats');
+        if (!cancelled) {
+          setHomepageStats((current) => ({ ...current, ...(payload.stats || {}) }));
+        }
+      } catch {
+        if (!cancelled) {
+          setHomepageStats({
+            totalMembers: 0,
+            businessProfiles: 0,
+            creatorProfiles: 0,
+            statesActive: 0,
+            publishedPosts: 0
+          });
+        }
+      }
+    };
+
+    loadHomepageStats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !token) return;
@@ -350,6 +457,14 @@ const Home = () => {
   }, [isAuthenticated, token]);
 
   const publishedHistory = snapshotData.history || [];
+  const nextConnectionCard = () => setActiveConnectionIndex((current) => (current + 1) % connectionPreviewCards.length);
+  const previousConnectionCard = () => setActiveConnectionIndex((current) => (current - 1 + connectionPreviewCards.length) % connectionPreviewCards.length);
+  const getConnectionCardOffset = (index) => {
+    const total = connectionPreviewCards.length;
+    let offset = (index - activeConnectionIndex + total) % total;
+    if (offset > total / 2) offset -= total;
+    return offset;
+  };
   const connectionStats = snapshotData.connections?.stats || { following: 0, followers: 0 };
   const totalConnections = connectionStats.following + connectionStats.followers;
   const settingsNotifications = snapshotData.settings?.notifications || {};
@@ -517,6 +632,10 @@ const Home = () => {
           line-height: 0.92;
         }
 
+        .fair-cycle-ring {
+          animation: fairCycleRing 3.6s ease-in-out infinite;
+        }
+
         @keyframes perksCenterPulse {
           0%, 100% { box-shadow: 0 14px 40px rgba(15,23,42,0.12), 0 0 0 0 rgba(37,99,235,0.14); }
           50% { box-shadow: 0 18px 48px rgba(15,23,42,0.14), 0 0 0 16px rgba(37,99,235,0); }
@@ -547,6 +666,19 @@ const Home = () => {
           100% { transform: translateY(0); }
         }
 
+        @keyframes fairCycleRing {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.55;
+            box-shadow: 0 0 0 0 rgba(37,99,235,0.12);
+          }
+          50% {
+            transform: scale(1.08);
+            opacity: 0.9;
+            box-shadow: 0 0 0 12px rgba(249,115,22,0.04);
+          }
+        }
+
         @media (max-width: 640px) {
           .perks-node {
             --orbit-radius: 140px;
@@ -559,6 +691,7 @@ const Home = () => {
           .perks-node,
           .visibility-orbit-runner,
           .visibility-orbit-dot,
+          .fair-cycle-ring,
           .hero-word-swap-track {
             animation: none;
           }
@@ -653,7 +786,7 @@ const Home = () => {
           }
         }
       `}</style>
-      <section className="relative overflow-hidden pb-14 pt-24 sm:pt-28 md:pb-24 md:pt-32">
+      <section className="relative overflow-hidden pb-12 pt-22 sm:pt-24 md:pb-20 md:pt-28">
         <div className="absolute inset-x-0 top-0 h-[760px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.09),transparent_35%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.08),transparent_28%)] pointer-events-none" />
         <div className="absolute -top-24 right-[-8rem] h-[26rem] w-[26rem] rounded-full bg-blue-500/5 blur-[110px] pointer-events-none" />
         <div className="absolute top-48 left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-orange-500/5 blur-[110px] pointer-events-none" />
@@ -661,12 +794,23 @@ const Home = () => {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 md:px-12">
           <div className="grid gap-12 lg:grid-cols-12 lg:items-start lg:gap-16">
             <div className="lg:col-span-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-blue-700">
-                <span className="h-2 w-2 rounded-full bg-blue-500" />
-                India-first business + creator platform
+              <div className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-orange-50/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-800">
+                <span className="h-2 w-2 rounded-full bg-slate-700" />
+                <span>
+                  India-first <span className="text-orange-600">Business</span>
+                </span>
+                <img
+                  src="/assets/handshake-brand.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-4 w-5 object-contain"
+                />
+                <span>
+                  <span className="text-blue-600">Creator</span> Platform
+                </span>
               </div>
 
-              <h1 className="mt-6 max-w-xl text-[2.7rem] font-black leading-[0.94] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
+              <h1 className="mt-5 max-w-xl text-[2.7rem] font-black leading-[0.94] tracking-[-0.05em] text-slate-950 sm:text-5xl md:text-6xl">
                 India&apos;s Biggest{' '}
                 <span className="hero-word-swap">
                   <span className="hero-word-swap-track">
@@ -683,15 +827,11 @@ const Home = () => {
                 Collaboration Platform
               </h1>
 
-              <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 md:text-lg">
-                Build your presence, showcase your work, publish daily updates, and connect with opportunities across India.
-              </p>
-              <p className="mt-3 max-w-lg text-sm leading-7 text-slate-500 md:text-base">
-                Whether you&apos;re a business looking for creators or a creator looking for opportunities,
-                MyIndianStartup helps you connect, collaborate, and grow.
+              <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-700 md:text-lg">
+                Build your presence, showcase your work, publish daily updates, and connect with opportunities across India whether you&apos;re a business looking for creators or a creator looking for opportunities.
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-4">
+              <div className="mt-7 flex flex-wrap gap-4">
                 {!isAuthenticated ? (
                   <>
                     <button
@@ -748,17 +888,21 @@ const Home = () => {
                 )}
               </div>
 
-              <div className="mt-8 flex flex-col items-start gap-3 rounded-[1.5rem] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:rounded-full">
+              <div className="mt-6 flex flex-col items-start gap-3 rounded-[1.5rem] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:rounded-full">
                 <div className="flex -space-x-2">
-                  {[
-                    ['A', 'bg-orange-500'],
-                    ['B', 'bg-blue-500'],
-                    ['C', 'bg-emerald-500'],
-                    ['D', 'bg-rose-500'],
-                    ['E', 'bg-indigo-500']
-                  ].map(([letter, tone]) => (
-                    <span key={letter} className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-[10px] font-black text-white ${tone}`}>
-                      {letter}
+                  {(homepageStats.memberPreview?.length ? homepageStats.memberPreview : []).map((person, index) => (
+                    <span
+                      key={person.id || `${person.initials}-${index}`}
+                      className={`flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[10px] font-black text-white shadow-sm ${
+                        ['bg-orange-500', 'bg-blue-600', 'bg-orange-400', 'bg-blue-500', 'bg-orange-600'][index % 5]
+                      }`}
+                      title={person.name}
+                    >
+                      {person.avatarUrl ? (
+                        <img src={person.avatarUrl} alt={person.name} className="h-full w-full object-cover" />
+                      ) : (
+                        person.initials
+                      )}
                     </span>
                   ))}
                 </div>
@@ -767,15 +911,15 @@ const Home = () => {
                 </div>
               </div>
 
-              <div className="mt-10 grid gap-3 sm:grid-cols-3">
+              <div className="mt-7 grid gap-3 sm:grid-cols-3">
                 {[
-                  [10000, 'Members connected', true],
-                  [28, 'States represented', false],
-                  [150, 'CA partners', false]
+                  [homepageStats.totalMembers, 'Members'],
+                  [homepageStats.statesActive, 'States active'],
+                  [homepageStats.publishedPosts, 'Published posts']
                 ].map(([value, label, compact]) => (
                   <div key={label} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                    <div className="text-2xl font-black tracking-tight text-slate-950">
-                      <AnimatedStat value={value} suffix="+" compact={compact} />
+                    <div className="text-2xl font-black tabular-nums tracking-tight text-slate-950">
+                      <AnimatedStat value={Number(value) || 0} compact={compact} />
                     </div>
                     <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">{label}</div>
                   </div>
@@ -783,31 +927,86 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="lg:col-span-6 lg:pt-10">
-              <div className="relative mx-auto mb-6 max-w-[620px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,247,237,0.9))] shadow-[0_22px_70px_rgba(15,23,42,0.11)] lg:ml-auto">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.12),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(37,99,235,0.12),transparent_40%)]" />
-                <div className="relative flex min-h-[200px] items-end justify-center px-4 pb-0 pt-6 sm:px-6 sm:pt-8 md:min-h-[260px]">
-                  <img
-                    src="/assets/auth-characters.png"
-                    alt="Business and creator collaboration across India"
-                    className="max-h-[220px] w-auto object-contain drop-shadow-[0_24px_38px_rgba(15,23,42,0.16)] md:max-h-[250px]"
-                  />
-                </div>
-                <div className="relative border-t border-white/70 bg-white/80 px-4 py-4 backdrop-blur sm:px-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">Platform preview</div>
-                      <div className="mt-1 text-sm font-bold text-slate-900">See how businesses &amp; creators connect daily</div>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
-                    </div>
+            <div className="lg:col-span-6 lg:pt-16 xl:pt-14">
+              <div className="relative z-0 mx-auto mb-6 mt-2 max-w-[680px] lg:ml-auto">
+                <div className="relative min-h-[360px] overflow-visible px-4 py-5 sm:min-h-[430px] sm:px-8">
+                  <div className="pointer-events-none absolute inset-x-2 bottom-0 top-8 rounded-[2rem] bg-[radial-gradient(circle_at_20%_12%,rgba(37,99,235,0.10),transparent_28%),radial-gradient(circle_at_80%_86%,rgba(249,115,22,0.16),transparent_30%)] opacity-60" />
+
+                  <button
+                    type="button"
+                    onClick={previousConnectionCard}
+                    aria-label="Previous connection cover"
+                    className="absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-slate-900/55 text-white shadow-xl backdrop-blur transition-colors hover:bg-orange-500 sm:left-5"
+                  >
+                    <ArrowRight className="h-5 w-5 rotate-180" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nextConnectionCard}
+                    aria-label="Next connection cover"
+                    className="absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-slate-900/55 text-white shadow-xl backdrop-blur transition-colors hover:bg-blue-600 sm:right-5"
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                  </button>
+
+                  <div className="relative mx-auto h-[320px] max-w-[540px] sm:h-[390px]">
+                    {connectionPreviewCards.map((card, index) => {
+                      const offset = getConnectionCardOffset(index);
+                      const distance = Math.abs(offset);
+                      const visible = distance <= 2;
+                      const translateX = offset * 86;
+                      const scale = 1 - distance * 0.08;
+                      const isActive = offset === 0;
+
+                      return (
+                        <button
+                          key={card.role}
+                          type="button"
+                          onClick={() => setActiveConnectionIndex(index)}
+                          aria-label={`${card.role} connection cover`}
+                          className={`absolute left-1/2 top-1/2 flex h-[300px] w-[74%] max-w-[360px] -translate-x-1/2 -translate-y-1/2 flex-col justify-between overflow-hidden rounded-[1.45rem] border-[3px] border-white bg-gradient-to-br ${card.accent} p-5 text-left text-white shadow-[0_22px_55px_rgba(15,23,42,0.26)] transition-all duration-500 ease-out sm:h-[365px] sm:w-[68%] sm:p-6 ${isActive ? 'cursor-default' : 'cursor-pointer'}`}
+                          style={{
+                            transform: `translate(-50%, -50%) translateX(${translateX}px) scale(${scale})`,
+                            zIndex: 20 - distance,
+                            opacity: visible ? (isActive ? 1 : 0.86) : 0,
+                            pointerEvents: visible ? 'auto' : 'none'
+                          }}
+                        >
+                          <div className="absolute inset-0 opacity-90" style={{ backgroundImage: card.pattern }} />
+                          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/85 to-transparent" />
+
+                          <div className="relative text-center">
+                            <div className="text-xl font-black tracking-tight drop-shadow sm:text-3xl">{card.role}</div>
+                            <div className="mt-3 inline-flex items-center gap-3 rounded-2xl bg-white/15 px-3 py-2 text-base font-black backdrop-blur sm:text-2xl">
+                              <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.logoTone} text-xs shadow-lg sm:h-11 sm:w-11`}>
+                                MIS
+                              </span>
+                              {card.business}
+                            </div>
+                          </div>
+
+                          <div className="relative mx-auto mt-4 flex h-36 w-36 items-center justify-center rounded-full bg-white/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] backdrop-blur sm:h-48 sm:w-48">
+                            <div className="absolute -left-4 top-8 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 text-sm font-black shadow-xl sm:h-16 sm:w-16 sm:text-base">BO</div>
+                            <div className={`flex h-24 w-24 items-center justify-center rounded-full ${card.shade} text-2xl font-black shadow-2xl ring-4 ring-white/35 sm:h-32 sm:w-32 sm:text-4xl`}>
+                              {card.avatar}
+                            </div>
+                            <div className="absolute -right-4 bottom-8 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-sm font-black shadow-xl sm:h-16 sm:w-16 sm:text-base">PRO</div>
+                          </div>
+
+                          <div className="relative text-center">
+                            <div className="inline-flex rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-black text-white shadow-xl sm:text-base">
+                              {card.action}
+                            </div>
+                            <div className="mt-2 text-xs font-bold text-white sm:text-sm">{card.time}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
 
-              <div className="mx-auto max-w-[620px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_22px_70px_rgba(15,23,42,0.11)] lg:ml-auto">
+              <div className="mx-auto mt-5 max-w-[620px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_22px_70px_rgba(15,23,42,0.11)] lg:ml-auto">
                 <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-2.5">
                   <div className="flex gap-2">
                     <span className="h-3 w-3 rounded-full bg-[#ff5f56]" />
@@ -984,20 +1183,26 @@ const Home = () => {
       </section>
 
       <section className="bg-[#f8fafc] py-16 md:py-20">
-        <div className="mx-auto grid max-w-7xl gap-6 px-6 md:grid-cols-2 md:px-12">
+        <div className="mx-auto max-w-7xl px-6 md:px-12">
+          <SectionHeader
+            title="Choose The Right Verse For Your Growth"
+            description="One platform, two focused spaces for businesses and creators to build visibility and direct connections."
+          />
+
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
           <div className="verse-choice-card business rounded-[2rem] border border-orange-100 bg-[linear-gradient(180deg,rgba(255,247,237,0.9),rgba(255,255,255,0.98))] p-8 text-slate-950 shadow-[0_20px_60px_rgba(249,115,22,0.07)] md:p-10">
             <SectionEyebrow accent="orange">For BusinessVerse</SectionEyebrow>
-            <h3 className="mt-5 text-2xl font-semibold leading-[1.2] tracking-[-0.01em] sm:text-3xl">
+            <h3 className="mt-4 text-xl font-semibold leading-[1.22] tracking-[-0.01em] sm:text-2xl">
               Find The Right Talent For Your Business. Connect with them.
             </h3>
             <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600">
               List your business, gain daily visibility, discover creators, and collaborate directly across India.
             </p>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <div className="mt-7 grid gap-2.5 sm:grid-cols-2">
               {businessBullets.map((bullet) => (
-                <div key={bullet} className="verse-pill flex items-center gap-3 rounded-2xl border border-orange-100 bg-white/75 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-sm">
-                  <Check className="h-4 w-4 text-orange-500" />
+                <div key={bullet} className="verse-pill flex items-center gap-2.5 rounded-xl border border-orange-100 bg-white/75 px-3.5 py-2.5 text-[13px] font-semibold text-slate-700 shadow-sm backdrop-blur-sm">
+                  <Check className="h-3.5 w-3.5 text-orange-500" />
                   <span>{bullet}</span>
                 </div>
               ))}
@@ -1014,17 +1219,17 @@ const Home = () => {
 
           <div className="verse-choice-card creator rounded-[2rem] border border-blue-100 bg-[linear-gradient(180deg,rgba(239,246,255,0.92),rgba(255,255,255,0.98))] p-8 shadow-[0_20px_60px_rgba(37,99,235,0.08)] md:p-10">
             <SectionEyebrow accent="blue">For CreatorVerse</SectionEyebrow>
-            <h3 className="mt-5 text-2xl font-semibold leading-[1.2] tracking-[-0.01em] text-slate-950 sm:text-3xl">
+            <h3 className="mt-4 text-xl font-semibold leading-[1.22] tracking-[-0.01em] text-slate-950 sm:text-2xl">
               Get Discovered By Businesses Across India
             </h3>
             <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600">
               Build your professional profile, showcase your portfolio, and connect with businesses looking for your talent.
             </p>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <div className="mt-7 grid gap-2.5 sm:grid-cols-2">
               {creatorBullets.map((bullet) => (
-                <div key={bullet} className="verse-pill flex items-center gap-3 rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
-                  <Check className="h-4 w-4 text-blue-600" />
+                <div key={bullet} className="verse-pill flex items-center gap-2.5 rounded-xl border border-blue-100 bg-white px-3.5 py-2.5 text-[13px] font-semibold text-slate-700 shadow-sm">
+                  <Check className="h-3.5 w-3.5 text-blue-600" />
                   <span>{bullet}</span>
                 </div>
               ))}
@@ -1038,101 +1243,79 @@ const Home = () => {
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
+          </div>
         </div>
       </section>
 
       <section className="bg-white py-16 md:py-20">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 md:px-12 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="mx-auto w-full max-w-[460px]">
-            <div className="relative mx-auto flex aspect-square w-full max-w-[430px] items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.08),transparent_62%)]" />
-              <svg className="absolute inset-0 h-full w-full text-blue-200/80" viewBox="0 0 400 400" fill="none">
-                <circle cx="200" cy="200" r="150" stroke="currentColor" strokeDasharray="4 6" strokeWidth="1.5" />
-                <circle cx="200" cy="200" r="118" stroke="rgba(249,115,22,0.35)" strokeDasharray="3 5" strokeWidth="1.2" />
-                <g className="visibility-orbit-runner">
-                  <circle className="visibility-orbit-dot" cx="200" cy="50" r="7" fill="#2563eb" />
-                  <circle cx="200" cy="50" r="15" fill="#2563eb" opacity="0.1" />
-                </g>
-              </svg>
-
-              <div className="perks-center relative z-10 flex h-32 w-32 flex-col items-center justify-center rounded-full border-4 border-blue-100 bg-white">
-                <div className="text-4xl font-black tracking-tight text-slate-950">24</div>
-                <div className="mt-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Hours</div>
-                <div className="mt-1 text-[10px] font-semibold text-slate-400">per slot</div>
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 md:px-12 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-orange-50/50 via-white to-blue-50/70 p-5 shadow-[0_22px_60px_rgba(15,23,42,0.08)] sm:p-7">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[12px] font-black uppercase tracking-[0.24em] text-orange-500">24-hour rule</div>
+                <h3 className="mt-2 text-[1.7rem] font-black leading-tight text-slate-950">One fair posting cycle</h3>
               </div>
+              <div className="relative flex h-24 w-24 shrink-0 items-center justify-center">
+                <span className="fair-cycle-ring absolute inset-1 rounded-full border border-orange-100 bg-orange-50/40" />
+                <div className="relative flex h-20 w-20 flex-col items-center justify-center rounded-full border-4 border-blue-100 bg-white text-blue-600 shadow-[0_14px_35px_rgba(37,99,235,0.12)]">
+                  <span className="text-3xl font-black leading-none">24</span>
+                  <span className="mt-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">hours</span>
+                </div>
+              </div>
+            </div>
 
+            <div className="mt-6 grid gap-3">
               {[
-                [270, '12:00', 'blue'],
-                [0, '18:00', 'pink'],
-                [90, '00:00', 'teal'],
-                [180, '06:00', 'orange']
-              ].map(([angle, label, tone]) => (
-                <div
-                  key={label}
-                  className="perks-node absolute z-20 flex flex-col items-center gap-1.5"
-                  style={{ '--orbit-angle': `${angle}deg`, '--orbit-radius': '158px' }}
-                >
-                  <div
-                    className={`h-4 w-4 rounded-full border-4 shadow-md ${
-                      tone === 'orange'
-                        ? 'border-orange-100 bg-orange-500'
-                        : tone === 'pink'
-                          ? 'border-rose-100 bg-rose-500'
-                          : tone === 'teal'
-                            ? 'border-teal-100 bg-teal-500'
-                            : 'border-blue-100 bg-blue-600'
-                    }`}
-                  />
-                  <div className="rounded-md border border-slate-100 bg-white/95 px-2 py-0.5 text-[9px] font-black tracking-[0.18em] text-slate-500 shadow-sm">
-                    {label}
+                ['01', 'Create one post', 'Upload one image or video from your BusinessVerse or CreatorVerse profile.', 'border-orange-100 bg-orange-50 text-orange-600'],
+                ['02', 'Get discovered in VerseFeed', 'Members can see your update, open your profile, and connect with you.', 'border-blue-100 bg-blue-50 text-blue-600'],
+                ['03', 'Post again after reset', 'Your next post slot opens after 24 hours, keeping visibility equal for everyone.', 'border-slate-200 bg-slate-50 text-slate-700']
+              ].map(([step, title, text, tone], index) => (
+                <div key={title} className="relative rounded-2xl border border-white bg-white/90 p-4 shadow-sm">
+                  {index < 2 && <div className="absolute left-[2.35rem] top-[4.9rem] h-5 w-px bg-slate-200" />}
+                  <div className="flex gap-4">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border ${tone} text-sm font-black shadow-sm`}>
+                      {step}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-950">{title}</h4>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">{text}</p>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="mx-auto -mt-5 max-w-sm rounded-[1.5rem] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-blue-600">Daily queue</div>
-                  <div className="mt-1 text-sm font-semibold text-slate-950">Today&apos;s visibility slots</div>
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              {[
+                ['1', 'post/day'],
+                ['24h', 'reset'],
+                ['0', 'paid boosts']
+              ].map(([value, label]) => (
+                <div key={label} className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-center">
+                  <div className="text-xl font-black text-slate-950">{value}</div>
+                  <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{label}</div>
                 </div>
-                <div className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-orange-600">Live</div>
-              </div>
-              <div className="mt-4 grid gap-2">
-                {[
-                  ['Business post queued', '06:00', 'bg-orange-500'],
-                  ['Creator slot active', '12:00', 'bg-blue-600'],
-                  ['Next reset in 18h', '24h cycle', 'bg-emerald-500']
-                ].map(([label, time, tone]) => (
-                  <div key={label} className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`h-2.5 w-2.5 rounded-full ${tone}`} />
-                      <span className="text-xs font-semibold text-slate-700">{label}</span>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{time}</span>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
 
           <div>
-            <h2 className=" max-w-2xl text-3xl font-semibold leading-[1.18] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
-              Fair Visibility For Every Member
+            <h2 className="max-w-2xl text-3xl font-semibold leading-[1.38] tracking-[-0.01em] text-slate-950 sm:text-4xl md:text-[2.65rem]">
+              How Fair Visibility Works
             </h2>
             <p className="mt-4 max-w-2xl text-[15px] font-normal leading-7 text-slate-600 sm:text-base">
-              To ensure equal exposure, every business and creator gets a fair chance to be discovered - no paid boosts and no feed domination.
+              Every member gets one post slot every 24 hours. This keeps VerseFeed balanced, so businesses and creators can be discovered without paid boosts or feed domination.
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {[
-                [Clock3, '1 post every 24 hours', 'Only 1 image OR 1 video can be posted every 24 hours.'],
-                [Scale, 'Equal visibility', 'Every business and creator gets a fair chance to be discovered.'],
-                [Eye, 'No feed domination', 'No member can dominate the feed.'],
-                [ShieldCheck, 'Fair exposure system', 'Visibility rotates evenly across India.']
-              ].map(([Icon, title, text]) => (
+                [Clock3, 'One daily post slot', 'Each account can publish one image or video during each 24-hour cycle.', 'orange'],
+                [Scale, 'Equal discovery chance', 'BusinessVerse and CreatorVerse members follow the same visibility rule.', 'blue'],
+                [Eye, 'Cleaner VerseFeed', 'The feed stays easy to browse because no account can flood it with posts.', 'blue'],
+                [ShieldCheck, 'Membership-first access', 'Only active members can use posting and discovery features fully.', 'orange']
+              ].map(([Icon, title, text, tone]) => (
                 <div key={title} className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${tone === 'orange' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <h3 className="mt-4 text-sm font-black text-slate-950">{title}</h3>
@@ -1148,7 +1331,13 @@ const Home = () => {
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <SectionHeader
             title="Visibility, discovery, and collaboration in one platform."
-            description="Most platforms focus on either networking, freelancing, or social media. MyIndianStartup combines all three in one place."
+            description={(
+              <>
+                Most platforms focus on either networking, freelancing, or social media.{' '}
+                <span className="font-bold text-orange-500">MyIndian</span><span className="font-bold text-blue-600">Startup</span>{' '}
+                combines all three in one place.
+              </>
+            )}
           />
 
           <div className="mx-auto mt-8 max-w-3xl rounded-[1.5rem] border border-orange-100 bg-gradient-to-r from-orange-50/80 via-white to-blue-50/80 px-6 py-5 text-center shadow-sm">
@@ -1178,12 +1367,12 @@ const Home = () => {
         <div className="mx-auto max-w-7xl px-6 md:px-12">
           <SectionHeader
             title="Built For Businesses And Creators Across India"
-            description="Choose BusinessVerse or CreatorVerse, both included in one annual membership."
+            description="Choose your path: BusinessVerse or CreatorVerse."
           />
 
           <div className="mt-12 grid gap-6 lg:grid-cols-2 lg:items-stretch">
             <div className="rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-50/80 to-white p-7 shadow-sm md:p-8">
-              <SectionEyebrow accent="orange">BusinessVerse</SectionEyebrow>
+              <SectionEyebrow accent="orange" className="[&>span:nth-child(2)]:text-[15px]">BusinessVerse</SectionEyebrow>
               <div className="mt-5 grid gap-3">
                 {membershipBusinessBenefits.map((item) => (
                   <div key={item} className="flex items-center gap-3 rounded-xl bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700">
@@ -1195,7 +1384,7 @@ const Home = () => {
             </div>
 
             <div className="rounded-[2rem] border border-blue-100 bg-gradient-to-br from-blue-50/80 to-white p-7 shadow-sm md:p-8">
-              <SectionEyebrow accent="blue">CreatorVerse</SectionEyebrow>
+              <SectionEyebrow accent="blue" className="[&>span:nth-child(2)]:text-[15px]">CreatorVerse</SectionEyebrow>
               <div className="mt-5 grid gap-3">
                 {membershipCreatorBenefits.map((item) => (
                   <div key={item} className="flex items-center gap-3 rounded-xl bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700">
@@ -1240,48 +1429,6 @@ const Home = () => {
             })}
           </div>
 
-          <div className="mt-8 grid grid-cols-3 gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
-            {coverageStats.map((stat, index) => (
-              <div key={stat.label} className={index === 1 ? 'border-x border-slate-100 px-4' : ''}>
-                <div className="text-3xl font-semibold tracking-tight text-slate-950">
-                  <AnimatedStat value={stat.value} suffix={stat.suffix} compact={stat.compact} precision={stat.precision} />
-                </div>
-                <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <MapPin className="h-4 w-4 text-blue-600" />
-              <span>Coverage network</span>
-            </div>
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
-              {coverageRegions.map((region) => (
-                <div
-                  key={region.title}
-                  className={region.tone === 'orange'
-                    ? 'rounded-[1.5rem] border border-orange-100 bg-orange-50/60 p-5'
-                    : 'rounded-[1.5rem] border border-blue-100 bg-blue-50/60 p-5'}
-                >
-                  <div className="text-sm font-black text-slate-950">{region.title}</div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {region.cities.map((city) => (
-                      <span
-                        key={city}
-                        className="rounded-full border border-white bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm"
-                      >
-                        {city}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-5 rounded-[1.5rem] border border-slate-100 bg-slate-50 px-5 py-4 text-sm leading-7 text-slate-600">
-              We highlight verified business and creator activity across major cities and remote-first collaborations without using restricted geographic artwork.
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1303,7 +1450,9 @@ const Home = () => {
             </div>
 
             <div className="p-6 md:p-8">
-              <div className="text-[12px] font-bold uppercase tracking-[0.22em] text-slate-400">No Additional Charges</div>
+              <div className="inline-flex rounded-full border border-slate-300 bg-white px-4 py-2 text-[12px] font-black uppercase tracking-[0.22em] text-slate-950 shadow-[0_12px_30px_rgba(15,23,42,0.10)] ring-4 ring-blue-50">
+                No Additional Charges
+              </div>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {noAdditionalCharges.map((item) => (
                   <div key={item} className="flex items-center gap-2 rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">

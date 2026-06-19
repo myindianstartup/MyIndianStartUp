@@ -130,10 +130,10 @@ const JoinUs = () => {
 
       {/* Contact details + form */}
       <section className="border-t border-slate-100 bg-[#fbfbfd] py-14 md:py-16">
-        <div className="mx-auto grid max-w-7xl gap-8 px-6 md:px-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+        <div className="mx-auto grid max-w-7xl gap-8 px-6 md:px-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
           {/* Partner card */}
-          <div className="space-y-5">
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+          <div className="flex h-full flex-col gap-5">
+            <div className="flex flex-1 flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
               <div className="bg-[linear-gradient(135deg,#0f172a,#11264f)] px-6 py-6 md:px-8">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_12px_26px_rgba(37,99,235,0.25)]">
@@ -148,7 +148,7 @@ const JoinUs = () => {
                 </div>
               </div>
 
-              <div className="space-y-3 p-6 md:p-8">
+              <div className="flex flex-1 flex-col justify-center space-y-3 p-6 md:p-8">
                 {contactChannels.map((channel) => {
                   const Icon = channel.icon;
                   const content = (
@@ -208,7 +208,7 @@ const JoinUs = () => {
           </div>
 
           {/* Inquiry form */}
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-8">
+          <div className="h-full rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-8">
             <div className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600">Send a message</div>
             <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950">We&apos;ll get back to you soon</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
