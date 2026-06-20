@@ -164,25 +164,25 @@ function HeroProfileCard({ businessProfile, loadingProfile, isBusinessMember }) 
       ];
 
   return (
-    <div className="business-float relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.12)]">
-      <div className="rounded-xl bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,247,237,0.82))] p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-orange-500 text-white shadow-[0_12px_26px_rgba(249,115,22,0.25)]">
+    <div className="business-float relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_24px_80px_rgba(15,23,42,0.12)] sm:p-5">
+      <div className="rounded-xl bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,247,237,0.82))] p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-500 text-white shadow-[0_12px_26px_rgba(249,115,22,0.25)]">
               {isOwnProfile && businessProfile.logo_url ? (
                 <img src={businessProfile.logo_url} alt="" className="h-full w-full object-cover" />
               ) : (
                 <Building2 className="h-7 w-7" />
               )}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">
                 {isOwnProfile ? 'Your public business profile' : 'Business profile'}
               </div>
-              <div className="mt-1 text-xl font-black tracking-[-0.03em] text-slate-950">{loadingProfile ? 'Loading profile...' : businessName}</div>
+              <div className="mt-1 break-words text-lg font-black leading-tight tracking-[-0.03em] text-slate-950 sm:text-xl">{loadingProfile ? 'Loading profile...' : businessName}</div>
             </div>
           </div>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">
+          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-600 sm:px-3 sm:text-[10px] sm:tracking-[0.18em]">
             {isOwnProfile ? 'Public' : 'Live'}
           </span>
         </div>
@@ -205,18 +205,18 @@ function HeroProfileCard({ businessProfile, loadingProfile, isBusinessMember }) 
           ))}
         </div>
 
-        <p className={`mt-5 line-clamp-2 rounded-lg px-3 py-2 text-sm font-semibold leading-6 ${
+        <p className={`mt-5 rounded-lg px-3 py-2 text-sm font-semibold leading-6 sm:line-clamp-2 ${
           aboutPending ? 'border border-dashed border-orange-200 bg-orange-50/80 text-orange-700' : 'text-slate-600'
         }`}>
           {about}
         </p>
 
         {!isOwnProfile && (
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
             {showcaseBusinessStats.map(([value, label]) => (
-              <div key={label} className="rounded-lg bg-white/70 p-3">
-                <div className="text-lg font-black text-slate-950">{value}</div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</div>
+              <div key={label} className="min-w-0 rounded-lg bg-white/70 p-2.5 sm:p-3">
+                <div className="text-base font-black text-slate-950 sm:text-lg">{value}</div>
+                <div className="mt-1 break-words text-[8px] font-bold uppercase leading-4 tracking-[0.08em] text-slate-500 sm:text-[10px] sm:tracking-[0.12em]">{label}</div>
               </div>
             ))}
           </div>
@@ -529,8 +529,30 @@ const BusinessVerse = () => {
             <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950 md:text-5xl">A cleaner way to grow.</h2>
           </div>
 
-          <div className="mt-10 overflow-x-auto overflow-y-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full border-collapse text-left text-sm">
+          <div className="mt-8 grid gap-3 sm:hidden">
+            {comparisonRows.map(([feature, others, ours]) => (
+              <article key={`${feature}-mobile`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h3 className="text-base font-black text-slate-950">{feature}</h3>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Other platforms</p>
+                    <div className="mt-2 text-sm font-bold text-slate-600">
+                      {others === true ? <Check className="h-5 w-5 text-emerald-600" /> : others}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-blue-50 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-blue-600">MyIndianStartup</p>
+                    <div className="mt-2 text-sm font-black text-slate-950">
+                      {ours === true ? <Check className="h-5 w-5 text-blue-600" /> : ours === false ? <X className="h-5 w-5 text-orange-500" /> : ours}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-10 hidden overflow-x-auto overflow-y-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:block">
+            <table className="w-full min-w-[640px] border-collapse text-left text-sm">
               <thead>
                 <tr className="bg-slate-50 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
                   <th className="p-5">Feature</th>

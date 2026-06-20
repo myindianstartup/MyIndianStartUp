@@ -13,11 +13,12 @@ const platformLinks = [
 ];
 
 const legalLinks = [
-  { label: 'Privacy Policy', to: '/' },
-  { label: 'Pricing Policy', to: '/pricing' },
-  { label: 'Terms and Condition', to: '/' },
+  { label: 'Privacy Policy', to: '/privacy-policy' },
+  { label: 'Pricing Policy', to: '/pricing-policy' },
+  { label: 'Terms and Condition', to: '/terms-and-conditions' },
   { label: 'Community Guidelines', to: '/community-guidelines' },
-  { label: 'Cookie Policy', to: '/' },
+  { label: 'Cookie Policy', to: '/cookie-policy' },
+  { label: 'FAQ', to: '/faq' },
   { label: 'Contact Us', to: '/contact' }
 ];
 
@@ -157,8 +158,9 @@ const Footer = () => {
             </a>.
           </p>
           <div className="flex flex-wrap gap-5">
-            <Link to="/" className="whitespace-nowrap transition-colors hover:text-white">Privacy Policy</Link>
-            <Link to="/" className="whitespace-nowrap transition-colors hover:text-white">Terms and Condition</Link>
+            <Link to="/privacy-policy" className="whitespace-nowrap transition-colors hover:text-white">Privacy Policy</Link>
+            <Link to="/terms-and-conditions" className="whitespace-nowrap transition-colors hover:text-white">Terms and Condition</Link>
+            <Link to="/pricing-policy" className="whitespace-nowrap transition-colors hover:text-white">Pricing Policy</Link>
             <Link to="/community-guidelines" className="whitespace-nowrap transition-colors hover:text-white">Community Guidelines</Link>
           </div>
         </div>

@@ -406,11 +406,11 @@ const SignUp = () => {
                 />
                 <span className="min-w-0">
                   I agree to the{' '}
-                  <Link to="/" className="whitespace-nowrap font-black text-slate-950 underline decoration-slate-400 underline-offset-4 transition hover:decoration-slate-950">
+                  <Link to="/terms-and-conditions" className="whitespace-nowrap font-black text-slate-950 underline decoration-slate-400 underline-offset-4 transition hover:decoration-slate-950">
                     Terms &amp; Conditions
                   </Link>
                   ,{' '}
-                  <Link to="/" className="whitespace-nowrap font-black text-slate-950 underline decoration-slate-400 underline-offset-4 transition hover:decoration-slate-950">
+                  <Link to="/privacy-policy" className="whitespace-nowrap font-black text-slate-950 underline decoration-slate-400 underline-offset-4 transition hover:decoration-slate-950">
                     Privacy Policy
                   </Link>
                   , and{' '}

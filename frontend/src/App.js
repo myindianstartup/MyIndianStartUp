@@ -12,7 +12,7 @@ import CreatorVerse from "@/pages/CreatorVerse";
 import Payment from "@/pages/Payment";
 import JoinUs from "@/pages/JoinUs";
 import Contact from "@/pages/Contact";
-import CommunityGuidelines from "@/pages/CommunityGuidelines";
+import LegalDocumentPage from "@/pages/LegalDocumentPage";
 import Platform from "@/pages/Platform";
 import PostVerse from "@/pages/PostVerse";
 import SearchVerse from "@/pages/SearchVerse";
@@ -85,7 +85,13 @@ function App() {
           <Route path="/pricing" element={<Layout><Payment /></Layout>} />
           <Route path="/payment" element={<Layout><Payment /></Layout>} />
           <Route path="/contact" element={<Layout><Contact /></Layout>} />
-          <Route path="/community-guidelines" element={<Layout><CommunityGuidelines /></Layout>} />
+          <Route path="/community-guidelines" element={<Layout><LegalDocumentPage title="Community Guidelines" source="/legal/community-guidelines.txt" summary="Rules for safe, respectful, and professional use of MyIndianStartup." /></Layout>} />
+          <Route path="/privacy-policy" element={<Layout><LegalDocumentPage title="Privacy Policy" source="/legal/privacy-policy.txt" summary="How MyIndianStartup collects, uses, stores, and protects member information." /></Layout>} />
+          <Route path="/terms-and-conditions" element={<Layout><LegalDocumentPage title="Terms and Conditions" source="/legal/terms-of-service.txt" summary="The rules and responsibilities for using MyIndianStartup services." /></Layout>} />
+          <Route path="/cookie-policy" element={<Layout><LegalDocumentPage title="Cookie Policy" source="/legal/cookie-policy.txt" summary="How cookies and similar technologies may be used on the platform." /></Layout>} />
+          <Route path="/pricing-policy" element={<Layout><LegalDocumentPage title="Pricing Policy" source="/legal/payment-refund-policy.txt" summary="Membership payment, refund, billing, and pricing terms for MyIndianStartup." /></Layout>} />
+          <Route path="/payment-refund-policy" element={<Layout><LegalDocumentPage title="Payment and Refund Policy" source="/legal/payment-refund-policy.txt" summary="Membership payment, refund, billing, and pricing terms for MyIndianStartup." /></Layout>} />
+          <Route path="/faq" element={<Layout><LegalDocumentPage title="Frequently Asked Questions" source="/legal/faq.txt" summary="Answers to common questions about MyIndianStartup membership, profiles, visibility, and platform usage." /></Layout>} />
           <Route path="/join" element={<Layout><JoinUs /></Layout>} />
           <Route path="/platform" element={<Layout><Platform /></Layout>} />
           <Route path="/post-verse" element={<ProtectedRoute memberOnly requiresActiveSubscription><Layout><PostVerse /></Layout></ProtectedRoute>} />

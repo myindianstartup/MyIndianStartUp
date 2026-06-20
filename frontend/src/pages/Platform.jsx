@@ -26,7 +26,7 @@ const Platform = () => (
             The docs describe one ecosystem, not separate products.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
-            This page maps the core site modules the document asks for: Homepage, Join Us, Payment, PostVerse, SearchVerse, VerseFeed, and Settings.
+            Explore how MyIndianStartup connects profile setup, discovery, daily posting, and account controls into one simple member journey.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to="/join" className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.22)] transition-transform hover:scale-[1.02] hover:bg-blue-700">

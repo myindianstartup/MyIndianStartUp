@@ -1,0 +1,160 @@
+COOKIE POLICY
+Last Updated: [Insert Date]
+1. Introduction
+This Cookie Policy explains how MyIndianStartup uses cookies and similar technologies when users access or use the Platform.
+MyIndianStartup is owned, operated, and managed by 8TechBurp.
+By using the Platform, users consent to the use of cookies in accordance with this Cookie Policy.
+________________________________________
+2. What Are Cookies?
+Cookies are small text files stored on a user's device when visiting a website.
+Cookies help websites remember user preferences, improve functionality, and enhance user experience.
+________________________________________
+3. Purpose of Cookies
+MyIndianStartup uses cookies to:
+•	Maintain user sessions
+•	Improve website functionality
+•	Enhance user experience
+•	Improve platform performance
+•	Analyze platform usage
+•	Protect user accounts
+•	Maintain platform security
+________________________________________
+4. Essential Cookies
+Essential cookies are required for basic platform functionality.
+These cookies help with:
+•	User Authentication
+•	Login Sessions
+•	Security Features
+•	Account Access
+•	Platform Navigation
+Without these cookies, certain Platform features may not function properly.
+________________________________________
+5. Performance Cookies
+Performance cookies help us understand how users interact with the Platform.
+These cookies may collect information regarding:
+•	Page Visits
+•	Platform Usage
+•	Navigation Behaviour
+•	User Interaction Patterns
+Performance data helps improve Platform functionality.
+________________________________________
+6. Analytics Cookies
+Analytics cookies help MyIndianStartup understand:
+•	User Behaviour
+•	Popular Features
+•	Traffic Sources
+•	User Engagement
+This information helps improve products and services.
+________________________________________
+7. Functional Cookies
+Functional cookies help remember user preferences.
+Examples include:
+•	Language Preferences
+•	Login Preferences
+•	Platform Settings
+•	User Selections
+These cookies improve the user experience.
+________________________________________
+8. Security Cookies
+Security cookies help protect:
+•	User Accounts
+•	Login Sessions
+•	Platform Infrastructure
+Security cookies assist in preventing:
+•	Unauthorized Access
+•	Fraudulent Activity
+•	Account Abuse
+________________________________________
+9. Third-Party Cookies
+The Platform may use services provided by third parties.
+Such services may place cookies on user devices.
+Examples may include:
+•	Payment Providers
+•	Analytics Providers
+•	Cloud Service Providers
+•	Security Services
+Third-party providers may maintain their own cookie and privacy policies.
+________________________________________
+10. Cookie Consent
+By continuing to use the Platform, users consent to the use of cookies as described in this Cookie Policy.
+Users may manage cookie preferences through their browser settings.
+________________________________________
+11. Managing Cookies
+Users may:
+•	Accept Cookies
+•	Reject Cookies
+•	Delete Existing Cookies
+•	Configure Browser Cookie Settings
+Disabling cookies may affect Platform functionality.
+________________________________________
+12. Impact of Disabling Cookies
+If cookies are disabled:
+•	Login Features May Not Function Properly
+•	User Preferences May Not Be Saved
+•	Platform Performance May Be Affected
+•	Certain Features May Become Unavailable
+MyIndianStartup is not responsible for functionality limitations resulting from disabled cookies.
+________________________________________
+13. Data Collected Through Cookies
+Cookies may collect:
+•	Device Information
+•	Browser Information
+•	Session Information
+•	IP Address
+•	Usage Data
+•	Platform Interaction Data
+Such information is used in accordance with the Privacy Policy.
+________________________________________
+14. Changes to Cookie Policy
+MyIndianStartup reserves the right to modify this Cookie Policy at any time.
+Updated versions may be published on the Platform.
+Continued use of the Platform constitutes acceptance of any updated Cookie Policy.
+________________________________________
+15. Contact Information
+For questions regarding this Cookie Policy, users may contact:
+MyIndianStartup
+A Product of 8TechBurp
+Email: team@myindianstartup.com
+Website: myindianstartup.com
+
+16. Session Cookies
+Session cookies help maintain active login sessions while users are browsing the Platform.
+These cookies are generally removed when the browser is closed.
+Session cookies may be used for:
+•	User Authentication 
+•	Session Management 
+•	Platform Security 
+•	Account Access 
+________________________________________
+17. Persistent Cookies
+Persistent cookies remain stored on a user's device for a defined period.
+These cookies help:
+•	Remember User Preferences 
+•	Improve User Experience 
+•	Maintain Platform Settings 
+•	Recognize Returning Users 
+Users may delete persistent cookies through browser settings.
+________________________________________
+18. Cookie Retention Period
+Different cookies may remain active for different durations depending on their purpose.
+Cookie retention periods may vary based on:
+•	Security Requirements 
+•	User Preferences 
+•	Platform Functionality 
+•	Analytics Requirements 
+MyIndianStartup reserves the right to modify cookie retention periods as necessary.
+________________________________________
+19. Fraud Prevention & Security Monitoring
+Cookies may be used to help detect:
+•	Unauthorized Access Attempts 
+•	Suspicious Activity 
+•	Fraudulent Behaviour 
+•	Security Threats 
+•	Account Abuse 
+These cookies assist in protecting both users and the Platform.
+________________________________________
+20. Relationship With Privacy Policy
+This Cookie Policy should be read together with the Privacy Policy.
+Information collected through cookies may be processed in accordance with the Privacy Policy.
+In the event of any conflict between this Cookie Policy and the Privacy Policy, the Privacy Policy shall prevail regarding personal information handling.
+
