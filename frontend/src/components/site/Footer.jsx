@@ -16,6 +16,7 @@ const legalLinks = [
   { label: 'Privacy Policy', to: '/' },
   { label: 'Pricing Policy', to: '/pricing' },
   { label: 'Terms and Condition', to: '/' },
+  { label: 'Community Guidelines', to: '/community-guidelines' },
   { label: 'Cookie Policy', to: '/' },
   { label: 'Contact Us', to: '/contact' }
 ];
@@ -101,9 +102,9 @@ const Footer = () => {
             <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-blue-300">Platform</h3>
             <div className="mt-5 flex flex-col gap-3 text-sm font-bold">
               {platformLinks.map((item) => (
-                <Link key={item.label} to={item.to} className="text-slate-300 transition-colors hover:text-white">
-                  {item.label}
-                </Link>
+              <Link key={item.label} to={item.to} className="whitespace-nowrap text-slate-300 transition-colors hover:text-white">
+                {item.label}
+              </Link>
               ))}
             </div>
           </div>
@@ -155,9 +156,10 @@ const Footer = () => {
               8TechBurp
             </a>.
           </p>
-          <div className="flex gap-5">
-            <Link to="/" className="transition-colors hover:text-white">Privacy Policy</Link>
-            <Link to="/" className="transition-colors hover:text-white">Terms and Condition</Link>
+          <div className="flex flex-wrap gap-5">
+            <Link to="/" className="whitespace-nowrap transition-colors hover:text-white">Privacy Policy</Link>
+            <Link to="/" className="whitespace-nowrap transition-colors hover:text-white">Terms and Condition</Link>
+            <Link to="/community-guidelines" className="whitespace-nowrap transition-colors hover:text-white">Community Guidelines</Link>
           </div>
         </div>
       </div>

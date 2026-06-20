@@ -110,7 +110,7 @@ const SignUp = () => {
     }
 
     if (!acceptedTerms) {
-      setFormError('You must agree to the Terms & Conditions and Privacy Policy.');
+      setFormError('You must agree to the Terms & Conditions, Privacy Policy, and Community Guidelines.');
       return;
     }
 
@@ -398,15 +398,27 @@ const SignUp = () => {
               </div>
             </label>
 
-            <label className="flex items-start gap-2 text-sm font-semibold text-slate-600">
-              <input
-                name="terms"
-                type="checkbox"
-                className={`mt-0.5 h-4 w-4 rounded border-slate-300 ${leftPanelTheme.checkbox}`}
-              />
-              <span>
-                I agree to the Terms &amp; Conditions and Privacy Policy.
-              </span>
+              <label className="flex items-start gap-2 text-sm font-semibold leading-relaxed text-slate-600">
+                <input
+                  name="terms"
+                  type="checkbox"
+                  className={`mt-0.5 h-4 w-4 rounded border-slate-300 ${leftPanelTheme.checkbox}`}
+                />
+                <span className="min-w-0">
+                  I agree to the{' '}
+                  <Link to="/" className="whitespace-nowrap font-black text-slate-950 underline decoration-slate-400 underline-offset-4 transition hover:decoration-slate-950">
+                    Terms &amp; Conditions
+                  </Link>
+                  ,{' '}
+                  <Link to="/" className="whitespace-nowrap font-black text-slate-950 underline decoration-slate-400 underline-offset-4 transition hover:decoration-slate-950">
+                    Privacy Policy
+                  </Link>
+                  , and{' '}
+                  <Link to="/community-guidelines" className="whitespace-nowrap font-black text-slate-950 underline decoration-slate-400 underline-offset-4 transition hover:decoration-slate-950">
+                    Community Guidelines
+                  </Link>
+                  .
+                </span>
             </label>
 
             {formError && (

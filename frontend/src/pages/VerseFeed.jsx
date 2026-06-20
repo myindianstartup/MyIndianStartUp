@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   BriefcaseBusiness,
@@ -627,6 +627,16 @@ const PostCard = ({ post, token, onMetrics, onFollow, onSavedChange }) => {
                 <h3 className="mt-3 text-2xl font-black tracking-[-0.03em] text-slate-950">Tell us what happened</h3>
                 <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
                   Admin and superadmin teams will review this {mediaLabel} and respond from the dashboard if action is needed.
+                </p>
+                <p className="mt-2 text-xs font-bold leading-5 text-slate-500">
+                  Reports are reviewed under our{' '}
+                  <Link
+                    to="/community-guidelines"
+                    className="text-blue-600 underline decoration-blue-200 underline-offset-4 transition-colors hover:text-orange-600"
+                  >
+                    Community Guidelines
+                  </Link>
+                  .
                 </p>
               </div>
               <button
