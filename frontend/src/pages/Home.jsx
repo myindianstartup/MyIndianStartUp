@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiRequest } from '@/lib/apiClient';
@@ -141,70 +141,84 @@ const valueHighlights = [
 
 const connectionPreviewCards = [
   {
-    role: 'Software Developer',
-    business: 'Tech Business Owner',
-    action: 'Start Collaboration',
-    time: 'Product build + workflow support',
-    avatar: 'SD',
-    accent: 'from-blue-700 via-emerald-600 to-cyan-500',
-    shade: 'bg-blue-600',
-    logoTone: 'bg-orange-500',
-    pattern: 'radial-gradient(circle at 18% 22%, rgba(255,255,255,0.24), transparent 18%), linear-gradient(135deg, rgba(15,23,42,0.12) 0 28%, transparent 28% 100%)'
-  },
-  {
     role: 'Chef Consultant',
-    business: 'Food Brand Founder',
-    action: 'Plan Menu',
-    time: 'Restaurant and cloud kitchen support',
-    avatar: 'CF',
-    accent: 'from-orange-500 via-rose-500 to-yellow-400',
-    shade: 'bg-orange-500',
-    logoTone: 'bg-blue-600',
-    pattern: 'linear-gradient(160deg, rgba(255,255,255,0.24) 0 18%, transparent 18% 100%), radial-gradient(circle at 80% 20%, rgba(15,23,42,0.18), transparent 22%)'
+    business: 'Hospitality Founder',
+    action: 'Plan a food venture',
+    detail: 'Menu, operations and brand experience',
+    image: '/assets/collaboration/chef-partnership.webp',
+    imagePosition: 'center 42%'
   },
   {
-    role: 'Mechanical Engineer',
-    business: 'Manufacturing Owner',
-    action: 'Solve Design',
-    time: 'Prototype and vendor help',
-    avatar: 'ME',
-    accent: 'from-slate-700 via-blue-700 to-orange-500',
-    shade: 'bg-slate-800',
-    logoTone: 'bg-orange-500',
-    pattern: 'linear-gradient(120deg, rgba(249,115,22,0.34) 0 24%, transparent 24% 100%), linear-gradient(300deg, rgba(37,99,235,0.28) 0 24%, transparent 24% 100%)'
+    role: 'Business Consultant',
+    business: 'Startup Founder',
+    action: 'Shape the next move',
+    detail: 'Strategy, planning and market direction',
+    image: '/assets/collaboration/business-consulting.webp',
+    imagePosition: 'center 44%'
   },
   {
-    role: 'Healthcare Marketer',
-    business: 'Clinic Owner',
-    action: 'Grow Trust',
-    time: 'Content and local visibility',
-    avatar: 'HC',
-    accent: 'from-emerald-600 via-blue-600 to-teal-400',
-    shade: 'bg-emerald-600',
-    logoTone: 'bg-blue-600',
-    pattern: 'radial-gradient(circle at 25% 25%, rgba(255,255,255,0.24), transparent 20%), linear-gradient(145deg, transparent 0 45%, rgba(15,23,42,0.24) 45% 100%)'
+    role: 'Civil Engineer',
+    business: 'Construction Owner',
+    action: 'Build with confidence',
+    detail: 'Project planning and technical support',
+    image: '/assets/collaboration/construction-partnership.webp',
+    imagePosition: 'center 40%'
+  },
+  {
+    role: 'Business Advisor',
+    business: 'Local Business Owner',
+    action: 'Grow the business',
+    detail: 'Practical guidance for local expansion',
+    image: '/assets/collaboration/local-business-growth.webp',
+    imagePosition: 'center 42%'
+  },
+  {
+    role: 'Product Photographer',
+    business: 'Jewellery Brand',
+    action: 'Create a campaign',
+    detail: 'Product stories and premium visuals',
+    image: '/assets/collaboration/jewellery-photography.webp',
+    imagePosition: 'center 44%'
   },
   {
     role: 'Fashion Photographer',
     business: 'Lifestyle Brand',
-    action: 'Create Campaign',
-    time: 'Shoot planning + creator content',
-    avatar: 'FP',
-    accent: 'from-fuchsia-600 via-rose-500 to-orange-400',
-    shade: 'bg-fuchsia-600',
-    logoTone: 'bg-orange-500',
-    pattern: 'linear-gradient(135deg, rgba(255,255,255,0.22) 0 32%, transparent 32% 100%), radial-gradient(circle at 74% 18%, rgba(15,23,42,0.22), transparent 20%)'
+    action: 'Plan the next shoot',
+    detail: 'Fashion content and campaign production',
+    image: '/assets/collaboration/fashion-campaign.webp',
+    imagePosition: 'center 40%'
   },
   {
-    role: 'CA & Finance Advisor',
-    business: 'Startup Founder',
-    action: 'Structure Growth',
-    time: 'Compliance and funding readiness',
-    avatar: 'CA',
-    accent: 'from-indigo-700 via-blue-700 to-orange-500',
-    shade: 'bg-indigo-700',
-    logoTone: 'bg-blue-600',
-    pattern: 'linear-gradient(90deg, rgba(255,255,255,0.18) 0 12%, transparent 12% 100%), radial-gradient(circle at 80% 78%, rgba(249,115,22,0.30), transparent 24%)'
+    role: 'Architect',
+    business: 'Real Estate Business',
+    action: 'Design the opportunity',
+    detail: 'Architecture, spaces and project vision',
+    image: '/assets/collaboration/architecture-partnership.webp',
+    imagePosition: 'center 42%'
+  },
+  {
+    role: 'Software Developer',
+    business: 'Tech Business Owner',
+    action: 'Build the product',
+    detail: 'Web products, automation and workflows',
+    image: '/assets/collaboration/technology-partnership.webp',
+    imagePosition: 'center 40%'
+  },
+  {
+    role: 'Growth Consultant',
+    business: 'SME Founder',
+    action: 'Scale with clarity',
+    detail: 'Growth planning and performance insights',
+    image: '/assets/collaboration/growth-advisory.webp',
+    imagePosition: 'center 42%'
+  },
+  {
+    role: 'Brand Strategist',
+    business: 'Creative Professional',
+    action: 'Launch together',
+    detail: 'Brand positioning and creative direction',
+    image: '/assets/collaboration/creative-business.webp',
+    imagePosition: 'center 42%'
   }
 ];
 
@@ -372,10 +386,54 @@ const AnimatedStat = ({ value, suffix = '', compact = false, precision = 0 }) =>
   );
 };
 
+const HeroTrustStats = ({ stats, className = '' }) => (
+  <div className={className}>
+    <div className="flex flex-col items-start gap-3 rounded-[1.5rem] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:rounded-full">
+      <div className="flex -space-x-2">
+        {(stats.memberPreview?.length ? stats.memberPreview : []).map((person, index) => (
+          <span
+            key={person.id || `${person.initials}-${index}`}
+            className={`flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[10px] font-black text-white shadow-sm ${
+              ['bg-orange-500', 'bg-blue-600', 'bg-orange-400', 'bg-blue-500', 'bg-orange-600'][index % 5]
+            }`}
+            title={person.name}
+          >
+            {person.avatarUrl ? (
+              <img src={person.avatarUrl} alt={person.name} className="h-full w-full object-cover" />
+            ) : (
+              person.initials
+            )}
+          </span>
+        ))}
+      </div>
+      <div className="text-sm font-semibold text-slate-600">
+        Trusted by businesses, creators, freelancers, and professionals across India.
+      </div>
+    </div>
+
+    <div className="mt-7 grid grid-cols-3 gap-2 sm:gap-3">
+      {[
+        [stats.totalMembers, 'Members'],
+        [stats.statesActive, 'States active'],
+        [stats.publishedPosts, 'Published posts']
+      ].map(([value, label, compact]) => (
+        <div key={label} className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:rounded-3xl sm:p-5">
+          <div className="text-xl font-black tabular-nums tracking-tight text-slate-950 sm:text-2xl">
+            <AnimatedStat value={Number(value) || 0} compact={compact} />
+          </div>
+          <div className="mt-1 text-[9px] font-bold uppercase leading-4 tracking-[0.16em] text-slate-400 sm:text-[11px] sm:tracking-[0.22em]">{label}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const Home = () => {
   const navigate = useNavigate();
   const { isAuthenticated, member, adminRole, token } = useAuth();
   const [activeConnectionIndex, setActiveConnectionIndex] = useState(0);
+  const [connectionCarouselPaused, setConnectionCarouselPaused] = useState(false);
+  const connectionTouchStartX = useRef(null);
   const [activeSnapshotTab, setActiveSnapshotTab] = useState('overview');
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [snapshotData, setSnapshotData] = useState({
@@ -456,6 +514,17 @@ const Home = () => {
     };
   }, [isAuthenticated, token]);
 
+  useEffect(() => {
+    if (connectionCarouselPaused || typeof window === 'undefined') return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    const timer = window.setInterval(() => {
+      setActiveConnectionIndex((current) => (current + 1) % connectionPreviewCards.length);
+    }, 4800);
+
+    return () => window.clearInterval(timer);
+  }, [connectionCarouselPaused]);
+
   const publishedHistory = snapshotData.history || [];
   const nextConnectionCard = () => setActiveConnectionIndex((current) => (current + 1) % connectionPreviewCards.length);
   const previousConnectionCard = () => setActiveConnectionIndex((current) => (current - 1 + connectionPreviewCards.length) % connectionPreviewCards.length);
@@ -464,6 +533,19 @@ const Home = () => {
     let offset = (index - activeConnectionIndex + total) % total;
     if (offset > total / 2) offset -= total;
     return offset;
+  };
+  const handleConnectionTouchStart = (event) => {
+    connectionTouchStartX.current = event.touches[0]?.clientX ?? null;
+  };
+  const handleConnectionTouchEnd = (event) => {
+    if (connectionTouchStartX.current === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? connectionTouchStartX.current;
+    const delta = endX - connectionTouchStartX.current;
+    connectionTouchStartX.current = null;
+
+    if (Math.abs(delta) < 48) return;
+    if (delta > 0) previousConnectionCard();
+    else nextConnectionCard();
   };
   const connectionStats = snapshotData.connections?.stats || { following: 0, followers: 0 };
   const totalConnections = connectionStats.following + connectionStats.followers;
@@ -636,6 +718,18 @@ const Home = () => {
           animation: fairCycleRing 3.6s ease-in-out infinite;
         }
 
+        .connection-stack-card {
+          will-change: transform, opacity;
+        }
+
+        .connection-stack-card.is-active .connection-card-photo {
+          animation: connectionPhotoDrift 6.5s ease-in-out infinite alternate;
+        }
+
+        .connection-card-sheen {
+          animation: connectionSheen 5.8s ease-in-out infinite;
+        }
+
         @keyframes perksCenterPulse {
           0%, 100% { box-shadow: 0 14px 40px rgba(15,23,42,0.12), 0 0 0 0 rgba(37,99,235,0.14); }
           50% { box-shadow: 0 18px 48px rgba(15,23,42,0.14), 0 0 0 16px rgba(37,99,235,0); }
@@ -661,8 +755,8 @@ const Home = () => {
         }
 
         @keyframes heroWordSwap {
-          0%, 38% { transform: translateY(0); }
-          50%, 88% { transform: translateY(-2.05em); }
+          0%, 42% { transform: translateY(0); }
+          50%, 92% { transform: translateY(-2.05em); }
           100% { transform: translateY(0); }
         }
 
@@ -679,6 +773,17 @@ const Home = () => {
           }
         }
 
+        @keyframes connectionPhotoDrift {
+          from { transform: scale(1.01) translate3d(0, 0, 0); }
+          to { transform: scale(1.055) translate3d(0, -0.8%, 0); }
+        }
+
+        @keyframes connectionSheen {
+          0%, 68% { transform: translateX(-135%) skewX(-18deg); opacity: 0; }
+          76% { opacity: 0.22; }
+          94%, 100% { transform: translateX(170%) skewX(-18deg); opacity: 0; }
+        }
+
         @media (max-width: 640px) {
           .perks-node {
             --orbit-radius: 140px;
@@ -692,7 +797,9 @@ const Home = () => {
           .visibility-orbit-runner,
           .visibility-orbit-dot,
           .fair-cycle-ring,
-          .hero-word-swap-track {
+          .hero-word-swap-track,
+          .connection-stack-card.is-active .connection-card-photo,
+          .connection-card-sheen {
             animation: none;
           }
         }
@@ -786,7 +893,7 @@ const Home = () => {
           }
         }
       `}</style>
-      <section className="relative overflow-hidden pb-12 pt-22 sm:pt-24 md:pb-20 md:pt-28">
+      <section className="relative overflow-hidden pb-12 pt-[7.75rem] sm:pt-24 md:pb-20 md:pt-28">
         <div className="absolute inset-x-0 top-0 h-[760px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.09),transparent_35%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.08),transparent_28%)] pointer-events-none" />
         <div className="absolute -top-24 right-[-8rem] h-[26rem] w-[26rem] rounded-full bg-blue-500/5 blur-[110px] pointer-events-none" />
         <div className="absolute top-48 left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-orange-500/5 blur-[110px] pointer-events-none" />
@@ -794,7 +901,7 @@ const Home = () => {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 md:px-12">
           <div className="grid gap-12 lg:grid-cols-12 lg:items-start lg:gap-16">
             <div className="lg:col-span-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-orange-50/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-800">
+              <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-2xl border border-orange-100 bg-orange-50/80 px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-slate-800 sm:rounded-full sm:px-3 sm:py-1 sm:text-[10px] sm:tracking-[0.28em]">
                 <span className="h-2 w-2 rounded-full bg-slate-700" />
                 <span>
                   India-first <span className="text-orange-600">Business</span>
@@ -815,12 +922,12 @@ const Home = () => {
                 <span className="hero-word-swap">
                   <span className="hero-word-swap-track">
                     <span className="hero-word-swap-frame">
-                      <span className="text-orange-500">Business</span>
-                      <span><span className="text-slate-950">&amp;</span> <span className="text-blue-600">Creator</span></span>
-                    </span>
-                    <span className="hero-word-swap-frame">
                       <span className="text-blue-600">Creator</span>
                       <span><span className="text-slate-950">&amp;</span> <span className="text-orange-500">Business</span></span>
+                    </span>
+                    <span className="hero-word-swap-frame">
+                      <span className="text-orange-500">Business</span>
+                      <span><span className="text-slate-950">&amp;</span> <span className="text-blue-600">Creator</span></span>
                     </span>
                   </span>
                 </span>{' '}
@@ -888,125 +995,115 @@ const Home = () => {
                 )}
               </div>
 
-              <div className="mt-6 flex flex-col items-start gap-3 rounded-[1.5rem] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:rounded-full">
-                <div className="flex -space-x-2">
-                  {(homepageStats.memberPreview?.length ? homepageStats.memberPreview : []).map((person, index) => (
-                    <span
-                      key={person.id || `${person.initials}-${index}`}
-                      className={`flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[10px] font-black text-white shadow-sm ${
-                        ['bg-orange-500', 'bg-blue-600', 'bg-orange-400', 'bg-blue-500', 'bg-orange-600'][index % 5]
-                      }`}
-                      title={person.name}
-                    >
-                      {person.avatarUrl ? (
-                        <img src={person.avatarUrl} alt={person.name} className="h-full w-full object-cover" />
-                      ) : (
-                        person.initials
-                      )}
-                    </span>
-                  ))}
-                </div>
-                <div className="text-sm font-semibold text-slate-600">
-                  Trusted by businesses, creators, freelancers, and professionals across India.
-                </div>
-              </div>
-
-              <div className="mt-7 grid gap-3 sm:grid-cols-3">
-                {[
-                  [homepageStats.totalMembers, 'Members'],
-                  [homepageStats.statesActive, 'States active'],
-                  [homepageStats.publishedPosts, 'Published posts']
-                ].map(([value, label, compact]) => (
-                  <div key={label} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                    <div className="text-2xl font-black tabular-nums tracking-tight text-slate-950">
-                      <AnimatedStat value={Number(value) || 0} compact={compact} />
-                    </div>
-                    <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">{label}</div>
-                  </div>
-                ))}
-              </div>
+              <HeroTrustStats stats={homepageStats} className="mt-6 hidden lg:block" />
             </div>
 
-            <div className="lg:col-span-6 lg:pt-16 xl:pt-14">
-              <div className="relative z-0 mx-auto mb-6 mt-2 max-w-[680px] lg:ml-auto">
-                <div className="relative min-h-[360px] overflow-visible px-4 py-5 sm:min-h-[430px] sm:px-8">
-                  <div className="pointer-events-none absolute inset-x-2 bottom-0 top-8 rounded-[2rem] bg-[radial-gradient(circle_at_20%_12%,rgba(37,99,235,0.10),transparent_28%),radial-gradient(circle_at_80%_86%,rgba(249,115,22,0.16),transparent_30%)] opacity-60" />
-
+            <div className="lg:col-span-6 lg:-mt-1 xl:-mt-1">
+              <div className="relative z-0 mx-auto mb-8 max-w-[590px] lg:ml-auto">
+                <div
+                  className="connection-stage relative min-h-[350px] touch-pan-y overflow-visible px-3 py-1 sm:min-h-[420px] sm:px-7"
+                  onMouseEnter={() => setConnectionCarouselPaused(true)}
+                  onMouseLeave={() => setConnectionCarouselPaused(false)}
+                  onFocusCapture={() => setConnectionCarouselPaused(true)}
+                  onBlurCapture={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget)) setConnectionCarouselPaused(false);
+                  }}
+                  onTouchStart={handleConnectionTouchStart}
+                  onTouchEnd={handleConnectionTouchEnd}
+                  aria-label="Business and creator collaboration stories"
+                >
                   <button
                     type="button"
                     onClick={previousConnectionCard}
-                    aria-label="Previous connection cover"
-                    className="absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-slate-900/55 text-white shadow-xl backdrop-blur transition-colors hover:bg-orange-500 sm:left-5"
+                    aria-label="Previous collaboration story"
+                    className="absolute left-5 top-[46%] z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/80 bg-slate-950/70 text-white shadow-xl backdrop-blur transition-colors hover:bg-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-200"
                   >
                     <ArrowRight className="h-5 w-5 rotate-180" />
                   </button>
                   <button
                     type="button"
                     onClick={nextConnectionCard}
-                    aria-label="Next connection cover"
-                    className="absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-slate-900/55 text-white shadow-xl backdrop-blur transition-colors hover:bg-blue-600 sm:right-5"
+                    aria-label="Next collaboration story"
+                    className="absolute right-5 top-[46%] z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/80 bg-slate-950/70 text-white shadow-xl backdrop-blur transition-colors hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-200"
                   >
                     <ArrowRight className="h-5 w-5" />
                   </button>
 
-                  <div className="relative mx-auto h-[320px] max-w-[540px] sm:h-[390px]">
+                  <div className="relative mx-auto h-[330px] max-w-[500px] sm:h-[400px]">
                     {connectionPreviewCards.map((card, index) => {
                       const offset = getConnectionCardOffset(index);
                       const distance = Math.abs(offset);
                       const visible = distance <= 2;
-                      const translateX = offset * 86;
-                      const scale = 1 - distance * 0.08;
+                      const translateX = offset * 66;
+                      const scale = 1 - distance * 0.065;
                       const isActive = offset === 0;
 
                       return (
-                        <button
+                        <div
                           key={card.role}
-                          type="button"
                           onClick={() => setActiveConnectionIndex(index)}
-                          aria-label={`${card.role} connection cover`}
-                          className={`absolute left-1/2 top-1/2 flex h-[300px] w-[74%] max-w-[360px] -translate-x-1/2 -translate-y-1/2 flex-col justify-between overflow-hidden rounded-[1.45rem] border-[3px] border-white bg-gradient-to-br ${card.accent} p-5 text-left text-white shadow-[0_22px_55px_rgba(15,23,42,0.26)] transition-all duration-500 ease-out sm:h-[365px] sm:w-[68%] sm:p-6 ${isActive ? 'cursor-default' : 'cursor-pointer'}`}
+                          onKeyDown={(event) => {
+                            if (!isActive && (event.key === 'Enter' || event.key === ' ')) {
+                              event.preventDefault();
+                              setActiveConnectionIndex(index);
+                            }
+                          }}
+                          role={!isActive ? 'button' : undefined}
+                          tabIndex={!isActive ? 0 : -1}
+                          aria-label={`${card.role} with ${card.business}`}
+                          aria-current={isActive ? 'true' : undefined}
+                          className={`connection-stack-card ${isActive ? 'is-active cursor-default' : 'cursor-pointer'} absolute left-1/2 top-[47%] h-[315px] w-[68%] max-w-[294px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.4rem] border-[3px] border-white bg-white text-left shadow-[0_24px_62px_rgba(15,23,42,0.24)] transition-all duration-700 ease-out sm:h-[380px] sm:w-[62%] sm:max-w-[310px]`}
                           style={{
                             transform: `translate(-50%, -50%) translateX(${translateX}px) scale(${scale})`,
-                            zIndex: 20 - distance,
-                            opacity: visible ? (isActive ? 1 : 0.86) : 0,
-                            pointerEvents: visible ? 'auto' : 'none'
+                            zIndex: 30 - distance,
+                            opacity: visible ? 1 : 0,
+                            pointerEvents: visible ? 'auto' : 'none',
+                            boxShadow: isActive
+                              ? '0 24px 62px rgba(15, 23, 42, 0.24)'
+                              : '0 10px 26px rgba(15, 23, 42, 0.12)'
                           }}
                         >
-                          <div className="absolute inset-0 opacity-90" style={{ backgroundImage: card.pattern }} />
-                          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/85 to-transparent" />
+                          <img
+                            src={card.image}
+                            alt={`${card.role} connecting with ${card.business}`}
+                            className="connection-card-photo absolute inset-0 h-full w-full object-cover"
+                            style={{ objectPosition: card.imagePosition }}
+                            loading={isActive ? 'eager' : 'lazy'}
+                            fetchPriority={isActive ? 'high' : 'auto'}
+                            draggable={false}
+                          />
+                          <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-slate-950 via-slate-950/72 to-transparent" />
+                          <div className="connection-card-sheen pointer-events-none absolute inset-y-0 left-[-35%] w-24 bg-white/35 blur-xl" />
 
-                          <div className="relative text-center">
-                            <div className="text-xl font-black tracking-tight drop-shadow sm:text-3xl">{card.role}</div>
-                            <div className="mt-3 inline-flex items-center gap-3 rounded-2xl bg-white/15 px-3 py-2 text-base font-black backdrop-blur sm:text-2xl">
-                              <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.logoTone} text-xs shadow-lg sm:h-11 sm:w-11`}>
-                                MIS
-                              </span>
-                              {card.business}
-                            </div>
+                          <div className="absolute inset-x-0 bottom-0 p-4 text-center text-white sm:p-5">
+                            <h2 className="text-xl font-black leading-tight tracking-[-0.02em] drop-shadow sm:text-2xl">{card.role}</h2>
+                            <div className="mt-1 text-sm font-bold text-orange-200 sm:text-base">with {card.business}</div>
+                            <p className="mx-auto mt-2 max-w-[16rem] text-[11px] font-medium leading-4 text-white/75 sm:text-xs">{card.detail}</p>
+                            {!isAuthenticated && (
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  navigate('/signup');
+                                }}
+                                className="mx-auto mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[11px] font-black text-slate-950 shadow-xl transition-transform hover:scale-[1.03] focus:outline-none focus:ring-4 focus:ring-white/40 sm:text-xs"
+                              >
+                                Start collaborating
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
-
-                          <div className="relative mx-auto mt-4 flex h-36 w-36 items-center justify-center rounded-full bg-white/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] backdrop-blur sm:h-48 sm:w-48">
-                            <div className="absolute -left-4 top-8 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 text-sm font-black shadow-xl sm:h-16 sm:w-16 sm:text-base">BO</div>
-                            <div className={`flex h-24 w-24 items-center justify-center rounded-full ${card.shade} text-2xl font-black shadow-2xl ring-4 ring-white/35 sm:h-32 sm:w-32 sm:text-4xl`}>
-                              {card.avatar}
-                            </div>
-                            <div className="absolute -right-4 bottom-8 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-sm font-black shadow-xl sm:h-16 sm:w-16 sm:text-base">PRO</div>
-                          </div>
-
-                          <div className="relative text-center">
-                            <div className="inline-flex rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-black text-white shadow-xl sm:text-base">
-                              {card.action}
-                            </div>
-                            <div className="mt-2 text-xs font-bold text-white sm:text-sm">{card.time}</div>
-                          </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
+
                 </div>
               </div>
 
-              <div className="mx-auto mt-5 max-w-[620px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_22px_70px_rgba(15,23,42,0.11)] lg:ml-auto">
+              <HeroTrustStats stats={homepageStats} className="mx-auto mt-8 max-w-[590px] lg:hidden" />
+
+              <div className="mx-auto mt-8 max-w-[620px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_22px_70px_rgba(15,23,42,0.11)] lg:ml-auto">
                 <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-2.5">
                   <div className="flex gap-2">
                     <span className="h-3 w-3 rounded-full bg-[#ff5f56]" />
