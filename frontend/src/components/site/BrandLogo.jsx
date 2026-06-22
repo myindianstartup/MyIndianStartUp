@@ -1,6 +1,6 @@
 import React from 'react';
 
-const defaultLogoSrc = '/assets/myindianstartup-logo.svg';
+const defaultLogoSrc = '/assets/myindianstartup-brand.png';
 
 const BrandLogo = ({
   markClassName = 'h-11 w-11',

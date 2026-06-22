@@ -72,7 +72,6 @@ const Footer = () => {
           <div className="md:col-span-5">
             <Link to="/" className="flex items-center gap-4" data-testid="footer-logo">
               <BrandLogo
-                logoSrc="/assets/footer-client-logo.svg"
                 markClassName="h-14 w-14"
                 textClassName="text-2xl text-white"
                 dark
