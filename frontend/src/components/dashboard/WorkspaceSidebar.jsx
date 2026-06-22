@@ -28,7 +28,7 @@ const WorkspaceSidebar = () => {
         </div>
       </div>
 
-      <div className={`mx-2 mt-3 rounded-2xl px-4 py-3 ring-1 ${isCreator ? 'bg-blue-50 text-blue-700 ring-blue-100' : 'bg-orange-50 text-orange-700 ring-orange-100'}`}>
+      <div className={`mx-2 mt-3 hidden rounded-2xl px-4 py-3 ring-1 sm:block ${isCreator ? 'bg-blue-50 text-blue-700 ring-blue-100' : 'bg-orange-50 text-orange-700 ring-orange-100'}`}>
         <div className="text-[10px] font-black uppercase tracking-[0.22em]">
           {isCreator ? 'Creator account' : 'Business account'}
         </div>
@@ -37,7 +37,7 @@ const WorkspaceSidebar = () => {
         </div>
       </div>
 
-      <nav className="mt-4 grid gap-2">
+      <nav className="mt-2 grid grid-cols-2 gap-2 sm:mt-4 sm:grid-cols-1">
         {workspaceItems.map(({ label, to, icon: Icon, requiresActiveSubscription }) => {
           const locked = requiresActiveSubscription && !activeSubscription;
           const target = locked ? '/pricing' : to;
@@ -47,7 +47,7 @@ const WorkspaceSidebar = () => {
             <Link
               key={label}
               to={target}
-              className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
+              className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold transition-all sm:justify-start sm:gap-3 sm:px-4 sm:py-3 ${
                 active
                   ? 'border border-slate-200 bg-slate-100 text-slate-800 shadow-sm'
                   : locked

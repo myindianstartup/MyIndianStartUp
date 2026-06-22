@@ -65,7 +65,7 @@ const ResetPassword = () => {
   return (
     <main className="min-h-screen overflow-hidden bg-[#fbfcff] text-slate-950">
       <div className="mx-auto grid min-h-screen max-w-7xl gap-6 px-5 py-4 md:grid-cols-[0.95fr_1.05fr] md:items-center md:px-8 lg:gap-10 lg:px-12">
-        <section className="relative flex min-h-[calc(100vh-2.5rem)] flex-col justify-center overflow-hidden p-2 md:min-h-0 md:p-3">
+        <section className="relative flex min-h-0 flex-col justify-start overflow-hidden p-2 md:justify-center md:p-3">
           <div className="absolute -left-24 top-24 h-80 w-80 rounded-full bg-emerald-500/10 blur-[120px]" />
           <div className="absolute right-0 bottom-16 h-80 w-80 rounded-full bg-blue-500/10 blur-[120px]" />
 

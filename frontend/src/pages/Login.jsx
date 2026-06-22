@@ -158,7 +158,7 @@ const Login = () => {
         }
       `}</style>
       <div className="mx-auto grid min-h-screen max-w-7xl gap-6 px-5 py-4 md:grid-cols-[0.95fr_1.05fr] md:items-center md:px-8 lg:gap-10 lg:px-12">
-        <section className="relative flex min-h-[calc(100vh-2.5rem)] flex-col justify-center overflow-hidden p-2 md:min-h-0 md:p-3">
+        <section className="relative flex min-h-0 flex-col justify-start overflow-hidden p-2 md:justify-center md:p-3">
           <div className="absolute -left-24 top-24 h-80 w-80 rounded-full bg-blue-500/10 blur-[120px]" />
           <div className="absolute right-0 bottom-16 h-80 w-80 rounded-full bg-orange-500/10 blur-[120px]" />
 
@@ -167,7 +167,7 @@ const Login = () => {
           </Link>
 
           <div className="relative z-10 mx-auto mt-5 flex w-full max-w-xl flex-col justify-center">
-            <div className="auth-fade-in mx-auto flex h-[220px] w-full items-center justify-center px-3 md:h-[250px] lg:h-[285px]">
+            <div className="auth-fade-in mx-auto flex h-[150px] w-full items-center justify-center px-3 sm:h-[180px] md:h-[250px] lg:h-[285px]">
               <img
                 src="/assets/login-tablet-blue.svg"
                 alt="Secure member login"
@@ -175,7 +175,7 @@ const Login = () => {
               />
             </div>
 
-            <div className="mt-4 md:mt-5">
+            <div className="mt-4 hidden md:block md:mt-5">
               <div className="text-[11px] font-black uppercase tracking-[0.32em] text-slate-500">Member workspace access</div>
               <h1 className="mt-2 max-w-2xl text-3xl font-black leading-[1.03] tracking-[-0.05em] text-slate-950 lg:text-[2.35rem]">
                 Sign in to build trusted partnerships faster.
@@ -185,7 +185,7 @@ const Login = () => {
               </p>
             </div>
 
-            <div className="mt-5 border-t border-slate-200 pt-4">
+            <div className="mt-5 hidden border-t border-slate-200 pt-4 md:block">
               <div className="grid gap-4 sm:grid-cols-3">
                 {[
                   ['Rs 999/year', 'Flat membership'],

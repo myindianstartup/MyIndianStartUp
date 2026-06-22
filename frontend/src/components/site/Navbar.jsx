@@ -384,14 +384,14 @@ const Navbar = () => {
       </nav>
 
       <div
-        className={`fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 xl:hidden ${
           mobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
         onClick={() => setMobileMenuOpen(false)}
       />
 
       <div
-        className={`fixed top-0 right-0 z-50 flex h-full w-full max-w-[360px] transform flex-col gap-6 bg-white p-6 shadow-2xl transition-all duration-300 ease-in-out md:hidden ${
+        className={`fixed top-0 right-0 z-50 flex h-full w-full max-w-[360px] transform flex-col gap-6 overflow-y-auto bg-white p-6 shadow-2xl transition-all duration-300 ease-in-out xl:hidden ${
           mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
