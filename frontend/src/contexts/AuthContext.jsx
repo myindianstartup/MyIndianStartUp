@@ -121,11 +121,15 @@ export const AuthProvider = ({ children }) => {
 
       setMember(currentMember);
 
-      try {
-        const roleData = await apiRequest('/api/admin/me', { token: activeSession.access_token });
-        setAdminRole(roleData.role || null);
-      } catch {
+      if (currentMember?.account_type) {
         setAdminRole(null);
+      } else {
+        try {
+          const roleData = await apiRequest('/api/admin/me', { token: activeSession.access_token });
+          setAdminRole(roleData.role || null);
+        } catch {
+          setAdminRole(null);
+        }
       }
 
       return currentMember;

@@ -183,6 +183,9 @@ const SignUp = () => {
   const [accountType, setAccountType] = useState('business');
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [confirmationEmail, setConfirmationEmail] = useState('');
+  const [resendMessage, setResendMessage] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -208,6 +211,8 @@ const SignUp = () => {
     event.preventDefault();
     setFormError('');
     setSuccessMessage('');
+    setConfirmationEmail('');
+    setResendMessage('');
 
     let values;
     try {
@@ -239,8 +244,12 @@ const SignUp = () => {
 
     if (!data.session) {
       window.localStorage.setItem('myindianstartup_account_type', accountType);
+      const existingIdentity = Array.isArray(data.user?.identities) && data.user.identities.length === 0;
+      setConfirmationEmail(values.email);
       setLoading(false);
-      setSuccessMessage('Account created. Confirm your email and sign in to finish activation. Your registration details are saved.');
+      setSuccessMessage(existingIdentity
+        ? 'This email is already registered or waiting for confirmation. Sign in if you have confirmed it, or request another confirmation email below.'
+        : `We sent a confirmation link to ${values.email}. Check Inbox, Spam, and Promotions before requesting another email.`);
       return;
     }
 
@@ -254,6 +263,27 @@ const SignUp = () => {
       setFormError(error.message || 'Account created, but profile setup could not finish. Sign in to retry.');
       setLoading(false);
     }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!confirmationEmail || resendLoading) return;
+    setResendLoading(true);
+    setResendMessage('');
+    setFormError('');
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: confirmationEmail,
+      options: { emailRedirectTo: getAuthRedirectUrl('/') }
+    });
+    setResendLoading(false);
+    if (error) {
+      const rateLimited = /rate|seconds|security purposes/i.test(error.message || '');
+      setFormError(rateLimited
+        ? 'Please wait about one minute before requesting another confirmation email.'
+        : error.message || 'Could not resend the confirmation email. Please try again.');
+      return;
+    }
+    setResendMessage(`Confirmation email requested for ${confirmationEmail}. Check Inbox, Spam, and Promotions.`);
   };
 
   const handleGoogleSignUp = async () => {
@@ -449,7 +479,20 @@ const SignUp = () => {
             </Section>
 
             {formError && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{formError}</div>}
-            {successMessage && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{successMessage}</div>}
+            {successMessage && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+                <div className="font-bold">{successMessage}</div>
+                {confirmationEmail && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button type="button" onClick={handleResendConfirmation} disabled={resendLoading} className="rounded-lg bg-emerald-700 px-4 py-2 font-black text-white hover:bg-emerald-800 disabled:opacity-60">
+                      {resendLoading ? 'Sending...' : 'Resend confirmation'}
+                    </button>
+                    <Link to="/login" className="rounded-lg border border-emerald-300 bg-white px-4 py-2 font-black text-emerald-800 hover:bg-emerald-100">Go to sign in</Link>
+                  </div>
+                )}
+                {resendMessage && <div className="mt-3 font-semibold">{resendMessage}</div>}
+              </div>
+            )}
 
             <div className="grid gap-3 border-t border-slate-200 pt-6 sm:grid-cols-2">
               <button type="submit" disabled={loading || googleLoading} className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black text-white disabled:opacity-60 ${button}`}>
