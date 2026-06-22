@@ -3,6 +3,9 @@ import { useLocation } from 'react-router-dom';
 import { API_URL } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
+const isLocalDevelopment = typeof window !== 'undefined'
+  && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
 const getSessionId = () => {
   const key = 'myindianstartup_session_id';
   let sessionId = window.sessionStorage.getItem(key);
@@ -30,6 +33,8 @@ const detectBrowser = () => {
 };
 
 const sendEvent = (payload, token) => {
+  if (!API_URL || isLocalDevelopment) return;
+
   const body = JSON.stringify(payload);
   if (!token && navigator.sendBeacon) {
     const blob = new Blob([body], { type: 'application/json' });

@@ -8,12 +8,10 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
   FRONTEND_ORIGIN: z.string().default('http://localhost:3000,http://localhost:3001'),
 
-  // Supabase — URL and anon key required; service role key optional (needed for admin ops)
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional().default(''),
 
-  // Cloudflare R2 — optional; media upload will return 503 if not configured
   R2_ACCOUNT_ID: z.string().optional().default(''),
   R2_ENDPOINT: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional().default(''),
@@ -21,7 +19,10 @@ const envSchema = z.object({
   R2_BUCKET: z.string().optional().default(''),
   R2_PUBLIC_BASE_URL: z.string().optional().default(''),
 
-  // Upload limits
+  RAZORPAY_KEY_ID: z.string().optional().default(''),
+  RAZORPAY_KEY_SECRET: z.string().optional().default(''),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(''),
+
   MAX_IMAGE_MB: z.coerce.number().default(5),
   MAX_VIDEO_MB: z.coerce.number().default(50),
   FFMPEG_PATH: z.string().optional()
@@ -29,12 +30,14 @@ const envSchema = z.object({
 
 export const env = envSchema.parse(process.env);
 
-// Warn on startup about missing optional but important vars
 if (!env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn('[WARN] SUPABASE_SERVICE_ROLE_KEY is not set — admin routes and server-side DB writes will fail.');
+  console.warn('[WARN] SUPABASE_SERVICE_ROLE_KEY is not set - admin routes and server-side DB writes will fail.');
 }
 if (!env.R2_ACCESS_KEY_ID) {
-  console.warn('[WARN] R2 credentials are not set — media upload endpoints will return 503.');
+  console.warn('[WARN] R2 credentials are not set - media upload endpoints will return 503.');
+}
+if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
+  console.warn('[WARN] Razorpay credentials are not set - paid checkout will be unavailable.');
 }
 
 export const frontendOrigins = env.FRONTEND_ORIGIN

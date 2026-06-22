@@ -1,9 +1,18 @@
+import crypto from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
 import { supabaseAdmin } from '../lib/supabase.js';
-import { assignPlanToUser, createCheckoutOrder, listActivePlans, validateCoupon } from '../services/billingService.js';
+import {
+  assignPlanToUser,
+  createCheckoutOrder,
+  finalizeRazorpayOrder,
+  listActivePlans,
+  validateCoupon,
+  verifyRazorpayPaymentSignature
+} from '../services/billingService.js';
 import { writeAuditLog } from '../services/auditService.js';
+import { env } from '../config/env.js';
 
 export const subscriptionsRouter = Router();
 
@@ -27,7 +36,13 @@ const checkoutSchema = couponValidationSchema.extend({
   }).optional().default({})
 });
 
-subscriptionsRouter.get('/plans', async (req, res, next) => {
+const paymentVerificationSchema = z.object({
+  razorpay_order_id: z.string().trim().min(1),
+  razorpay_payment_id: z.string().trim().min(1),
+  razorpay_signature: z.string().trim().min(1)
+});
+
+subscriptionsRouter.get('/plans', async (_req, res, next) => {
   try {
     const plans = await listActivePlans();
     res.json({ plans });
@@ -132,50 +147,61 @@ subscriptionsRouter.post('/checkout', requireAuth, async (req, res, next) => {
   }
 });
 
+subscriptionsRouter.post('/razorpay/verify', requireAuth, async (req, res, next) => {
+  try {
+    const payload = paymentVerificationSchema.parse(req.body);
+    const isValidSignature = verifyRazorpayPaymentSignature({
+      providerOrderId: payload.razorpay_order_id,
+      providerPaymentId: payload.razorpay_payment_id,
+      providerSignature: payload.razorpay_signature
+    });
+
+    if (!isValidSignature) {
+      return res.status(400).json({ error: 'Invalid Razorpay payment signature.' });
+    }
+
+    const result = await finalizeRazorpayOrder({
+      providerOrderId: payload.razorpay_order_id,
+      providerPaymentId: payload.razorpay_payment_id,
+      providerSignature: payload.razorpay_signature,
+      status: 'paid',
+      paymentPayload: payload
+    });
+
+    res.json({ verified: true, activated: result.activated, order: result.order });
+  } catch (error) {
+    next(error);
+  }
+});
+
 subscriptionsRouter.post('/razorpay/webhook', async (req, res, next) => {
   try {
+    const signature = req.headers['x-razorpay-signature'];
+    if (env.RAZORPAY_WEBHOOK_SECRET && signature) {
+      const expectedSignature = crypto
+        .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
+        .update(req.rawBody || '')
+        .digest('hex');
+
+      if (expectedSignature !== signature) {
+        return res.status(400).json({ error: 'Invalid webhook signature.' });
+      }
+    }
+
     const event = req.body || {};
     const providerOrderId = event.payload?.payment?.entity?.order_id || event.payload?.order?.entity?.id || null;
     const providerPaymentId = event.payload?.payment?.entity?.id || null;
     const status = event.event === 'payment.captured' ? 'paid' : event.event === 'payment.failed' ? 'failed' : 'pending';
+    const failureReason = event.payload?.payment?.entity?.error_description || event.payload?.payment?.entity?.error_reason || null;
 
     if (providerOrderId) {
-      const { data: order, error: orderError } = await supabaseAdmin
-        .schema('billing')
-        .from('orders')
-        .update({ status, updated_at: new Date().toISOString(), metadata: event })
-        .eq('provider_order_id', providerOrderId)
-        .select('*')
-        .maybeSingle();
-
-      if (orderError) throw orderError;
-
-      if (order) {
-        await supabaseAdmin.schema('billing').from('transactions').insert({
-          order_id: order.id,
-          user_id: order.user_id,
-          provider_payment_id: providerPaymentId,
-          provider_order_id: providerOrderId,
-          amount_inr: order.final_amount_inr,
-          status,
-          metadata: event
-        });
-
-        await supabaseAdmin.schema('billing').from('invoices').update({
-          status,
-          paid_at: status === 'paid' ? new Date().toISOString() : null
-        }).eq('order_id', order.id);
-
-        if (status === 'paid') {
-          await assignPlanToUser({
-            userId: order.user_id,
-            planId: order.plan_id,
-            eventType: 'payment_activated',
-            source: 'razorpay',
-            metadata: { orderId: order.id, providerOrderId, providerPaymentId }
-          });
-        }
-      }
+      await finalizeRazorpayOrder({
+        providerOrderId,
+        providerPaymentId,
+        status,
+        paymentPayload: event,
+        failureReason
+      });
     }
 
     await writeAuditLog({

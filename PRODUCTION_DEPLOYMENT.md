@@ -35,11 +35,15 @@ R2_ACCESS_KEY_ID=your-r2-access-key-id
 R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 R2_BUCKET=myindianstartup-media
 R2_PUBLIC_BASE_URL=https://your-public-r2-domain.example.com
+RAZORPAY_KEY_ID=rzp_live_xxxxxxxxxxxxxxxx
+RAZORPAY_KEY_SECRET=your-razorpay-key-secret
+RAZORPAY_WEBHOOK_SECRET=your-razorpay-webhook-secret
 MAX_IMAGE_MB=5
 MAX_VIDEO_MB=50
 REACT_APP_SUPABASE_URL=https://your-project-ref.supabase.co
 REACT_APP_SUPABASE_ANON_KEY=your-supabase-publishable-anon-key
 REACT_APP_SITE_URL=https://myindianstartup.com
+REACT_APP_RAZORPAY_KEY_ID=rzp_live_xxxxxxxxxxxxxxxx
 ```
 
 ## Important Frontend API Note

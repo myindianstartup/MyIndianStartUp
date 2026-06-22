@@ -9,6 +9,17 @@ const normalizeAccountType = (value) => {
   return ['business', 'creator'].includes(normalized) ? normalized : '';
 };
 
+const fetchAdminRole = async (accessToken) => {
+  if (!accessToken) return null;
+
+  try {
+    const roleData = await apiRequest('/api/admin/me', { token: accessToken });
+    return roleData.role || null;
+  } catch {
+    return null;
+  }
+};
+
 const fallbackMemberFromSession = (activeSession) => {
   const authUser = activeSession?.user;
   if (!authUser) return null;
@@ -119,18 +130,9 @@ export const AuthProvider = ({ children }) => {
         currentMember = fallbackMemberFromSession(activeSession);
       }
 
+      const nextAdminRole = await fetchAdminRole(activeSession.access_token);
       setMember(currentMember);
-
-      if (currentMember?.account_type) {
-        setAdminRole(null);
-      } else {
-        try {
-          const roleData = await apiRequest('/api/admin/me', { token: activeSession.access_token });
-          setAdminRole(roleData.role || null);
-        } catch {
-          setAdminRole(null);
-        }
-      }
+      setAdminRole(nextAdminRole);
 
       return currentMember;
     } catch (error) {
@@ -141,8 +143,9 @@ export const AuthProvider = ({ children }) => {
       if (fallbackMember?.account_type) {
         window.localStorage.setItem('myindianstartup_account_type', fallbackMember.account_type);
       }
+      const nextAdminRole = await fetchAdminRole(activeSession.access_token);
       setMember(fallbackMember);
-      setAdminRole(null);
+      setAdminRole(nextAdminRole);
       return fallbackMember;
     }
   }, []);

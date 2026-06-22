@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
+import Razorpay from 'razorpay';
 import { supabaseAdmin } from '../lib/supabase.js';
+import { env } from '../config/env.js';
 import { writeAuditLog } from './auditService.js';
 
 export const MEMBERSHIP_PRICE = 999;
@@ -20,6 +22,27 @@ const isHiddenSchemaError = (error) => (
   error?.code === 'PGRST106'
   || `${error?.message || ''}`.toLowerCase().includes('invalid schema')
 );
+
+let razorpayClient = null;
+
+const hasRazorpayCredentials = () => Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+
+const getRazorpayClient = () => {
+  if (!hasRazorpayCredentials()) {
+    const error = new Error('Razorpay is not configured on the server yet. Please add backend Razorpay key ID and key secret.');
+    error.status = 503;
+    throw error;
+  }
+
+  if (!razorpayClient) {
+    razorpayClient = new Razorpay({
+      key_id: env.RAZORPAY_KEY_ID,
+      key_secret: env.RAZORPAY_KEY_SECRET
+    });
+  }
+
+  return razorpayClient;
+};
 
 const fallbackPlans = [
   {
@@ -84,12 +107,11 @@ export const validateCoupon = async ({ code, planId, userId }) => {
 
   if (error) {
     if (isMissingDatabaseFeature(error)) {
-      // Fallback: no coupon validation, just return plan
       const plan = await getPlan(planId);
       if (!plan) {
-        const err = new Error('Selected plan is not available.');
-        err.status = 404;
-        throw err;
+        const missingPlanError = new Error('Selected plan is not available.');
+        missingPlanError.status = 404;
+        throw missingPlanError;
       }
       return { valid: true, plan, coupon: null, discountAmountInr: 0, finalAmountInr: plan.amount_inr, reason: null };
     }
@@ -181,6 +203,60 @@ const recordCouponRedemption = async ({ couponId, userId, planId, discountAmount
     });
 
   if (insertError) throw insertError;
+};
+
+const createBillingOrderRecord = async ({
+  userId,
+  planId,
+  couponId,
+  baseAmountInr,
+  discountAmountInr,
+  finalAmountInr,
+  providerOrderId,
+  invoiceNumber,
+  metadata = {}
+}) => {
+  const orderPayload = {
+    user_id: userId,
+    plan_id: planId,
+    coupon_id: couponId || null,
+    base_amount_inr: baseAmountInr,
+    discount_amount_inr: discountAmountInr,
+    final_amount_inr: finalAmountInr,
+    status: finalAmountInr === 0 ? 'paid' : 'created',
+    provider: 'razorpay',
+    provider_order_id: providerOrderId,
+    metadata
+  };
+
+  const { data: order, error: orderError } = await supabaseAdmin
+    .schema('billing')
+    .from('orders')
+    .insert(orderPayload)
+    .select('*')
+    .single();
+
+  if (orderError) throw orderError;
+
+  const invoicePayload = {
+    invoice_number: invoiceNumber,
+    order_id: order.id,
+    user_id: userId,
+    subtotal_inr: baseAmountInr,
+    discount_inr: discountAmountInr,
+    total_inr: finalAmountInr,
+    status: order.status,
+    metadata
+  };
+
+  const { error: invoiceError } = await supabaseAdmin
+    .schema('billing')
+    .from('invoices')
+    .insert(invoicePayload);
+
+  if (invoiceError) throw invoiceError;
+
+  return order;
 };
 
 const activatePlanDirectly = async ({
@@ -325,21 +401,182 @@ export const cancelSubscription = async ({ userId, actorId, actorRole, metadata 
   return subscription;
 };
 
+export const verifyRazorpayPaymentSignature = ({ providerOrderId, providerPaymentId, providerSignature }) => {
+  if (!env.RAZORPAY_KEY_SECRET) {
+    const error = new Error('Razorpay verification is not configured on the server.');
+    error.status = 503;
+    throw error;
+  }
+
+  const expectedSignature = crypto
+    .createHmac('sha256', env.RAZORPAY_KEY_SECRET)
+    .update(`${providerOrderId}|${providerPaymentId}`)
+    .digest('hex');
+
+  return expectedSignature === providerSignature;
+};
+
+const findExistingTransaction = async ({ providerPaymentId, providerOrderId }) => {
+  if (!providerPaymentId && !providerOrderId) return null;
+
+  let query = supabaseAdmin
+    .schema('billing')
+    .from('transactions')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (providerPaymentId && providerOrderId) {
+    query = query.or(`provider_payment_id.eq.${providerPaymentId},provider_order_id.eq.${providerOrderId}`);
+  } else if (providerPaymentId) {
+    query = query.eq('provider_payment_id', providerPaymentId);
+  } else {
+    query = query.eq('provider_order_id', providerOrderId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error && !isHiddenSchemaError(error)) throw error;
+  return data || null;
+};
+
+export const finalizeRazorpayOrder = async ({
+  providerOrderId,
+  providerPaymentId = null,
+  providerSignature = null,
+  status = 'paid',
+  paymentPayload = {},
+  failureReason = null
+}) => {
+  const normalizedStatus = status === 'paid' ? 'paid' : status === 'failed' ? 'failed' : 'pending';
+  const { data: order, error: orderError } = await supabaseAdmin
+    .schema('billing')
+    .from('orders')
+    .select('*')
+    .eq('provider_order_id', providerOrderId)
+    .maybeSingle();
+
+  if (orderError) throw orderError;
+  if (!order) {
+    const missingOrderError = new Error('Checkout order was not found.');
+    missingOrderError.status = 404;
+    throw missingOrderError;
+  }
+
+  const wasPaidAlready = order.status === 'paid';
+  const nextStatus = wasPaidAlready && normalizedStatus !== 'paid' ? 'paid' : normalizedStatus;
+  const mergedOrderMetadata = {
+    ...(order.metadata || {}),
+    razorpay: {
+      ...(order.metadata?.razorpay || {}),
+      lastStatus: nextStatus,
+      providerPaymentId: providerPaymentId || order.metadata?.razorpay?.providerPaymentId || null,
+      providerSignature: providerSignature || order.metadata?.razorpay?.providerSignature || null,
+      failureReason: failureReason || order.metadata?.razorpay?.failureReason || null,
+      updatedAt: new Date().toISOString(),
+      payload: paymentPayload
+    }
+  };
+
+  const { error: updateOrderError } = await supabaseAdmin
+    .schema('billing')
+    .from('orders')
+    .update({
+      status: nextStatus,
+      updated_at: new Date().toISOString(),
+      metadata: mergedOrderMetadata
+    })
+    .eq('id', order.id);
+
+  if (updateOrderError) throw updateOrderError;
+
+  const existingTransaction = await findExistingTransaction({ providerPaymentId, providerOrderId });
+  const transactionPayload = {
+    order_id: order.id,
+    user_id: order.user_id,
+    provider: 'razorpay',
+    provider_payment_id: providerPaymentId,
+    provider_order_id: providerOrderId,
+    provider_signature: providerSignature,
+    amount_inr: order.final_amount_inr,
+    status: nextStatus,
+    failure_reason: failureReason,
+    metadata: paymentPayload,
+    updated_at: new Date().toISOString()
+  };
+
+  if (existingTransaction) {
+    const { error: transactionUpdateError } = await supabaseAdmin
+      .schema('billing')
+      .from('transactions')
+      .update(transactionPayload)
+      .eq('id', existingTransaction.id);
+
+    if (transactionUpdateError) throw transactionUpdateError;
+  } else {
+    const { error: transactionInsertError } = await supabaseAdmin
+      .schema('billing')
+      .from('transactions')
+      .insert(transactionPayload);
+
+    if (transactionInsertError) throw transactionInsertError;
+  }
+
+  const { error: invoiceError } = await supabaseAdmin
+    .schema('billing')
+    .from('invoices')
+    .update({
+      status: nextStatus,
+      paid_at: nextStatus === 'paid' ? new Date().toISOString() : null,
+      metadata: paymentPayload
+    })
+    .eq('order_id', order.id);
+
+  if (invoiceError) throw invoiceError;
+
+  if (nextStatus === 'paid' && !wasPaidAlready) {
+    if (order.coupon_id && Number(order.discount_amount_inr || 0) > 0) {
+      await recordCouponRedemption({
+        couponId: order.coupon_id,
+        userId: order.user_id,
+        planId: order.plan_id,
+        discountAmountInr: order.discount_amount_inr
+      });
+    }
+
+    await assignPlanToUser({
+      userId: order.user_id,
+      planId: order.plan_id,
+      eventType: 'payment_activated',
+      source: 'razorpay',
+      metadata: { orderId: order.id, providerOrderId, providerPaymentId }
+    });
+  }
+
+  return {
+    order: {
+      ...order,
+      status: nextStatus,
+      metadata: mergedOrderMetadata
+    },
+    activated: nextStatus === 'paid' && !wasPaidAlready
+  };
+};
+
 export const createCheckoutOrder = async ({ userId, planId, couponCode = null }) => {
   const quote = await validateCoupon({ code: couponCode, planId, userId });
   if (!quote.valid) {
-    const error = new Error(quote.reason || 'Coupon is not valid.');
-    error.status = 400;
-    error.quote = quote;
-    throw error;
+    const invalidCouponError = new Error(quote.reason || 'Coupon is not valid.');
+    invalidCouponError.status = 400;
+    invalidCouponError.quote = quote;
+    throw invalidCouponError;
   }
 
   const fullDiscountCoupon = isFullDiscountCoupon(quote);
   if (Number(quote.finalAmountInr) === 0 && !fullDiscountCoupon) {
-    const error = new Error('Free checkout is allowed only with a valid 100% percentage coupon.');
-    error.status = 400;
-    error.quote = quote;
-    throw error;
+    const freeCheckoutError = new Error('Free checkout is allowed only with a valid 100% percentage coupon.');
+    freeCheckoutError.status = 400;
+    freeCheckoutError.quote = quote;
+    throw freeCheckoutError;
   }
 
   if (fullDiscountCoupon) {
@@ -383,33 +620,48 @@ export const createCheckoutOrder = async ({ userId, planId, couponCode = null })
     };
   }
 
-  const providerOrderId = `rzp_ready_${crypto.randomUUID()}`;
+  const razorpay = getRazorpayClient();
   const invoiceNumber = `MIS-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`;
-
-  const { data: order, error } = await supabaseAdmin.rpc('billing_create_order', {
-    p_user_id: userId,
-    p_plan_id: quote.plan.id,
-    p_coupon_id: quote.coupon?.id || null,
-    p_base_amount: quote.plan.amount_inr,
-    p_discount_amount: quote.discountAmountInr,
-    p_final_amount: quote.finalAmountInr,
-    p_provider_order_id: providerOrderId,
-    p_invoice_number: invoiceNumber
-  });
-
-  if (error) throw error;
-
-  if (quote.coupon) {
-    await recordCouponRedemption({
-      couponId: quote.coupon.id,
+  const razorpayOrder = await razorpay.orders.create({
+    amount: Number(quote.finalAmountInr) * 100,
+    currency: 'INR',
+    receipt: invoiceNumber,
+    notes: {
       userId,
       planId: quote.plan.id,
-      discountAmountInr: quote.discountAmountInr
-    });
-  }
+      couponCode: quote.coupon?.code || ''
+    }
+  });
+
+  const orderMetadata = {
+    architectureReady: true,
+    razorpay: {
+      orderId: razorpayOrder.id,
+      amountInPaise: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      receipt: razorpayOrder.receipt,
+      status: razorpayOrder.status
+    }
+  };
+
+  const order = await createBillingOrderRecord({
+    userId,
+    planId: quote.plan.id,
+    couponId: quote.coupon?.id || null,
+    baseAmountInr: quote.plan.amount_inr,
+    discountAmountInr: quote.discountAmountInr,
+    finalAmountInr: quote.finalAmountInr,
+    providerOrderId: razorpayOrder.id,
+    invoiceNumber,
+    metadata: orderMetadata
+  });
 
   return {
-    order,
+    order: {
+      ...order,
+      provider_order_id: razorpayOrder.id,
+      metadata: orderMetadata
+    },
     quote,
     freeCheckout: false,
     subscription: null

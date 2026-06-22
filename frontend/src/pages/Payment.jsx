@@ -27,6 +27,54 @@ const emptyBilling = {
   address: ''
 };
 
+const fallbackPlans = [
+  {
+    id: '00000000-0000-4000-8000-000000000001',
+    code: 'BUSINESSVERSE_ANNUAL',
+    name: 'BusinessVerse Annual Membership',
+    description: 'Business listing, daily visibility, creator discovery, and direct collaboration.',
+    account_type: 'business',
+    amount_inr: 999,
+    duration_days: 365
+  },
+  {
+    id: '00000000-0000-4000-8000-000000000002',
+    code: 'CREATORVERSE_ANNUAL',
+    name: 'CreatorVerse Annual Membership',
+    description: 'Creator listing, portfolio visibility, business discovery, and direct collaboration.',
+    account_type: 'creator',
+    amount_inr: 999,
+    duration_days: 365
+  }
+];
+
+const loadRazorpayCheckout = () => new Promise((resolve, reject) => {
+  if (typeof window === 'undefined') {
+    reject(new Error('Razorpay checkout is only available in the browser.'));
+    return;
+  }
+
+  if (window.Razorpay) {
+    resolve(window.Razorpay);
+    return;
+  }
+
+  const existingScript = document.querySelector('script[data-razorpay-checkout="true"]');
+  if (existingScript) {
+    existingScript.addEventListener('load', () => resolve(window.Razorpay), { once: true });
+    existingScript.addEventListener('error', () => reject(new Error('Could not load Razorpay checkout.')), { once: true });
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.async = true;
+  script.dataset.razorpayCheckout = 'true';
+  script.onload = () => resolve(window.Razorpay);
+  script.onerror = () => reject(new Error('Could not load Razorpay checkout.'));
+  document.body.appendChild(script);
+});
+
 const Payment = () => {
   const { token, member, user, isAuthenticated, refreshMember, session } = useAuth();
   const navigate = useNavigate();
@@ -51,7 +99,15 @@ const Payment = () => {
         const preferred = data.plans?.find((plan) => plan.account_type === member?.account_type) || data.plans?.[0];
         setSelectedPlanId(preferred?.id || '');
       } catch (requestError) {
-        setError(requestError.message || 'Could not load membership plans.');
+        const preferred = fallbackPlans.find((plan) => plan.account_type === member?.account_type) || fallbackPlans[0];
+        setPlans(fallbackPlans);
+        setSelectedPlanId(preferred?.id || '');
+        setError('');
+        if (requestError.code === 'NETWORK_ERROR') {
+          setMessage('Pricing is visible. Start the backend to enable live checkout and coupon validation locally.');
+        } else {
+          setError(requestError.message || 'Could not load membership plans.');
+        }
       } finally {
         setLoading(false);
       }
@@ -228,7 +284,74 @@ const Payment = () => {
         navigate('/post-verse', { replace: true });
         return;
       }
-      setMessage(`Razorpay order prepared: ${data.razorpay.providerOrderId}. Payment gateway keys can be connected without changing this flow.`);
+
+      const razorpayKey = String(process.env.REACT_APP_RAZORPAY_KEY_ID || '').trim();
+      if (!razorpayKey) {
+        throw new Error('Razorpay public key is missing. Please set REACT_APP_RAZORPAY_KEY_ID in the frontend environment.');
+      }
+
+      await loadRazorpayCheckout();
+      if (!window.Razorpay) {
+        throw new Error('Razorpay checkout did not load correctly. Please refresh and try again.');
+      }
+
+      const paymentObject = new window.Razorpay({
+        key: razorpayKey,
+        amount: data.razorpay.amountInPaise,
+        currency: data.razorpay.currency || 'INR',
+        name: 'MyIndianStartup',
+        description: selectedPlan?.name || 'Annual Membership',
+        order_id: data.razorpay.providerOrderId,
+        prefill: {
+          name: normalizedBillingInfo.fullName,
+          email: normalizedBillingInfo.email,
+          contact: normalizedBillingInfo.phone
+        },
+        notes: {
+          gstNumber: normalizedBillingInfo.gstNumber,
+          address: normalizedBillingInfo.address,
+          accountType: member?.account_type || ''
+        },
+        theme: {
+          color: '#2563EB'
+        },
+        handler: async (response) => {
+          try {
+            setMessage('Payment received. Verifying and activating your membership...');
+            setError('');
+
+            await apiRequest('/api/subscriptions/razorpay/verify', {
+              method: 'POST',
+              token,
+              body: response
+            });
+
+            if (session) {
+              await refreshMember(session);
+            }
+
+            setMessage('Payment successful. Your membership is now active.');
+            navigate('/post-verse', { replace: true });
+          } catch (verificationError) {
+            setError(verificationError.message || 'Payment succeeded, but verification is still pending. Please contact support if access does not update soon.');
+            setMessage('');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setError('Payment checkout was cancelled.');
+            setMessage('');
+          }
+        }
+      });
+
+      paymentObject.on('payment.failed', (response) => {
+        const reason = response?.error?.description || response?.error?.reason || 'Payment failed. Please try again.';
+        setError(reason);
+        setMessage('');
+      });
+
+      paymentObject.open();
     } catch (requestError) {
       if ((requestError.message || '').includes('billingInfo')) {
         setError('Please complete your billing name and email before continuing.');

@@ -107,20 +107,18 @@ const Login = () => {
 
     const currentMember = await refreshMember(data.session);
 
-    if (!currentMember?.account_type) {
-      try {
-        const roleData = await apiRequest('/api/admin/me', { token: data.session.access_token });
-        if (roleData.role === 'superadmin') {
-          navigate('/superadmin', { replace: true });
-          return;
-        }
-        if (roleData.role === 'admin') {
-          navigate('/admin', { replace: true });
-          return;
-        }
-      } catch {
-        // Non-admin users continue to their dashboard.
+    try {
+      const roleData = await apiRequest('/api/admin/me', { token: data.session.access_token });
+      if (roleData.role === 'superadmin') {
+        navigate('/superadmin', { replace: true });
+        return;
       }
+      if (roleData.role === 'admin') {
+        navigate('/admin', { replace: true });
+        return;
+      }
+    } catch {
+      // Non-admin users continue to their member dashboard flow.
     }
 
     const requestedPath = location.state?.from || '';
