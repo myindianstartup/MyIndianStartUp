@@ -17,7 +17,6 @@ import {
   Phone,
   Sparkles,
   Star,
-  StarHalf,
   Target,
   Users,
   Video,
@@ -325,10 +324,9 @@ const BusinessVerse = () => {
 
               <div className="mt-8 flex items-center gap-3 text-xs font-semibold text-slate-500">
                 <div className="flex items-center gap-0.5 text-yellow-400">
-                  {[...Array(4)].map((_, index) => (
+                  {[...Array(5)].map((_, index) => (
                     <Star key={index} className="h-4 w-4 fill-current" />
                   ))}
-                  <StarHalf className="h-4 w-4 fill-current" />
                 </div>
                 <span>Built for businesses, brands, startups, agencies, and local companies across India.</span>
               </div>

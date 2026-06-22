@@ -147,7 +147,7 @@ const Footer = () => {
 
         <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-6 text-xs font-semibold text-slate-400 md:flex-row md:items-center md:justify-between">
           <p>
-            Copyright 2026 MyIndianStartup. All rights reserved. Designed, developed, maintained, managed and operated by{' '}
+            © 2026 MyIndianStartup. All rights reserved. Designed, developed, maintained, managed and operated by{' '}
             <a
               href="https://www.8techburp.com/"
               target="_blank"

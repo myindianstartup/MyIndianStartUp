@@ -109,6 +109,8 @@ const getValues = (form, accountType, requireCredentials = true) => {
   const industry = String(data.get('industry') || '').trim();
   const professionalCategory = String(data.get('professionalCategory') || '').trim();
   const skills = String(data.get('skills') || '').split(',').map((item) => item.trim()).filter(Boolean);
+  const logoEntry = data.get('businessLogo');
+  const logoFile = typeof File !== 'undefined' && logoEntry instanceof File && logoEntry.size ? logoEntry : null;
   const consents = {
     privacy: data.get('privacy') === 'on',
     terms: data.get('terms') === 'on',
@@ -120,6 +122,7 @@ const getValues = (form, accountType, requireCredentials = true) => {
   if (requireCredentials && !emailPattern.test(email)) throw new Error('Enter a valid email address.');
   if (mobileNumber.replace(/\D/g, '').length < 10) throw new Error('Enter a valid 10-digit mobile number.');
   if (accountType === 'business' && businessName.length < 2) throw new Error('Enter your business name.');
+  if (accountType === 'business' && !logoFile) throw new Error('Upload your business logo.');
   if (accountType === 'business' && !businessCategory) throw new Error('Select a business category.');
   if (accountType === 'business' && industry.length < 2) throw new Error('Enter your industry.');
   if (accountType === 'creator' && !professionalCategory) throw new Error('Select your professional category.');
@@ -157,7 +160,7 @@ const getValues = (form, accountType, requireCredentials = true) => {
       industriesWanted: data.getAll('industriesWanted'),
       consents
     },
-    logoFile: data.get('businessLogo') instanceof File && data.get('businessLogo').size ? data.get('businessLogo') : null
+    logoFile
   };
 };
 
@@ -386,8 +389,8 @@ const SignUp = () => {
                   <input name="mobileNumber" type="tel" className={inputClass} placeholder="+91 98765 43210" />
                 </Field>
                 {isBusiness && (
-                  <Field label="Business Logo" icon={ImagePlus}>
-                    <input name="businessLogo" type="file" accept="image/*" className="min-w-0 w-full text-sm font-semibold text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:font-bold" />
+                  <Field label="Business Logo" icon={ImagePlus} required>
+                    <input name="businessLogo" type="file" accept="image/*" required className="min-w-0 w-full text-sm font-semibold text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:font-bold" />
                   </Field>
                 )}
               </div>

@@ -24,29 +24,30 @@ const normalizePhoneHref = (value = '') => {
   return digits ? `tel:${digits}` : '';
 };
 
-const InfoCard = ({ icon: Icon, label, value, href, external = false }) => (
-  <div className="rounded-[1.5rem] border border-slate-200 bg-[#fbfbfd] p-5">
+const InfoCardContent = ({ icon: Icon, label, value, linked = false, external = false }) => (
+  <>
     <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
       <Icon className="h-4 w-4" />
       {label}
     </div>
-    <div className="mt-3 break-words text-sm font-bold leading-6 text-slate-900">
-      {href && value ? (
-        <a
-          href={href}
-          target={external ? '_blank' : undefined}
-          rel={external ? 'noopener noreferrer' : undefined}
-          className="inline-flex items-center gap-1.5 text-blue-600 underline decoration-blue-200 underline-offset-4 transition hover:text-blue-700 hover:decoration-blue-500"
-        >
-          <span>{value}</span>
-          {external ? <ExternalLink className="h-3.5 w-3.5" /> : null}
-        </a>
-      ) : (
-        value || 'Not shared yet'
-      )}
+    <div className={`mt-3 break-words text-sm font-bold leading-6 ${linked ? 'text-blue-600 underline decoration-blue-200 underline-offset-4 group-hover:text-blue-700 group-hover:decoration-blue-500' : 'text-slate-900'}`}>
+      <span>{value || 'Not shared yet'}</span>
+      {linked && external ? <ExternalLink className="ml-1.5 inline h-3.5 w-3.5" /> : null}
     </div>
-  </div>
+  </>
 );
+
+const InfoCard = ({ icon: Icon, label, value, href, external = false }) => {
+  const className = "rounded-[1.5rem] border border-slate-200 bg-[#fbfbfd] p-5";
+  if (href && value) {
+    return (
+      <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} className={`${className} group block transition hover:border-blue-200 hover:bg-blue-50/40`}>
+        <InfoCardContent icon={Icon} label={label} value={value} linked external={external} />
+      </a>
+    );
+  }
+  return <div className={className}><InfoCardContent icon={Icon} label={label} value={value} /></div>;
+};
 
 const MemberProfile = () => {
   const { userId } = useParams();
