@@ -96,20 +96,20 @@ const valueHighlights = [
     description: 'Simple, transparent pricing'
   },
   {
-    icon: <BadgeCheck className="h-5 w-5 text-blue-600" />,
-    iconWrap: 'bg-blue-50',
+    icon: <BadgeCheck className="h-5 w-5 text-orange-500" />,
+    iconWrap: 'bg-orange-50',
     title: 'No Commission Charges',
     description: 'Keep 100% of your deals'
   },
   {
-    icon: <Target className="h-5 w-5 text-orange-500" />,
-    iconWrap: 'bg-orange-50',
+    icon: <Target className="h-5 w-5 text-blue-600" />,
+    iconWrap: 'bg-blue-50',
     title: 'No Lead Purchase System',
     description: 'Connect without buying leads'
   },
   {
-    icon: <ShieldCheck className="h-5 w-5 text-blue-600" />,
-    iconWrap: 'bg-blue-50',
+    icon: <ShieldCheck className="h-5 w-5 text-orange-500" />,
+    iconWrap: 'bg-orange-50',
     title: 'No Success Fees',
     description: 'No revenue sharing ever'
   },
@@ -835,6 +835,26 @@ const Home = () => {
           to { transform: translateX(-50%); }
         }
 
+        @media (min-width: 640px) {
+          .value-grid-row-left {
+            animation: valueGridRowLeft 5.5s ease-in-out infinite alternate;
+          }
+
+          .value-grid-row-right {
+            animation: valueGridRowRight 5.5s ease-in-out infinite alternate;
+          }
+        }
+
+        @keyframes valueGridRowLeft {
+          from { transform: translateX(10px); }
+          to { transform: translateX(-10px); }
+        }
+
+        @keyframes valueGridRowRight {
+          from { transform: translateX(-10px); }
+          to { transform: translateX(10px); }
+        }
+
         .verse-choice-card {
           transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease, background 0.28s ease;
         }
@@ -887,7 +907,9 @@ const Home = () => {
           .verse-choice-card:hover,
           .verse-choice-card:hover .verse-pill,
           .verse-choice-card:hover .verse-card-cta svg,
-          .value-highlight-track {
+          .value-highlight-track,
+          .value-grid-row-left,
+          .value-grid-row-right {
             transform: none;
             animation: none;
           }
@@ -1443,17 +1465,24 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4 md:items-stretch">
-            {valueHighlights.map((item) => (
+          <div className="mt-10 overflow-hidden px-3 py-1">
+            {[valueHighlights.slice(0, 4), valueHighlights.slice(4)].map((row, rowIndex) => (
               <div
-                key={item.title}
-                className="equal-card min-h-[148px] rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm transition-transform hover:-translate-y-1"
+                key={rowIndex === 0 ? 'value-row-one' : 'value-row-two'}
+                className={`grid gap-4 sm:grid-cols-2 xl:grid-cols-4 ${rowIndex === 0 ? 'value-grid-row-left' : 'value-grid-row-right mt-4'}`}
               >
-                <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.iconWrap}`}>
-                  {item.icon}
-                </div>
-                <h3 className="mt-4 text-[15px] font-bold leading-snug text-slate-950">{item.title}</h3>
-                <p className="mt-2 text-sm font-normal leading-6 text-slate-500">{item.description}</p>
+                {row.map((item) => (
+                  <div
+                    key={item.title}
+                    className="equal-card min-h-[148px] rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm transition-transform hover:-translate-y-1"
+                  >
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.iconWrap}`}>
+                      {item.icon}
+                    </div>
+                    <h3 className="mt-4 text-[15px] font-bold leading-snug text-slate-950">{item.title}</h3>
+                    <p className="mt-2 text-sm font-normal leading-6 text-slate-500">{item.description}</p>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
