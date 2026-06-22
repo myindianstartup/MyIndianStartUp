@@ -30,15 +30,15 @@ const InfoCardContent = ({ icon: Icon, label, value, linked = false, external = 
       <Icon className="h-4 w-4" />
       {label}
     </div>
-    <div className={`mt-3 break-words text-sm font-bold leading-6 ${linked ? 'text-blue-600 underline decoration-blue-200 underline-offset-4 group-hover:text-blue-700 group-hover:decoration-blue-500' : 'text-slate-900'}`}>
-      <span>{value || 'Not shared yet'}</span>
-      {linked && external ? <ExternalLink className="ml-1.5 inline h-3.5 w-3.5" /> : null}
+    <div className={`mt-3 min-w-0 text-sm font-bold leading-6 ${linked ? 'text-blue-600 underline decoration-blue-200 underline-offset-4 group-hover:text-blue-700 group-hover:decoration-blue-500' : 'text-slate-900'}`}>
+      <span className="whitespace-normal break-all [overflow-wrap:anywhere]">{value || 'Not shared yet'}</span>
+      {linked && external ? <ExternalLink className="ml-1.5 inline h-3.5 w-3.5 shrink-0" /> : null}
     </div>
   </>
 );
 
 const InfoCard = ({ icon: Icon, label, value, href, external = false }) => {
-  const className = "rounded-[1.5rem] border border-slate-200 bg-[#fbfbfd] p-5";
+  const className = "min-w-0 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-[#fbfbfd] p-5";
   if (href && value) {
     return (
       <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} className={`${className} group block transition hover:border-blue-200 hover:bg-blue-50/40`}>
