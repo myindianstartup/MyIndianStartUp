@@ -9,9 +9,9 @@ const businessProfileSchema = z.object({
   city: z.string().trim().min(2),
   state: z.string().trim().min(2),
   website: z.string().url().optional().or(z.literal('')),
-  aboutCompany: z.string().trim().max(1000).optional(),
+  aboutCompany: z.string().trim().max(2400).optional(),
   socialLinks: z.record(z.string()).optional().default({}),
-  contactDetails: z.record(z.string()).optional().default({}),
+  contactDetails: z.record(z.unknown()).optional().default({}),
   logoAssetId: z.string().uuid().optional().nullable()
 });
 
@@ -21,13 +21,18 @@ const creatorProfileSchema = z.object({
   city: z.string().trim().min(2),
   state: z.string().trim().min(2),
   portfolioUrl: z.string().url().optional().or(z.literal('')),
-  aboutMe: z.string().trim().max(1000).optional(),
+  aboutMe: z.string().trim().max(2400).optional(),
   socialLinks: z.record(z.string()).optional().default({}),
-  contactDetails: z.record(z.string()).optional().default({}),
+  contactDetails: z.record(z.unknown()).optional().default({}),
   profileAssetId: z.string().uuid().optional().nullable()
 });
 
 export const profilesRouter = Router();
+
+const withoutPrivateRegistrationData = (contactDetails = {}) => {
+  const { consents, ...publicDetails } = contactDetails || {};
+  return publicDetails;
+};
 
 profilesRouter.get('/public/:userId', requireAuth, async (req, res, next) => {
   try {
@@ -76,10 +81,12 @@ profilesRouter.get('/public/:userId', requireAuth, async (req, res, next) => {
       online,
       businessProfile: business ? {
         ...business,
+        contact_details: withoutPrivateRegistrationData(business.contact_details),
         logo_url: assetsById[business.logo_asset_id] || null
       } : null,
       creatorProfile: creator ? {
         ...creator,
+        contact_details: withoutPrivateRegistrationData(creator.contact_details),
         profile_image_url: assetsById[creator.profile_asset_id] || null
       } : null
     });

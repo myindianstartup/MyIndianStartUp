@@ -5,10 +5,51 @@ import path from 'path';
 import { requireAuth } from '../middleware/auth.js';
 import { supabaseAdmin } from '../lib/supabase.js';
 
+const registrationDetailsSchema = z.object({
+  businessName: z.string().trim().max(160).optional().default(''),
+  businessCategory: z.string().trim().max(120).optional().default(''),
+  professionalCategory: z.string().trim().max(120).optional().default(''),
+  industry: z.string().trim().max(160).optional().default(''),
+  skills: z.array(z.string().trim().min(1).max(80)).max(30).optional().default([]),
+  description: z.string().trim().max(2400).optional().default(''),
+  country: z.string().trim().max(80).optional().default('India'),
+  state: z.string().trim().max(100).optional().default(''),
+  city: z.string().trim().max(100).optional().default(''),
+  website: z.string().trim().max(500).optional().default(''),
+  instagram: z.string().trim().max(500).optional().default(''),
+  linkedin: z.string().trim().max(500).optional().default(''),
+  youtube: z.string().trim().max(500).optional().default(''),
+  portfolioUrl: z.string().trim().max(500).optional().default(''),
+  logoAssetId: z.string().uuid().nullable().optional().default(null),
+  lookingFor: z.array(z.string().trim().min(1).max(80)).max(30).optional().default([]),
+  industriesWanted: z.array(z.string().trim().min(1).max(80)).max(30).optional().default([]),
+  consents: z.object({
+    privacy: z.boolean(),
+    terms: z.boolean(),
+    refund: z.boolean(),
+    age: z.boolean()
+  }).optional()
+});
+
 const memberSchema = z.object({
   fullName: z.string().trim().min(2),
   mobileNumber: z.string().trim().min(7).max(20).optional(),
-  accountType: z.enum(['business', 'creator'])
+  accountType: z.enum(['business', 'creator']),
+  registrationDetails: registrationDetailsSchema.optional()
+}).superRefine((payload, context) => {
+  const details = payload.registrationDetails;
+  if (!details) return;
+
+  const requiredValues = payload.accountType === 'business'
+    ? [details.businessName, details.businessCategory, details.industry, details.state, details.city, details.description]
+    : [details.professionalCategory, details.skills[0], details.state, details.city, details.description];
+
+  if (requiredValues.some((value) => !String(value || '').trim())) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'Required registration profile details are missing.' });
+  }
+  if (!details.consents || Object.values(details.consents).some((accepted) => accepted !== true)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'All registration agreements must be accepted.' });
+  }
 });
 
 export const membersRouter = Router();
@@ -223,18 +264,31 @@ membersRouter.put('/me', requireAuth, async (req, res, next) => {
     if (error) throw error;
 
     if (payload.accountType === 'business') {
+      const details = payload.registrationDetails;
       const { error: profileError } = await supabaseAdmin
         .schema('businessverse')
         .from('profiles')
         .upsert({
           owner_id: req.user.id,
-          business_name: payload.fullName,
-          industry: 'To be updated',
-          city: 'To be updated',
-          state: 'To be updated',
+          business_name: details?.businessName || payload.fullName,
+          industry: details?.industry || 'To be updated',
+          city: details?.city || 'To be updated',
+          state: details?.state || 'To be updated',
+          website: details?.website || null,
+          social_links: {
+            instagram: details?.instagram || '',
+            linkedin: details?.linkedin || ''
+          },
+          about_company: details?.description || null,
+          logo_asset_id: details?.logoAssetId || null,
           contact_details: {
             email: req.user.email,
-            mobile: payload.mobileNumber || null
+            mobile: payload.mobileNumber || null,
+            contactPerson: payload.fullName,
+            country: details?.country || 'India',
+            businessCategory: details?.businessCategory || '',
+            lookingFor: details?.lookingFor || [],
+            consents: details?.consents || {}
           },
           updated_at: new Date().toISOString()
         }, { onConflict: 'owner_id' });
@@ -243,17 +297,30 @@ membersRouter.put('/me', requireAuth, async (req, res, next) => {
     }
 
     if (payload.accountType === 'creator') {
+      const details = payload.registrationDetails;
       const { error: profileError } = await supabaseAdmin
         .schema('creatorverse')
         .from('profiles')
         .upsert({
           owner_id: req.user.id,
           full_name: payload.fullName,
-          city: 'To be updated',
-          state: 'To be updated',
+          skills: details?.skills || [],
+          city: details?.city || 'To be updated',
+          state: details?.state || 'To be updated',
+          portfolio_url: details?.portfolioUrl || null,
+          social_links: {
+            instagram: details?.instagram || '',
+            linkedin: details?.linkedin || '',
+            youtube: details?.youtube || ''
+          },
+          about_me: details?.description || null,
           contact_details: {
             email: req.user.email,
-            mobile: payload.mobileNumber || null
+            mobile: payload.mobileNumber || null,
+            country: details?.country || 'India',
+            professionalCategory: details?.professionalCategory || '',
+            industriesWanted: details?.industriesWanted || [],
+            consents: details?.consents || {}
           },
           updated_at: new Date().toISOString()
         }, { onConflict: 'owner_id' });

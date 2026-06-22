@@ -13,7 +13,8 @@ import {
   Save,
   ShieldCheck,
   Sparkles,
-  UserRound
+  UserRound,
+  Youtube
 } from 'lucide-react';
 import { API_URL, apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +22,10 @@ import WorkspaceSidebar from '@/components/dashboard/WorkspaceSidebar';
 
 const emptyBusiness = {
   businessName: '',
+  contactPerson: '',
+  businessCategory: '',
   industry: '',
+  country: 'India',
   city: '',
   state: '',
   website: '',
@@ -30,13 +34,17 @@ const emptyBusiness = {
   phone: '',
   instagram: '',
   linkedin: '',
+  lookingFor: [],
+  consents: {},
   logoAssetId: null,
   logoUrl: ''
 };
 
 const emptyCreator = {
   fullName: '',
+  professionalCategory: '',
   skills: '',
+  country: 'India',
   city: '',
   state: '',
   portfolioUrl: '',
@@ -45,15 +53,45 @@ const emptyCreator = {
   phone: '',
   instagram: '',
   linkedin: '',
+  youtube: '',
+  industriesWanted: [],
+  consents: {},
   profileAssetId: null,
   profileImageUrl: ''
 };
+
+const businessCategories = [
+  'IT & Software', 'Marketing Agency', 'Manufacturing', 'Retail', 'E-Commerce',
+  'Education', 'Healthcare', 'Real Estate', 'Finance', 'Food & Beverage',
+  'Fashion', 'Jewelry', 'Other'
+];
+
+const creatorCategories = [
+  'Influencer', 'Reels Creator', 'Photographer', 'Videographer', 'Animator',
+  'Graphic Designer', 'UI/UX Designer', 'Web Developer', 'App Developer',
+  'Digital Marketer', 'HR Professional', 'Finance Professional', 'Freelancer',
+  'Consultant', 'Other'
+];
+
+const businessNeeds = [
+  'Influencers', 'Reels Creators', 'Photographers', 'Videographers', 'Animators',
+  'Designers', 'Developers', 'Digital Marketers', 'HR Professionals',
+  'Finance Professionals', 'Freelancers', 'Other'
+];
+
+const creatorIndustries = [
+  'IT', 'Manufacturing', 'Fashion', 'Jewelry', 'Food', 'Healthcare',
+  'Education', 'Real Estate', 'Finance', 'Marketing', 'Other'
+];
 
 const normalizeProfile = (profile, member, type) => {
   if (type === 'business') {
     return {
       businessName: profile?.business_name || member?.full_name || '',
+      contactPerson: profile?.contact_details?.contactPerson || member?.full_name || '',
+      businessCategory: profile?.contact_details?.businessCategory || '',
       industry: profile?.industry === 'To be updated' ? '' : profile?.industry || '',
+      country: profile?.contact_details?.country || 'India',
       city: profile?.city === 'To be updated' ? '' : profile?.city || '',
       state: profile?.state === 'To be updated' ? '' : profile?.state || '',
       website: profile?.website || '',
@@ -62,6 +100,8 @@ const normalizeProfile = (profile, member, type) => {
       phone: profile?.contact_details?.mobile || profile?.contact_details?.phone || member?.mobile_number || '',
       instagram: profile?.social_links?.instagram || '',
       linkedin: profile?.social_links?.linkedin || '',
+      lookingFor: Array.isArray(profile?.contact_details?.lookingFor) ? profile.contact_details.lookingFor : [],
+      consents: profile?.contact_details?.consents || {},
       logoAssetId: profile?.logo_asset_id || null,
       logoUrl: profile?.logo_url || ''
     };
@@ -69,7 +109,9 @@ const normalizeProfile = (profile, member, type) => {
 
   return {
     fullName: profile?.full_name || member?.full_name || '',
+    professionalCategory: profile?.contact_details?.professionalCategory || '',
     skills: Array.isArray(profile?.skills) ? profile.skills.join(', ') : '',
+    country: profile?.contact_details?.country || 'India',
     city: profile?.city === 'To be updated' ? '' : profile?.city || '',
     state: profile?.state === 'To be updated' ? '' : profile?.state || '',
     portfolioUrl: profile?.portfolio_url || '',
@@ -78,6 +120,9 @@ const normalizeProfile = (profile, member, type) => {
     phone: profile?.contact_details?.mobile || profile?.contact_details?.phone || member?.mobile_number || '',
     instagram: profile?.social_links?.instagram || '',
     linkedin: profile?.social_links?.linkedin || '',
+    youtube: profile?.social_links?.youtube || '',
+    industriesWanted: Array.isArray(profile?.contact_details?.industriesWanted) ? profile.contact_details.industriesWanted : [],
+    consents: profile?.contact_details?.consents || {},
     profileAssetId: profile?.profile_asset_id || null,
     profileImageUrl: profile?.profile_image_url || ''
   };
@@ -152,8 +197,8 @@ const ProfileVerse = () => {
 
   const completeness = useMemo(() => {
     const keys = isBusiness
-      ? ['businessName', 'industry', 'city', 'state', 'website', 'aboutCompany', 'email', 'phone']
-      : ['fullName', 'skills', 'city', 'state', 'portfolioUrl', 'aboutMe', 'email', 'phone'];
+      ? ['businessName', 'contactPerson', 'businessCategory', 'industry', 'country', 'city', 'state', 'website', 'aboutCompany', 'email', 'phone']
+      : ['fullName', 'professionalCategory', 'skills', 'country', 'city', 'state', 'portfolioUrl', 'aboutMe', 'email', 'phone'];
     const filled = keys.filter((key) => String(activeForm[key] || '').trim()).length;
     return Math.round((filled / keys.length) * 100);
   }, [activeForm, isBusiness]);
@@ -187,6 +232,15 @@ const ProfileVerse = () => {
 
   const updateField = (field, value) => {
     setActiveForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const toggleListField = (field, value) => {
+    setActiveForm((current) => ({
+      ...current,
+      [field]: current[field].includes(value)
+        ? current[field].filter((item) => item !== value)
+        : [...current[field], value]
+    }));
   };
 
   const handleFileChange = (event) => {
@@ -234,6 +288,11 @@ const ProfileVerse = () => {
 
   const handleSave = async (event) => {
     event.preventDefault();
+    const description = isBusiness ? businessForm.aboutCompany : creatorForm.aboutMe;
+    if (description.trim().split(/\s+/).filter(Boolean).length > 300) {
+      setError('Description must be 300 words or fewer.');
+      return;
+    }
     setSaving(true);
     setError('');
     setSuccess('');
@@ -256,7 +315,12 @@ const ProfileVerse = () => {
             contactDetails: {
               email: businessForm.email.trim(),
               phone: businessForm.phone.trim(),
-              mobile: businessForm.phone.trim()
+              mobile: businessForm.phone.trim(),
+              contactPerson: businessForm.contactPerson.trim(),
+              country: businessForm.country.trim() || 'India',
+              businessCategory: businessForm.businessCategory,
+              lookingFor: businessForm.lookingFor,
+              consents: businessForm.consents
             },
             logoAssetId: uploadedAssetId
           }
@@ -269,12 +333,17 @@ const ProfileVerse = () => {
             aboutMe: creatorForm.aboutMe.trim(),
             socialLinks: {
               instagram: creatorForm.instagram.trim(),
-              linkedin: creatorForm.linkedin.trim()
+              linkedin: creatorForm.linkedin.trim(),
+              youtube: creatorForm.youtube.trim()
             },
             contactDetails: {
               email: creatorForm.email.trim(),
               phone: creatorForm.phone.trim(),
-              mobile: creatorForm.phone.trim()
+              mobile: creatorForm.phone.trim(),
+              country: creatorForm.country.trim() || 'India',
+              professionalCategory: creatorForm.professionalCategory,
+              industriesWanted: creatorForm.industriesWanted,
+              consents: creatorForm.consents
             },
             profileAssetId: uploadedAssetId
           };
@@ -440,8 +509,20 @@ const ProfileVerse = () => {
                     <Field label="Business Name" icon={BriefcaseBusiness}>
                       <input value={businessForm.businessName} onChange={(event) => updateField('businessName', event.target.value)} required className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400" placeholder="Aurora Foods Pvt Ltd" />
                     </Field>
+                    <Field label="Owner / Contact Person" icon={UserRound}>
+                      <input value={businessForm.contactPerson} onChange={(event) => updateField('contactPerson', event.target.value)} required className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400" placeholder="Contact person name" />
+                    </Field>
+                    <Field label="Business Category" icon={BriefcaseBusiness}>
+                      <select value={businessForm.businessCategory} onChange={(event) => updateField('businessCategory', event.target.value)} required className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none">
+                        <option value="" disabled>Select category</option>
+                        {businessCategories.map((category) => <option key={category}>{category}</option>)}
+                      </select>
+                    </Field>
                     <Field label="Industry" icon={ShieldCheck}>
                       <input value={businessForm.industry} onChange={(event) => updateField('industry', event.target.value)} required className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400" placeholder="Food & Beverage" />
+                    </Field>
+                    <Field label="Country" icon={Globe2}>
+                      <input value={businessForm.country} readOnly className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none" />
                     </Field>
                     <Field label="City" icon={MapPin}>
                       <input value={businessForm.city} onChange={(event) => updateField('city', event.target.value)} required className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400" placeholder="Ahmedabad" />
@@ -458,8 +539,17 @@ const ProfileVerse = () => {
                     <Field label="Full Name" icon={UserRound}>
                       <input value={creatorForm.fullName} onChange={(event) => updateField('fullName', event.target.value)} required className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400" placeholder="Riya Sharma" />
                     </Field>
+                    <Field label="Professional Category" icon={BriefcaseBusiness}>
+                      <select value={creatorForm.professionalCategory} onChange={(event) => updateField('professionalCategory', event.target.value)} required className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none">
+                        <option value="" disabled>Select category</option>
+                        {creatorCategories.map((category) => <option key={category}>{category}</option>)}
+                      </select>
+                    </Field>
                     <Field label="Skills" icon={Sparkles}>
                       <input value={creatorForm.skills} onChange={(event) => updateField('skills', event.target.value)} required className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400" placeholder="Photography, Reels, Editing" />
+                    </Field>
+                    <Field label="Country" icon={Globe2}>
+                      <input value={creatorForm.country} readOnly className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none" />
                     </Field>
                     <Field label="City" icon={MapPin}>
                       <input value={creatorForm.city} onChange={(event) => updateField('city', event.target.value)} required className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400" placeholder="Mumbai" />
@@ -485,6 +575,27 @@ const ProfileVerse = () => {
                 <Field label="LinkedIn" icon={Globe2}>
                   <input value={activeForm.linkedin} onChange={(event) => updateField('linkedin', event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400" placeholder="https://linkedin.com/in/yourprofile" />
                 </Field>
+                {!isBusiness && (
+                  <Field label="YouTube" icon={Youtube}>
+                    <input value={creatorForm.youtube} onChange={(event) => updateField('youtube', event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400" placeholder="https://youtube.com/@yourchannel" />
+                  </Field>
+                )}
+              </div>
+
+              <div className="mt-6">
+                <div className="text-sm font-bold text-slate-800">{isBusiness ? 'Looking For' : 'Industries You Want To Work With'}</div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {(isBusiness ? businessNeeds : creatorIndustries).map((option) => {
+                    const field = isBusiness ? 'lookingFor' : 'industriesWanted';
+                    const checked = activeForm[field].includes(option);
+                    return (
+                      <label key={option} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-bold ${checked ? `${theme.soft} ${theme.border} ${theme.accent}` : 'border-slate-200 bg-[#f8fafc] text-slate-600'}`}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleListField(field, option)} className="h-4 w-4 rounded border-slate-300" />
+                        {option}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <label className="mt-5 grid gap-2">
@@ -494,9 +605,9 @@ const ProfileVerse = () => {
                   onChange={(event) => updateField(isBusiness ? 'aboutCompany' : 'aboutMe', event.target.value)}
                   required
                   rows={6}
-                  maxLength={1000}
+                  maxLength={2400}
                   className="resize-none rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold leading-6 text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  placeholder={isBusiness ? 'Describe your company, products, services, and collaboration needs.' : 'Describe your skills, experience, services, and collaboration style.'}
+                  placeholder={isBusiness ? 'Describe your company, products, services, and collaboration needs. Maximum 300 words.' : 'Describe your skills, experience, services, and collaboration style. Maximum 300 words.'}
                 />
               </label>
 

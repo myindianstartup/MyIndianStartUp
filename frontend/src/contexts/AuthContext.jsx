@@ -75,27 +75,39 @@ export const AuthProvider = ({ children }) => {
       const data = await apiRequest('/api/members/me', { token: activeSession.access_token });
       let currentMember = data.member || null;
 
-      const pendingAccountType = window.localStorage.getItem('myindianstartup_pending_account_type');
-      if (!currentMember && ['business', 'creator'].includes(pendingAccountType)) {
-        const authUser = activeSession.user;
-        const metadata = authUser?.user_metadata || {};
+      const authUser = activeSession.user;
+      const metadata = authUser?.user_metadata || {};
+      const pendingAccountType = normalizeAccountType(
+        window.localStorage.getItem('myindianstartup_pending_account_type')
+        || metadata.account_type
+        || window.localStorage.getItem('myindianstartup_account_type')
+      );
+      if (!currentMember && pendingAccountType) {
         const fallbackName = authUser?.email ? authUser.email.split('@')[0] : 'MyIndianStartup Member';
-        const fullName = metadata.full_name || metadata.name || fallbackName;
+        let pendingRegistration = {};
+        try {
+          pendingRegistration = JSON.parse(window.localStorage.getItem('myindianstartup_pending_registration_details') || '{}');
+        } catch {
+          pendingRegistration = {};
+        }
+        const fullName = pendingRegistration.fullName || metadata.full_name || metadata.name || fallbackName;
+        const registrationDetails = pendingRegistration.registrationDetails || metadata.registration_details || undefined;
 
-        // BUG-05 Fix: also pass mobileNumber from Google metadata if available
         const created = await apiRequest('/api/members/me', {
           method: 'PUT',
           token: activeSession.access_token,
           body: {
             fullName,
             accountType: pendingAccountType,
-            mobileNumber: metadata.mobile_number || metadata.phone || null
+            mobileNumber: pendingRegistration.mobileNumber || metadata.mobile_number || metadata.phone || undefined,
+            registrationDetails
           }
         });
 
         currentMember = created.member || null;
         window.localStorage.setItem('myindianstartup_account_type', pendingAccountType);
         window.localStorage.removeItem('myindianstartup_pending_account_type');
+        window.localStorage.removeItem('myindianstartup_pending_registration_details');
       }
 
       if (currentMember?.account_type) {
@@ -170,6 +182,7 @@ export const AuthProvider = ({ children }) => {
     window.localStorage.removeItem('myindianstartup_auth_provider');
     window.localStorage.removeItem('myindianstartup_account_type');
     window.localStorage.removeItem('myindianstartup_pending_account_type');
+    window.localStorage.removeItem('myindianstartup_pending_registration_details');
     window.localStorage.removeItem('myindianstartup_login_email');
   }, []);
 

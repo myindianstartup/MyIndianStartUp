@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BriefcaseBusiness, ExternalLink, Globe2, Instagram, Linkedin, Loader2, Mail, MapPin, Phone, Sparkles, UserCheck, UserPlus, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, ExternalLink, Globe2, Instagram, Linkedin, Loader2, Mail, MapPin, Phone, Sparkles, UserCheck, UserPlus, UserRound, Youtube } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -99,7 +99,8 @@ const MemberProfile = () => {
   const displayName = isCreator
     ? profile?.full_name || profileData?.member?.full_name || profileData?.member?.email || 'Creator profile'
     : profile?.business_name || profileData?.member?.full_name || profileData?.member?.email || 'Business profile';
-  const location = compactLocation(profile?.city, profile?.state);
+  const country = profile?.contact_details?.country || '';
+  const location = [compactLocation(profile?.city, profile?.state), country].filter(Boolean).join(', ');
   const website = isCreator ? profile?.portfolio_url : profile?.website;
   const about = isCreator ? profile?.about_me : profile?.about_company;
   const phone = profile?.contact_details?.mobile || profile?.contact_details?.phone || profileData?.member?.mobile_number || '';
@@ -110,6 +111,7 @@ const MemberProfile = () => {
   const websiteUrl = normalizeExternalUrl(website);
   const instagramUrl = normalizeExternalUrl(socialLinks.instagram);
   const linkedinUrl = normalizeExternalUrl(socialLinks.linkedin);
+  const youtubeUrl = normalizeExternalUrl(socialLinks.youtube);
   const phoneHref = normalizePhoneHref(phone);
   const emailHref = email ? `mailto:${email}` : '';
   const tags = useMemo(() => (
@@ -251,6 +253,7 @@ const MemberProfile = () => {
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <InfoCard icon={Instagram} label="Instagram" value={socialLinks.instagram || ''} href={instagramUrl} external />
                     <InfoCard icon={Linkedin} label="LinkedIn" value={socialLinks.linkedin || ''} href={linkedinUrl} external />
+                    {isCreator && <InfoCard icon={Youtube} label="YouTube" value={socialLinks.youtube || ''} href={youtubeUrl} external />}
                   </div>
                 </div>
               </div>
@@ -264,16 +267,36 @@ const MemberProfile = () => {
                       <div className="mt-1 text-sm font-bold text-slate-900">{isCreator ? 'CreatorVerse' : 'BusinessVerse'}</div>
                     </div>
                     {!isCreator && (
-                      <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Industry</div>
-                        <div className="mt-1 text-sm font-bold text-slate-900">{profile?.industry || 'Not added'}</div>
-                      </div>
+                      <>
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Business category</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{profile?.contact_details?.businessCategory || 'Not added'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Industry</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{profile?.industry || 'Not added'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Looking for</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{profile?.contact_details?.lookingFor?.join(', ') || 'Not added'}</div>
+                        </div>
+                      </>
                     )}
                     {isCreator && (
-                      <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Skills</div>
-                        <div className="mt-1 text-sm font-bold text-slate-900">{tags.join(', ') || 'Not added'}</div>
-                      </div>
+                      <>
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Professional category</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{profile?.contact_details?.professionalCategory || 'Not added'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Skills</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{tags.join(', ') || 'Not added'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Preferred industries</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{profile?.contact_details?.industriesWanted?.join(', ') || 'Not added'}</div>
+                        </div>
+                      </>
                     )}
                     <div>
                       <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Membership</div>
