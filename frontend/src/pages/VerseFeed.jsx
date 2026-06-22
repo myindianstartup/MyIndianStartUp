@@ -16,7 +16,6 @@ import {
   Play,
   Search,
   Send,
-  Share2,
   Sparkles,
   ThumbsDown,
   UserCheck,
@@ -376,27 +375,6 @@ const PostCard = ({ post, token, onMetrics, onFollow, onSavedChange }) => {
       window.alert(error.message || 'Could not load comments.');
     } finally {
       setCommentsLoading(false);
-    }
-  };
-
-  const handleShare = async () => {
-    if (isShowcase) {
-      setMetrics((current) => ({ ...current, shares: (current.shares || 0) + 1 }));
-      return;
-    }
-
-    try {
-      const payload = await apiRequest(`/api/posts/${post.id}/share`, {
-        method: 'POST',
-        token,
-        body: { channel: 'internal' }
-      });
-      if (payload.metrics) {
-        setMetrics(payload.metrics);
-        onMetrics?.(post.id, payload.metrics);
-      }
-    } catch (error) {
-      window.alert(error.message || 'Could not record share.');
     }
   };
 
@@ -774,10 +752,6 @@ const PostCard = ({ post, token, onMetrics, onFollow, onSavedChange }) => {
           <button type="button" onClick={toggleComments} className="flex items-center gap-1.5 text-sm font-bold text-slate-400 transition hover:text-blue-600">
             <MessageCircle size={18} />
             <span>{metrics.comments || 0}</span>
-          </button>
-          <button type="button" onClick={handleShare} className="flex items-center gap-1.5 text-sm font-bold text-slate-400 transition hover:text-slate-700">
-            <Share2 size={18} />
-            <span>{metrics.shares || 0}</span>
           </button>
         </div>
         <button
