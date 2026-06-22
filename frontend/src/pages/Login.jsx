@@ -167,11 +167,11 @@ const Login = () => {
           </Link>
 
           <div className="relative z-10 mx-auto mt-5 flex w-full max-w-xl flex-col justify-center">
-            <div className="auth-fade-in flex min-h-[210px] items-end justify-center px-3 pt-3 md:min-h-[245px] lg:min-h-[280px]">
+            <div className="auth-fade-in mx-auto flex h-[220px] w-full items-center justify-center px-3 md:h-[250px] lg:h-[285px]">
               <img
-                src="/assets/auth-characters.png"
-                alt="Business and creator collaboration"
-                className="max-h-[240px] w-auto object-contain drop-shadow-[0_24px_38px_rgba(15,23,42,0.18)] md:max-h-[265px] lg:max-h-[300px]"
+                src="/assets/login-tablet-blue.svg"
+                alt="Secure member login"
+                className="h-full w-full object-contain object-center drop-shadow-[0_20px_32px_rgba(37,99,235,0.16)]"
               />
             </div>
 
