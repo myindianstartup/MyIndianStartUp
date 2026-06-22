@@ -227,6 +227,7 @@ const SignUp = () => {
       email: values.email,
       password: values.password,
       options: {
+        emailRedirectTo: getAuthRedirectUrl('/login?confirmed=1'),
         data: {
           full_name: values.fullName,
           mobile_number: values.mobileNumber,
@@ -273,7 +274,7 @@ const SignUp = () => {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email: confirmationEmail,
-      options: { emailRedirectTo: getAuthRedirectUrl('/') }
+      options: { emailRedirectTo: getAuthRedirectUrl('/login?confirmed=1') }
     });
     setResendLoading(false);
     if (error) {
@@ -488,6 +489,7 @@ const SignUp = () => {
                       {resendLoading ? 'Sending...' : 'Resend confirmation'}
                     </button>
                     <Link to="/login" className="rounded-lg border border-emerald-300 bg-white px-4 py-2 font-black text-emerald-800 hover:bg-emerald-100">Go to sign in</Link>
+                    <Link to="/forgot-password" className="rounded-lg border border-emerald-300 bg-white px-4 py-2 font-black text-emerald-800 hover:bg-emerald-100">Reset password</Link>
                   </div>
                 )}
                 {resendMessage && <div className="mt-3 font-semibold">{resendMessage}</div>}

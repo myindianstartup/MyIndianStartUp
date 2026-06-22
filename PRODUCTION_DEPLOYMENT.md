@@ -69,6 +69,8 @@ https://myindianstartup.com
 ```text
 https://myindianstartup.com
 https://www.myindianstartup.com
+https://myindianstartup.com/login
+https://www.myindianstartup.com/login
 https://myindianstartup.com/post-verse
 https://www.myindianstartup.com/post-verse
 https://myindianstartup.com/reset-password

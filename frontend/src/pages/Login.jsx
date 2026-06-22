@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, Eye, EyeOff, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BadgeCheck, CheckCircle2, Eye, EyeOff, Mail, ShieldCheck } from 'lucide-react';
 import GoogleLogo from '@/components/auth/GoogleLogo';
 import BrandLogo from '@/components/site/BrandLogo';
 import { getAuthRedirectUrl, supabase } from '@/lib/supabaseClient';
@@ -16,6 +16,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const emailConfirmed = new URLSearchParams(location.search).get('confirmed') === '1';
 
   const googleTheme = googleAccountType === 'business'
     ? {
@@ -211,6 +212,13 @@ const Login = () => {
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Sign in to access your BusinessVerse or CreatorVerse account.
           </p>
+
+          {emailConfirmed && (
+            <div className="mt-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Email confirmed successfully. Sign in to continue to your account.</span>
+            </div>
+          )}
 
           <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
             <label className="grid gap-2">
