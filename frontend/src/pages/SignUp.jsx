@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -56,6 +56,27 @@ const cleanUrl = (value) => {
   const trimmed = String(value || '').trim();
   if (!trimmed) return '';
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
+const getEmailCooldownSeconds = (message = '') => {
+  const secondsMatch = String(message).match(/(\d+)\s*seconds?/i);
+  if (secondsMatch) return Math.max(Number(secondsMatch[1]), 1);
+  return /rate limit|security purposes|too many|over_email_send_rate_limit/i.test(message) ? 60 : 0;
+};
+
+const getSignupErrorMessage = (error) => {
+  const message = error?.message || '';
+  const cooldownSeconds = getEmailCooldownSeconds(message);
+  if (cooldownSeconds) {
+    return {
+      cooldownSeconds,
+      message: `Confirmation email limit reached. Please wait ${cooldownSeconds} seconds, then tap Create account only once.`
+    };
+  }
+  return {
+    cooldownSeconds: 0,
+    message: message || 'Could not create your account. Please try again.'
+  };
 };
 
 const Field = ({ label, icon: Icon, required = false, children }) => (
@@ -191,13 +212,23 @@ const SignUp = () => {
   const [resendLoading, setResendLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const submitLockRef = useRef(false);
 
   const isBusiness = accountType === 'business';
   const accent = isBusiness ? 'text-orange-600' : 'text-blue-600';
   const button = isBusiness ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700';
   const checkbox = isBusiness ? 'text-orange-500 focus:ring-orange-500' : 'text-blue-600 focus:ring-blue-600';
+
+  useEffect(() => {
+    if (!emailCooldown) return undefined;
+    const timer = window.setInterval(() => {
+      setEmailCooldown((seconds) => Math.max(seconds - 1, 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [emailCooldown]);
 
   const saveMember = async (session, values) => {
     const logoAssetId = isBusiness ? await uploadLogo(values.logoFile, session.access_token) : null;
@@ -212,6 +243,12 @@ const SignUp = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (submitLockRef.current || loading || googleLoading) return;
+    if (emailCooldown > 0) {
+      setFormError(`Please wait ${emailCooldown} seconds before requesting another confirmation email.`);
+      return;
+    }
+    submitLockRef.current = true;
     setFormError('');
     setSuccessMessage('');
     setConfirmationEmail('');
@@ -222,6 +259,7 @@ const SignUp = () => {
       values = getValues(event.currentTarget, accountType);
     } catch (error) {
       setFormError(error.message);
+      submitLockRef.current = false;
       return;
     }
 
@@ -241,8 +279,11 @@ const SignUp = () => {
     });
 
     if (error) {
+      const friendlyError = getSignupErrorMessage(error);
+      if (friendlyError.cooldownSeconds) setEmailCooldown(friendlyError.cooldownSeconds);
       setLoading(false);
-      setFormError(error.message || 'Could not create your account. Please try again.');
+      submitLockRef.current = false;
+      setFormError(friendlyError.message);
       return;
     }
 
@@ -251,6 +292,7 @@ const SignUp = () => {
       const existingIdentity = Array.isArray(data.user?.identities) && data.user.identities.length === 0;
       setConfirmationEmail(values.email);
       setLoading(false);
+      submitLockRef.current = false;
       setSuccessMessage(existingIdentity
         ? 'This email is already registered or waiting for confirmation. Sign in if you have confirmed it, or request another confirmation email below.'
         : `We sent a confirmation link to ${values.email}. Check Inbox, Spam, and Promotions before requesting another email.`);
@@ -266,11 +308,16 @@ const SignUp = () => {
     } catch (error) {
       setFormError(error.message || 'Account created, but profile setup could not finish. Sign in to retry.');
       setLoading(false);
+      submitLockRef.current = false;
     }
   };
 
   const handleResendConfirmation = async () => {
     if (!confirmationEmail || resendLoading) return;
+    if (emailCooldown > 0) {
+      setFormError(`Please wait ${emailCooldown} seconds before requesting another confirmation email.`);
+      return;
+    }
     setResendLoading(true);
     setResendMessage('');
     setFormError('');
@@ -281,12 +328,14 @@ const SignUp = () => {
     });
     setResendLoading(false);
     if (error) {
-      const rateLimited = /rate|seconds|security purposes/i.test(error.message || '');
-      setFormError(rateLimited
-        ? 'Please wait about one minute before requesting another confirmation email.'
-        : error.message || 'Could not resend the confirmation email. Please try again.');
+      const friendlyError = getSignupErrorMessage(error);
+      if (friendlyError.cooldownSeconds) setEmailCooldown(friendlyError.cooldownSeconds);
+      setFormError(friendlyError.cooldownSeconds
+        ? `Please wait ${friendlyError.cooldownSeconds} seconds before requesting another confirmation email.`
+        : friendlyError.message || 'Could not resend the confirmation email. Please try again.');
       return;
     }
+    setEmailCooldown(60);
     setResendMessage(`Confirmation email requested for ${confirmationEmail}. Check Inbox, Spam, and Promotions.`);
   };
 
@@ -488,8 +537,8 @@ const SignUp = () => {
                 <div className="font-bold">{successMessage}</div>
                 {confirmationEmail && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <button type="button" onClick={handleResendConfirmation} disabled={resendLoading} className="rounded-lg bg-emerald-700 px-4 py-2 font-black text-white hover:bg-emerald-800 disabled:opacity-60">
-                      {resendLoading ? 'Sending...' : 'Resend confirmation'}
+                    <button type="button" onClick={handleResendConfirmation} disabled={resendLoading || emailCooldown > 0} className="rounded-lg bg-emerald-700 px-4 py-2 font-black text-white hover:bg-emerald-800 disabled:opacity-60">
+                      {resendLoading ? 'Sending...' : emailCooldown > 0 ? `Resend in ${emailCooldown}s` : 'Resend confirmation'}
                     </button>
                     <Link to="/login" className="rounded-lg border border-emerald-300 bg-white px-4 py-2 font-black text-emerald-800 hover:bg-emerald-100">Go to sign in</Link>
                     <Link to="/forgot-password" className="rounded-lg border border-emerald-300 bg-white px-4 py-2 font-black text-emerald-800 hover:bg-emerald-100">Reset password</Link>
@@ -500,9 +549,9 @@ const SignUp = () => {
             )}
 
             <div className="grid gap-3 border-t border-slate-200 pt-6 sm:grid-cols-2">
-              <button type="submit" disabled={loading || googleLoading} className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black text-white disabled:opacity-60 ${button}`}>
+              <button type="submit" disabled={loading || googleLoading || emailCooldown > 0} className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black text-white disabled:opacity-60 ${button}`}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-                {loading ? 'Creating account...' : 'Create account'}
+                {loading ? 'Creating account...' : emailCooldown > 0 ? `Try again in ${emailCooldown}s` : 'Create account'}
               </button>
               <button type="button" onClick={handleGoogleSignUp} disabled={loading || googleLoading} className="inline-flex min-h-12 items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-60">
                 {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleLogo className="h-5 w-5" />}
