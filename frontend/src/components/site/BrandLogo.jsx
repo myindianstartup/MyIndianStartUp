@@ -9,7 +9,7 @@ const BrandLogo = ({
   dark = false,
   logoSrc = defaultLogoSrc
 }) => (
-  <>
+  <span className="inline-flex min-w-0 items-center gap-2 align-middle">
     <span
       className={`relative flex shrink-0 items-center justify-center overflow-hidden ${markClassName}`}
     >
@@ -26,7 +26,7 @@ const BrandLogo = ({
         <span className="text-blue-600">Startup</span>
       </span>
     )}
-  </>
+  </span>
 );
 
 export default BrandLogo;
