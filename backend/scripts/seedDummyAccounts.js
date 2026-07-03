@@ -5,10 +5,12 @@ const now = new Date();
 const expiresAt = new Date(now);
 expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
+const legacySuperadminEmails = ['superadmin@myindianstartup.test'];
+
 const accounts = [
   {
-    email: 'superadmin@myindianstartup.test',
-    password: 'SuperAdmin@123',
+    email: 'superadmin.mis@gmail.com',
+    password: 'SuperAdmin@01',
     fullName: 'MIS Super Admin',
     accountType: 'business',
     adminRole: 'superadmin'
@@ -59,32 +61,70 @@ if (schemaError) {
   console.error('Supabase schema is not ready. Run backend/database/supabase/schema.sql in Supabase SQL Editor first.');
   process.exitCode = 1;
 } else {
-  const createOrGetUser = async ({ email, password, fullName }) => {
-  const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { full_name: fullName }
-  });
+  const findUserByEmail = async (email) => {
+    const targetEmail = email.toLowerCase();
+    let page = 1;
 
-  if (!error && created?.user) {
-    return created.user;
-  }
+    while (true) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 100 });
+      if (error) throw error;
 
-  if (!String(error?.message || '').toLowerCase().includes('already')) {
-    throw error;
-  }
+      const existing = data.users.find((user) => user.email?.toLowerCase() === targetEmail);
+      if (existing) return existing;
 
-  const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-  if (listError) throw listError;
-
-  const existing = users.users.find((user) => user.email === email);
-  if (!existing) {
-    throw new Error(`User exists but could not be fetched: ${email}`);
-  }
-
-  return existing;
+      if (data.users.length < 100) return null;
+      page += 1;
+    }
   };
+
+  const deleteLegacySuperadmins = async () => {
+    for (const email of legacySuperadminEmails) {
+      const legacyUser = await findUserByEmail(email);
+      if (!legacyUser) continue;
+
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(legacyUser.id);
+      if (deleteError) throw deleteError;
+
+      console.log(`Removed legacy superadmin ${email}`);
+    }
+  };
+
+  const createOrGetUser = async ({ email, password, fullName }) => {
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName }
+    });
+
+    if (!error && created?.user) {
+      return created.user;
+    }
+
+    if (!String(error?.message || '').toLowerCase().includes('already')) {
+      throw error;
+    }
+
+    const existing = await findUserByEmail(email);
+    if (!existing) {
+      throw new Error(`User exists but could not be fetched: ${email}`);
+    }
+
+    const { data: updated, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName }
+    });
+    if (updateError) throw updateError;
+
+    if (updated?.user) {
+      return updated.user;
+    }
+
+    return existing;
+  };
+
+  await deleteLegacySuperadmins();
 
   for (const account of accounts) {
     const user = await createOrGetUser(account);

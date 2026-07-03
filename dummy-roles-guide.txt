@@ -5,10 +5,10 @@ This file documents local/demo credentials only. Do not use these passwords for 
 1. Superadmin Account
 
 Email:
-superadmin@myindianstartup.test
+superadmin.mis@gmail.com
 
 Password:
-SuperAdmin@123
+SuperAdmin@01
 
 Frontend dashboard:
 http://localhost:3000/superadmin

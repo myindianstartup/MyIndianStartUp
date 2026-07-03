@@ -1,8 +1,8 @@
 MyIndianStartup Dummy Accounts
 
 Superadmin
-Email: superadmin@myindianstartup.test
-Password: SuperAdmin@123
+Email: superadmin.mis@gmail.com
+Password: SuperAdmin@01
 Dashboard: http://localhost:3000/superadmin
 
 Admin

@@ -64,7 +64,7 @@ npm run seed:dummy
 
 Demo login accounts:
 
-- Superadmin: `superadmin@myindianstartup.test` / `SuperAdmin@123`
+- Superadmin: `superadmin.mis@gmail.com` / `SuperAdmin@01`
 - Admin: `admin@myindianstartup.test` / `Admin@123`
 - BusinessVerse: `business@myindianstartup.test` / `Business@123`
 - CreatorVerse: `creator@myindianstartup.test` / `Creator@123`

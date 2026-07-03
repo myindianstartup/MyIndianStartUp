@@ -48,7 +48,7 @@ Navbar avatar after login        Messages (real or basic inbox)
 - Login with `business@myindianstartup.test` / `Business@123` at `http://localhost:3000/login`
 - Confirm redirect to `/post-verse` works
 - Login with `admin@myindianstartup.test` → confirm redirect to `/admin`
-- Login with `superadmin@myindianstartup.test` → confirm redirect to `/superadmin`
+- Login with `superadmin.mis@gmail.com` → confirm redirect to `/superadmin`
 
 ### 1.2 — Fix missing frontend pages (currently placeholders)
 These pages exist but are empty stubs. They need full UI:
