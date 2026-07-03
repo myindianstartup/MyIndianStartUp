@@ -765,7 +765,7 @@ const SuperAdminDashboard = () => {
     discountType: couponForm.discountType,
     discountValue: Number(couponForm.discountValue || 0),
     usageLimit: couponForm.usageLimit === '' ? null : Number(couponForm.usageLimit),
-    perUserLimit: Number(couponForm.perUserLimit || 1),
+    perUserLimit: 1,
     startsAt: couponForm.startsAt ? new Date(couponForm.startsAt).toISOString() : null,
     endsAt: couponForm.endsAt ? new Date(couponForm.endsAt).toISOString() : null,
     applicablePlanIds: couponForm.applicablePlanIds,
@@ -1271,7 +1271,7 @@ const SuperAdminDashboard = () => {
                       </div>
                       <StatusPill value={couponForm.applicablePlanIds.length ? `${couponForm.applicablePlanIds.length} plan filters` : 'all plans'} />
                     </div>
-                    <div className="grid gap-3 lg:grid-cols-4">
+                    <div className="grid gap-3 lg:grid-cols-3">
                       <label className="grid gap-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Start date</span>
                         <input
@@ -1291,7 +1291,7 @@ const SuperAdminDashboard = () => {
                         />
                       </label>
                       <label className="grid gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Total uses</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">User limit</span>
                         <input
                           type="number"
                           min="1"
@@ -1300,16 +1300,7 @@ const SuperAdminDashboard = () => {
                           placeholder="Unlimited"
                           className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-300"
                         />
-                      </label>
-                      <label className="grid gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Per user</span>
-                        <input
-                          type="number"
-                          min="1"
-                          value={couponForm.perUserLimit}
-                          onChange={(event) => updateCouponForm('perUserLimit', event.target.value)}
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-300"
-                        />
+                        <span className="text-[11px] font-semibold text-slate-400">How many users can use this coupon.</span>
                       </label>
                     </div>
                     <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_1fr]">
@@ -1381,8 +1372,7 @@ const SuperAdminDashboard = () => {
                                 <div className="mt-1 text-xs font-bold capitalize text-slate-400">{coupon.discount_type}</div>
                               </td>
                               <td className="p-3 font-semibold text-slate-600">
-                                <div>{coupon.usage_limit || 'Unlimited'} total</div>
-                                <div className="mt-1 text-xs font-bold text-slate-400">{coupon.per_user_limit || 1} per user</div>
+                                <div>{coupon.usage_limit ? `${coupon.usage_limit} users` : 'Unlimited users'}</div>
                               </td>
                               <td className="p-3">
                                 <div className="flex max-w-xs flex-wrap gap-2">
