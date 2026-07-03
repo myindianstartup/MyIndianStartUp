@@ -727,8 +727,12 @@ const SuperAdminDashboard = () => {
       const data = await apiRequest(`/api/admin/superadmin/coupons/${coupon.id}/redemptions`, { token });
       setSelectedCouponRedemptions({ coupon, redemptions: data.redemptions || [], loading: false });
     } catch (requestError) {
-      setError(requestError.message || 'Could not load coupon usage logs.');
-      setSelectedCouponRedemptions(null);
+      setSelectedCouponRedemptions({
+        coupon,
+        redemptions: [],
+        loading: false,
+        error: requestError.message || 'Could not load coupon usage logs.'
+      });
     }
   };
 
@@ -893,6 +897,10 @@ const SuperAdminDashboard = () => {
               {selectedCouponRedemptions.loading ? (
                 <div className="p-10 text-center text-sm font-bold text-slate-500 flex items-center justify-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin" /> Loading redemption logs...
+                </div>
+              ) : selectedCouponRedemptions.error ? (
+                <div className="p-10 text-center text-sm font-bold text-rose-600">
+                  {selectedCouponRedemptions.error}
                 </div>
               ) : selectedCouponRedemptions.redemptions.length ? (
                 <table className="w-full text-left text-sm">

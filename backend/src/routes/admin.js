@@ -1197,13 +1197,14 @@ adminRouter.get('/superadmin/coupons/:id/redemptions', requireAuth, requireAdmin
       const userIds = redemptionList.map((r) => r.user_id);
       const planIds = [...new Set(redemptionList.map((r) => r.plan_id).filter(Boolean))];
 
-      const [{ data: members, error: memError }, plansResult] = await Promise.all([
+      const [membersResult, plansResult] = await Promise.all([
         supabaseAdmin.schema('core').from('members').select('id, email, full_name, mobile_number').in('id', userIds),
-        plansResult = planIds.length
+        planIds.length
           ? supabaseAdmin.rpc('billing_list_plans').then(({ data, error }) => ({ data: (data || []).filter((p) => planIds.includes(p.id)), error }))
           : Promise.resolve({ data: [], error: null })
       ]);
 
+      const { data: members, error: memError } = membersResult;
       if (memError) throw memError;
       if (plansResult.error) throw plansResult.error;
 
