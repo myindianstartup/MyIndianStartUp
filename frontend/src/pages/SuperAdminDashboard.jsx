@@ -1267,7 +1267,7 @@ const SuperAdminDashboard = () => {
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
                         <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Advanced controls</div>
-                        <p className="mt-1 text-xs font-bold text-slate-500">Dates, plan targeting, usage limits, and user-specific coupons.</p>
+                        <p className="mt-1 text-xs font-bold text-slate-500">Set dates, plan targeting, and how many users can use this coupon.</p>
                       </div>
                       <StatusPill value={couponForm.applicablePlanIds.length ? `${couponForm.applicablePlanIds.length} plan filters` : 'all plans'} />
                     </div>
@@ -1278,7 +1278,7 @@ const SuperAdminDashboard = () => {
                           type="date"
                           value={couponForm.startsAt}
                           onChange={(event) => updateCouponForm('startsAt', event.target.value)}
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-300"
+                          className="h-14 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-300"
                         />
                       </label>
                       <label className="grid gap-2">
@@ -1287,7 +1287,7 @@ const SuperAdminDashboard = () => {
                           type="date"
                           value={couponForm.endsAt}
                           onChange={(event) => updateCouponForm('endsAt', event.target.value)}
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-300"
+                          className="h-14 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-300"
                         />
                       </label>
                       <label className="grid gap-2">
@@ -1298,9 +1298,8 @@ const SuperAdminDashboard = () => {
                           value={couponForm.usageLimit}
                           onChange={(event) => updateCouponForm('usageLimit', event.target.value)}
                           placeholder="Unlimited"
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-300"
+                          className="h-14 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-300"
                         />
-                        <span className="text-[11px] font-semibold text-slate-400">How many users can use this coupon.</span>
                       </label>
                     </div>
                     <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_1fr]">
