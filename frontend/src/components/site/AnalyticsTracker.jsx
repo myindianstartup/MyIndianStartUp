@@ -3,8 +3,43 @@ import { useLocation } from 'react-router-dom';
 import { API_URL } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
+const GA_MEASUREMENT_ID = process.env.REACT_APP_GA_MEASUREMENT_ID || '';
+
 const isLocalDevelopment = typeof window !== 'undefined'
   && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+const isGoogleAnalyticsEnabled = () => (
+  typeof window !== 'undefined'
+  && Boolean(GA_MEASUREMENT_ID)
+  && !isLocalDevelopment
+);
+
+const initializeGoogleAnalytics = () => {
+  if (!isGoogleAnalyticsEnabled() || window.gtag) return;
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() {
+    window.dataLayer.push(arguments);
+  };
+
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  document.head.appendChild(script);
+
+  window.gtag('js', new Date());
+  window.gtag('config', GA_MEASUREMENT_ID, { send_page_view: false });
+};
+
+const sendGooglePageView = (route) => {
+  if (!isGoogleAnalyticsEnabled() || !window.gtag) return;
+
+  window.gtag('config', GA_MEASUREMENT_ID, {
+    page_path: route,
+    page_location: window.location.href,
+    page_title: document.title
+  });
+};
 
 const getSessionId = () => {
   const key = 'myindianstartup_session_id';
@@ -59,6 +94,10 @@ const AnalyticsTracker = () => {
   const previousRef = useRef({ route: null, startedAt: Date.now() });
 
   useEffect(() => {
+    initializeGoogleAnalytics();
+  }, []);
+
+  useEffect(() => {
     const now = Date.now();
     const previous = previousRef.current;
     const route = `${location.pathname}${location.search}`;
@@ -84,6 +123,7 @@ const AnalyticsTracker = () => {
         title: document.title
       }
     }, token);
+    sendGooglePageView(route);
 
     previousRef.current = { route, startedAt: now };
   }, [location.pathname, location.search, token]);
