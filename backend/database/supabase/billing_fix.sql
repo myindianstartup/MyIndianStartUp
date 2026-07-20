@@ -365,6 +365,10 @@ begin
 end;
 $$;
 
+insert into billing.coupons (code, title, discount_type, discount_value, usage_limit, per_user_limit, is_active)
+values ('AUGUST100', 'August 100% Free Month Offer', 'percentage', 100, null, 1, true)
+on conflict (code) do nothing;
+
 -- Validate coupon (returns json with valid, discountAmountInr, finalAmountInr)
 create or replace function public.billing_validate_coupon(
   p_code text,

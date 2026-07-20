@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Building2, CalendarDays, Check, CreditCard, Loader2, ShieldCheck, Sparkles, Tag, UserRound } from 'lucide-react';
 import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 const formatCurrency = (value) => `Rs ${new Intl.NumberFormat('en-IN').format(value || 0)}`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const AUGUST_PROMO_CODE = 'AUGUST100';
 
 const formatDate = (value) => {
   if (!value) return 'Not available';
@@ -78,6 +79,7 @@ const loadRazorpayCheckout = () => new Promise((resolve, reject) => {
 const Payment = () => {
   const { token, member, user, isAuthenticated, refreshMember, session } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [couponCode, setCouponCode] = useState('');
@@ -119,6 +121,13 @@ const Payment = () => {
     setQuote(null);
     setMessage('');
   }, [selectedPlanId]);
+
+  useEffect(() => {
+    const queryCoupon = searchParams.get('coupon');
+    if (queryCoupon) {
+      setCouponCode(queryCoupon.trim().toUpperCase());
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fallbackName = user?.email ? user.email.split('@')[0] : '';
@@ -276,7 +285,8 @@ const Payment = () => {
 
       setQuote(data.quote);
       if (data.freeCheckout && data.razorpay?.skipped) {
-        setMessage('100% coupon applied. Razorpay skipped and your 1-year membership is active from today.');
+        const appliedCode = data.quote?.coupon?.code || couponCode.trim().toUpperCase() || 'Coupon';
+        setMessage(`${appliedCode} applied. Razorpay skipped and your free membership is active from today.`);
         if (session) {
           await refreshMember(session);
         }
@@ -562,7 +572,7 @@ const Payment = () => {
                         <input
                           value={couponCode}
                           onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                          placeholder="WELCOME10"
+                          placeholder={AUGUST_PROMO_CODE}
                           className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-black text-slate-800 outline-none focus:border-slate-400"
                         />
                       </div>
@@ -575,6 +585,24 @@ const Payment = () => {
                         {checkingCoupon ? 'Checking...' : 'Apply Coupon'}
                       </button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCouponCode(AUGUST_PROMO_CODE);
+                        setQuote(null);
+                        setError('');
+                        setMessage('Coupon code added. Tap Apply Coupon to make this membership free.');
+                      }}
+                      className="mt-3 flex w-full flex-col gap-2 rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-left transition-colors hover:border-emerald-200 hover:bg-emerald-50/70 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <span>
+                        <span className="block text-xs font-black uppercase tracking-[0.2em] text-emerald-600">August offer</span>
+                        <span className="mt-1 block text-sm font-bold text-slate-600">Use coupon below Apply Coupon for 100% free access.</span>
+                      </span>
+                      <span className="inline-flex w-fit rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-white">
+                        {AUGUST_PROMO_CODE}
+                      </span>
+                    </button>
                   </div>
 
                   {error && <div className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">{error}</div>}

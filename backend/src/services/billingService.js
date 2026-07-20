@@ -265,11 +265,13 @@ const activatePlanDirectly = async ({
   freeAccess,
   source,
   eventType,
-  metadata
+  metadata,
+  durationDays = null
 }) => {
   const now = new Date();
   const startsAt = now.toISOString();
-  const expiresAt = new Date(now.getTime() + Number(plan.duration_days || 365) * 24 * 60 * 60 * 1000).toISOString();
+  const planDurationDays = Number(durationDays || plan.duration_days || 365);
+  const expiresAt = new Date(now.getTime() + planDurationDays * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: currentSubscriptions, error: currentError } = await supabaseAdmin
     .schema('billing')
@@ -349,12 +351,26 @@ const activatePlanDirectly = async ({
 };
 
 const activateFullDiscountSubscription = async ({ userId, quote, order }) => {
+  const isAugustFreeMonth = String(quote.coupon.code || '').toUpperCase() === 'AUGUST100';
   const metadata = {
     orderId: order?.id,
     couponId: quote.coupon.id,
     couponCode: quote.coupon.code,
-    discountPercent: quote.coupon.discount_value
+    discountPercent: quote.coupon.discount_value,
+    ...(isAugustFreeMonth ? { promotion: 'august_free_month', durationDays: 30 } : {})
   };
+
+  if (isAugustFreeMonth) {
+    return activatePlanDirectly({
+      userId,
+      plan: quote.plan,
+      freeAccess: true,
+      source: 'coupon',
+      eventType: 'free_access',
+      metadata,
+      durationDays: 30
+    });
+  }
 
   try {
     return await assignPlanToUser({

@@ -938,6 +938,28 @@ const Home = () => {
                 Build your presence, showcase your work, publish daily updates, and connect with opportunities across India whether you&apos;re a business looking for creators or a creator looking for opportunities.
               </p>
 
+              <button
+                type="button"
+                onClick={() => navigate('/pricing?coupon=AUGUST100')}
+                className="mt-6 flex w-full max-w-xl flex-col gap-3 rounded-[1.5rem] border border-emerald-100 bg-white/90 px-5 py-4 text-left shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition-transform hover:-translate-y-0.5 hover:border-emerald-200 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span>
+                  <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">
+                    Limited August launch offer
+                  </span>
+                  <span className="mt-3 block text-lg font-black leading-tight text-slate-950">
+                    Get your first month free with coupon code AUGUST100.
+                  </span>
+                  <span className="mt-1 block text-sm font-semibold leading-6 text-slate-600">
+                    Apply it at checkout and start using the platform at Rs 0.
+                  </span>
+                </span>
+                <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white">
+                  AUGUST100
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </button>
+
               <div className="mt-7 flex flex-wrap gap-4">
                 {!isAuthenticated ? (
                   <>

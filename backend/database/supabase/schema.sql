@@ -438,6 +438,7 @@ on conflict (code) do nothing;
 
 insert into billing.coupons (code, title, discount_type, discount_value, usage_limit, per_user_limit, is_active)
 values
+  ('AUGUST100', 'August 100% Free Month Offer', 'percentage', 100, null, 1, true),
   ('WELCOME10', 'Welcome 10% Discount', 'percentage', 10, 1000, 1, true),
   ('STARTUP20', 'Startup 20% Discount', 'percentage', 20, 500, 1, true),
   ('PREMIUM50', 'Premium 50% Discount', 'percentage', 50, 100, 1, true)
