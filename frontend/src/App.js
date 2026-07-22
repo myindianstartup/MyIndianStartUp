@@ -6,6 +6,7 @@ import Navbar from "@/components/site/Navbar";
 import Footer from "@/components/site/Footer";
 import ScrollToTop from "@/components/site/ScrollToTop";
 import AnalyticsTracker from "@/components/site/AnalyticsTracker";
+import CouponOfferPopup from "@/components/site/CouponOfferPopup";
 import Home from "@/pages/Home";
 import BusinessVerse from "@/pages/BusinessVerse";
 import CreatorVerse from "@/pages/CreatorVerse";
@@ -66,6 +67,7 @@ function App() {
         <AuthProvider>
           <ScrollToTop />
           <AnalyticsTracker />
+          <CouponOfferPopup />
           {/* Verification Link for Emergent Test Suits */}
           <div className="sr-only opacity-0 pointer-events-none absolute">
             <a
