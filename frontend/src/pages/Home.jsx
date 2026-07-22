@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   Circle,
   Clock3,
-  Copy,
   Eye,
   Globe2,
   Handshake,
@@ -22,11 +21,8 @@ import {
   ShieldCheck,
   Scale,
   Target,
-  Users,
-  X
+  Users
 } from 'lucide-react';
-
-const AUGUST_PROMO_CODE = 'AUGUST100';
 
 const sectionAccent = (accent = 'blue') => {
   if (accent === 'orange') {
@@ -454,24 +450,6 @@ const Home = () => {
     publishedPosts: 0,
     memberPreview: []
   });
-  const [showAugustOffer, setShowAugustOffer] = useState(false);
-  const [couponCopied, setCouponCopied] = useState(false);
-
-  useEffect(() => {
-    const showTimer = window.setTimeout(() => {
-      setShowAugustOffer(true);
-    }, 4000);
-
-    const hideTimer = window.setTimeout(() => {
-      setShowAugustOffer(false);
-    }, 9000);
-
-    return () => {
-      window.clearTimeout(showTimer);
-      window.clearTimeout(hideTimer);
-    };
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -686,28 +664,6 @@ const Home = () => {
         'Build your visible collaboration network',
         'Keep every opportunity in one place'
       ];
-
-  const copyAugustCoupon = async () => {
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(AUGUST_PROMO_CODE);
-      } else {
-        const couponField = document.createElement('textarea');
-        couponField.value = AUGUST_PROMO_CODE;
-        couponField.setAttribute('readonly', '');
-        couponField.style.position = 'absolute';
-        couponField.style.left = '-9999px';
-        document.body.appendChild(couponField);
-        couponField.select();
-        document.execCommand('copy');
-        document.body.removeChild(couponField);
-      }
-      setCouponCopied(true);
-      window.setTimeout(() => setCouponCopied(false), 1600);
-    } catch {
-      setCouponCopied(false);
-    }
-  };
 
   return (
     <div className="bg-white text-slate-950">
@@ -936,64 +892,6 @@ const Home = () => {
           }
         }
       `}</style>
-      {showAugustOffer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/25 px-4 py-8">
-          <div className="absolute inset-0" onClick={() => setShowAugustOffer(false)} aria-hidden="true" />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="august-offer-title"
-            className="relative w-full max-w-[520px] overflow-hidden rounded-[2rem] border border-white/25 bg-[linear-gradient(135deg,rgba(37,99,235,0.9),rgba(124,58,237,0.9)_58%,rgba(249,115,22,0.78))] px-6 py-7 text-center text-white shadow-[0_30px_90px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:px-8 sm:py-8"
-          >
-            <button
-              type="button"
-              onClick={() => setShowAugustOffer(false)}
-              aria-label="Close August offer"
-              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/18 text-white transition-colors hover:bg-white/28"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/18 text-3xl shadow-inner">
-              %
-            </div>
-            <div className="mx-auto mt-5 inline-flex rounded-full bg-white/20 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-white">
-              Limited time offer
-            </div>
-            <h2 id="august-offer-title" className="mt-4 text-5xl font-black leading-none tracking-tight text-white sm:text-6xl">
-              100% OFF
-            </h2>
-            <p className="mt-3 text-xl font-black text-white">August Month Special</p>
-            <p className="mx-auto mt-4 max-w-sm text-sm font-semibold leading-6 text-white/90">
-              Get 100% discount this August. Copy the coupon code and apply it at checkout.
-            </p>
-
-            <button
-              type="button"
-              onClick={copyAugustCoupon}
-              className="mt-6 flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-white/60 bg-white px-5 py-4 text-left text-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.16)] transition-transform hover:scale-[1.01]"
-            >
-              <span className="text-xl font-black tracking-[0.22em] sm:text-2xl">{AUGUST_PROMO_CODE}</span>
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
-                <Copy className="h-5 w-5" />
-              </span>
-            </button>
-            <p className="mt-3 text-xs font-semibold text-white/80">
-              {couponCopied ? 'Coupon copied.' : 'Click code or icon to copy'}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => navigate('/pricing?coupon=AUGUST100')}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 text-sm font-black text-blue-600 transition-colors hover:bg-blue-50"
-            >
-              Go to Pricing
-              <ArrowRight className="h-4 w-4" />
-            </button>
-            <p className="mt-5 text-xs font-bold text-white/85">Offer ends August 31st</p>
-          </div>
-        </div>
-      )}
       <section className="relative overflow-hidden pb-12 pt-[7.75rem] sm:pt-24 md:pb-20 md:pt-28">
         <div className="absolute inset-x-0 top-0 h-[760px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.09),transparent_35%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.08),transparent_28%)] pointer-events-none" />
         <div className="absolute -top-24 right-[-8rem] h-[26rem] w-[26rem] rounded-full bg-blue-500/5 blur-[110px] pointer-events-none" />
